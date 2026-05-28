@@ -1,6 +1,6 @@
 ---
 title: "Paginate through large Octogen search results"
-description: "Use cursor-based pagination to iterate through all matching products in an Octogen catalog search, page by page, without missing or duplicating results."
+description: "Use cursor-based pagination to iterate through all matching products in an Octogen search, page by page, without missing or duplicating results."
 sidebarTitle: "Pagination"
 ---
 
@@ -29,7 +29,7 @@ To advance to the next page, send the same request again with the `nextCursor` v
     If `nextCursor` is `null`, the response is the only (or last) page — you are done. If `nextCursor` is a non-null string, there are more results.
   </Step>
   <Step title="Send the next request with cursor">
-    Repeat the same request, passing the `nextCursor` value as `cursor`. Keep all other parameters — `catalog`, `q`, `facets`, `price_min`, `price_max`, `limit` — identical to the original request.
+    Repeat the same request, passing the `nextCursor` value as `cursor`. Keep all other parameters — including `catalog` if you provided one — identical to the original request.
   </Step>
   <Step title="Repeat until nextCursor is null">
     Continue sending requests until `nextCursor` is `null`. That response contains the final page of results.
@@ -48,7 +48,6 @@ from octogen_ai_sdk import OctogenClient
 from octogen_ai_sdk.models import Facet, FacetName, MerchantProductListItem
 
 async def fetch_all_products(
-    catalog: str,
     query: str,
 ) -> list[MerchantProductListItem]:
     all_items: list[MerchantProductListItem] = []
@@ -58,7 +57,6 @@ async def fetch_all_products(
 
         while True:
             page = await client.search_products(
-                catalog=catalog,
                 q=query,
                 cursor=cursor,
                 limit=50,
@@ -73,7 +71,7 @@ async def fetch_all_products(
 
 
 async def main() -> None:
-    products = await fetch_all_products("warrenlotas", "hoodie")
+    products = await fetch_all_products("hoodie")
     print(f"Total products fetched: {len(products)}")
     for product in products:
         print(f"- {product.title} ({product.product_url})")
@@ -86,7 +84,6 @@ import { OctogenClient } from "@octogen-ai/sdk";
 import type { MerchantProductListItem } from "@octogen-ai/sdk";
 
 async function fetchAllProducts(
-  catalog: string,
   query: string,
 ): Promise<MerchantProductListItem[]> {
   const client = new OctogenClient();
@@ -95,7 +92,6 @@ async function fetchAllProducts(
 
   while (true) {
     const page = await client.searchProducts({
-      catalog,
       q: query,
       cursor,
       limit: 50,
@@ -112,7 +108,7 @@ async function fetchAllProducts(
   return allItems;
 }
 
-const products = await fetchAllProducts("warrenlotas", "hoodie");
+const products = await fetchAllProducts("hoodie");
 console.log(`Total products fetched: ${products.length}`);
 for (const product of products) {
   console.log(`- ${product.title ?? "Untitled"} (${product.productUrl})`);

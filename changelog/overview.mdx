@@ -3,6 +3,14 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="May 28, 2026" description="All-catalog search">
+
+## Update
+
+**Product search now supports all granted catalogs by default.** Omit `catalog` from `POST /v1/products/search`, `search_products(...)`, or `searchProducts(...)` to search across every catalog your organization can access. Pass `catalog` only when you want to restrict results to one catalog.
+
+</Update>
+
 <Update label="May 22, 2026" description="Week of May 18">
 
 ## New features
@@ -11,7 +19,7 @@ description: "New features, improvements, and fixes for the Octogen Platform."
 
 See the [MCP overview](/mcp/overview) to choose a client and get started.
 
-**Platform Catalog API v1 (REST) is generally available.** Backends and batch jobs can now hit the same catalog data over HTTPS with an `octo_live_...` API key. Endpoints include `POST /v1/catalogs`, `POST /v1/products/lookup`, and `POST /v1/products/search`, with cursor-based pagination and facet support.
+**Platform Catalog API v1 (REST) is generally available.** Backends and batch jobs can now hit the same catalog data over HTTPS with an `octo_live_...` API key. Endpoints include `GET /v1/catalogs`, `POST /v1/products/lookup`, and `POST /v1/products/search`, with cursor-based pagination and facet support.
 
 See the [API reference overview](/api-reference/overview) for endpoint details and the [authentication guide](/authentication) for key setup.
 

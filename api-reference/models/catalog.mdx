@@ -4,12 +4,12 @@ description: "The catalog object returned by GET /catalogs, containing the key, 
 sidebarTitle: "Catalog"
 ---
 
-`MerchantCatalogSummary` represents a single catalog that has been granted to your organization. It is the element type of the array returned by [`GET /catalogs`](/api-reference/list-catalogs). The `catalog` field is the key you pass to [`POST /products/search`](/api-reference/search-products) to scope a search to this catalog.
+`MerchantCatalogSummary` represents a single catalog that has been granted to your organization. It is the element type of the array returned by [`GET /catalogs`](/api-reference/list-catalogs). The `catalog` field is the key you can pass to [`POST /products/search`](/api-reference/search-products) when you want to scope search to this catalog.
 
 ## Fields
 
 <ResponseField name="catalog" type="string" required>
-  Unique catalog key. This is the identifier you pass as the `catalog` field in search requests. Example: `"warrenlotas"`.
+  Unique catalog key. This is the identifier you pass as the optional `catalog` field in search requests when you want to scope search to this catalog. Example: `"warrenlotas"`.
 </ResponseField>
 
 <ResponseField name="displayName" type="string" required>

@@ -1,10 +1,10 @@
 ---
 title: "POST /products/search — search catalog products"
-description: "Searches products within a single granted catalog using free-text queries, structured facet filters, price ranges, and cursor-based pagination."
+description: "Searches products across all granted catalogs, or within one catalog when scoped, using free-text queries, structured facet filters, price ranges, and cursor-based pagination."
 sidebarTitle: "Search Products"
 ---
 
-`POST /products/search` lets you search and browse products within a single catalog your organization has been granted access to. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
+`POST /products/search` lets you search and browse products across all catalogs your organization has been granted access to. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
 
 ## Request
 
@@ -16,12 +16,12 @@ Content-Type: application/json
 
 ### Body parameters
 
-<ParamField body="catalog" type="string" required>
-  Key of the catalog to search. Must be a catalog currently granted to your organization. Retrieve available keys from [`GET /catalogs`](/api-reference/list-catalogs). Cross-catalog search is not supported — issue separate requests for each catalog.
+<ParamField body="catalog" type="string">
+  Optional key of the catalog to search. When omitted, search runs across all active catalogs currently granted to your organization. When provided, it must be a catalog key from [`GET /catalogs`](/api-reference/list-catalogs).
 </ParamField>
 
 <ParamField body="q" type="string">
-  Free-text keyword query. Omit or set to `null` to browse the catalog without keyword filtering. Can be combined with `facets` and price filters.
+  Free-text keyword query. Omit or set to `null` to browse without keyword filtering. Can be combined with `facets` and price filters.
 </ParamField>
 
 <ParamField body="facets" type="Facet[]">
@@ -60,7 +60,6 @@ curl -sS https://api.octogen.ai/v1/products/search \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "catalog": "warrenlotas",
     "q": "black hoodie",
     "facets": [
       {"name": "color_family", "values": ["Black"]},
@@ -197,7 +196,6 @@ async def main() -> None:
         cursor = None
         while True:
             page = await client.search_products(
-                catalog="warrenlotas",
                 q="black hoodie",
                 facets=[
                     Facet(name="color_family", values=["Black"]),
@@ -225,7 +223,6 @@ let cursor: string | undefined;
 
 while (true) {
   const page = await client.searchProducts({
-    catalog: "warrenlotas",
     q: "black hoodie",
     facets: [
       { name: "color_family", values: ["Black"] },

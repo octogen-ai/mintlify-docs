@@ -4,7 +4,7 @@ description: "REST API reference for the Octogen Platform Catalog API v1 — bas
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products within a catalog, look up a product by its page URL, and list the catalogs your organization has been granted access to. Every response shape is identical to the [Catalog Partner MCP server](/mcp/overview) — choose the surface that fits your runtime.
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products across your granted catalogs, look up a product by its page URL, and list the catalogs your organization has been granted access to. Choose the REST API for API-key server workloads, or use the [Catalog Partner MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -50,7 +50,7 @@ The API exposes three endpoints.
 | --- | --- | --- | --- |
 | `GET` | `/catalogs` | `listCatalogs` | Returns the catalogs granted to your organization. |
 | `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a canonical product record. |
-| `POST` | `/products/search` | `searchProducts` | Searches products within a single granted catalog. |
+| `POST` | `/products/search` | `searchProducts` | Searches products across all granted catalogs, or within one catalog when `catalog` is provided. |
 
 ## Error model
 
@@ -68,9 +68,9 @@ All error responses carry a top-level `detail` field.
 {
   "detail": [
     {
-      "loc": ["body", "catalog"],
-      "msg": "Field required",
-      "type": "missing"
+      "loc": ["body", "limit"],
+      "msg": "Input should be less than or equal to 100",
+      "type": "less_than_equal"
     }
   ]
 }

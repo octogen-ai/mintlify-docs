@@ -72,7 +72,7 @@ const client = new OctogenClient({
 async listCatalogs(): Promise<MerchantCatalogSummary[]>
 ```
 
-Returns all active catalogs granted to your API key's organization. Use the `catalog` field from each result as the identifier for `searchProducts`.
+Returns all active catalogs granted to your API key's organization. You can omit `catalog` from `searchProducts` to search all of them, or pass a `catalog` value to restrict search to one catalog.
 
 ```typescript
 const catalogs = await client.listCatalogs();
@@ -87,7 +87,7 @@ Each `MerchantCatalogSummary` has:
 
 | Field           | Type              | Description                                        |
 | --------------- | ----------------- | -------------------------------------------------- |
-| `catalog`       | `string`          | Catalog identifier — pass this to `searchProducts`. |
+| `catalog`       | `string`          | Catalog identifier — pass this to `searchProducts` when you want to search only this catalog. |
 | `displayName`   | `string`          | Human-readable catalog name.                       |
 | `productCount`  | `number`          | Number of indexed products.                        |
 | `sourceBaseUrl` | `string \| null`  | Base URL of the catalog source.                    |
@@ -127,13 +127,13 @@ console.log(result.product.currentPrice);
 async searchProducts(params: SearchProductsParams): Promise<MerchantProductListPage>
 ```
 
-Searches products in a single authorized catalog. Only `catalog` is required.
+Searches products across all authorized catalogs by default. Pass `catalog` only when you want to restrict search to one catalog.
 
 **`SearchProductsParams` fields:**
 
 | Field       | Type              | Default | Description                                                             |
 | ----------- | ----------------- | ------- | ----------------------------------------------------------------------- |
-| `catalog`   | `string`          | —       | **Required.** Catalog identifier from `listCatalogs()`.                |
+| `catalog`   | `string`          | —       | Optional catalog identifier from `listCatalogs()`. Omit to search all granted catalogs. |
 | `q`         | `string`          | —       | Keyword search query.                                                   |
 | `facets`    | `Facet[]`         | —       | List of facet filters to apply. See [Faceted search](#faceted-search).  |
 | `priceMin`  | `number`          | —       | Minimum price filter (inclusive).                                       |
@@ -152,7 +152,7 @@ Each `MerchantProductListItem` includes `uuid`, `productUrl`, `title`, `brand`, 
 
 ## Complete example
 
-The following example lists your first catalog, searches for women's linen dresses, and prints each result with its brand and price:
+The following example confirms that catalogs are available, searches all granted catalogs for women's linen dresses, and prints each result with its brand and price:
 
 ```typescript
 import { inspect } from "node:util";
@@ -167,19 +167,12 @@ async function main(): Promise<void> {
       return;
     }
 
-    const catalog = catalogs[0];
-    if (catalog === undefined) {
-      console.log("No catalogs are available for this API key.");
-      return;
-    }
-
     const results = await client.searchProducts({
-      catalog: catalog.catalog,
       limit: 5,
       q: "women's linen summer dresses",
     });
 
-    console.log(`Catalog: ${catalog.catalog}`);
+    console.log("Catalog scope: all granted catalogs");
     for (const product of results.items) {
       const brand = product.brand?.name ?? "Unknown brand";
       const price =
@@ -210,10 +203,8 @@ Use `Facet` objects to filter by brand, gender, color, category, and other attri
 import { FacetName, OctogenClient } from "@octogen-ai/sdk";
 
 const client = new OctogenClient();
-const catalogs = await client.listCatalogs();
 
 const results = await client.searchProducts({
-  catalog: catalogs[0].catalog,
   q: "summer dress",
   facets: [
     { name: FacetName.GENDER, values: ["female"] },
@@ -241,7 +232,6 @@ let cursor: string | undefined;
 
 while (true) {
   const page = await client.searchProducts({
-    catalog,
     q: "linen dress",
     cursor,
     limit: 50,
@@ -288,7 +278,7 @@ import {
 } from "@octogen-ai/sdk";
 
 try {
-  const results = await client.searchProducts({ catalog, q: "dress" });
+  const results = await client.searchProducts({ q: "dress" });
 } catch (error) {
   if (error instanceof OctogenAuthenticationError) {
     console.error("Check your OCTO_API_KEY.");

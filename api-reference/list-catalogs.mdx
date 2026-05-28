@@ -4,7 +4,7 @@ description: "Returns the array of active catalogs your organization has been gr
 sidebarTitle: "List Catalogs"
 ---
 
-`GET /catalogs` returns every catalog your Platform API key is authorized to access. Each item in the response array is a `MerchantCatalogSummary` object containing the catalog's key, display name, source URL, current product count, and the timestamp of the most recent index run. Use the `catalog` key from this response as the required `catalog` field when calling [`POST /products/search`](/api-reference/search-products).
+`GET /catalogs` returns every catalog your Platform API key is authorized to access. Each item in the response array is a `MerchantCatalogSummary` object containing the catalog's key, display name, source URL, current product count, and the timestamp of the most recent index run. Omit `catalog` from [`POST /products/search`](/api-reference/search-products) to search all returned catalogs, or pass a `catalog` key to restrict search to one catalog.
 
 ## Request
 
@@ -31,7 +31,7 @@ The response is a JSON array of [MerchantCatalogSummary](/api-reference/models/c
 
   <Expandable title="MerchantCatalogSummary properties">
     <ResponseField name="catalog" type="string" required>
-      Unique catalog key. Pass this value as the `catalog` field in search requests.
+      Unique catalog key. Pass this value as the optional `catalog` field in search requests when you want to scope search to this catalog.
     </ResponseField>
 
     <ResponseField name="displayName" type="string" required>

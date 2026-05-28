@@ -37,7 +37,7 @@ Both conditions must be true before your first tool call.
 
 ## Available tools
 
-Three tools are exposed by the MCP server. Each maps 1:1 to an endpoint in the [Platform Catalog API v1](/api-reference/overview), so the argument names and response shapes are the same on either surface.
+Three tools are exposed by the MCP server. They use the same catalog grants as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
 
 ### `list_catalogs()`
 
@@ -47,9 +47,9 @@ Returns all catalogs currently granted to your organization. Call this first whe
 
 Resolves a product page URL to a full canonical product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. If no active product matches, the tool returns a structured `product_not_found` value — not a transport-level failure — so your agent can recover gracefully.
 
-### `search_products(catalog, query?, limit?, cursor?)`
+### `search_products(catalog?, query?, limit?, cursor?)`
 
-Searches products within a single granted catalog by free-text keyword. The `catalog` argument must be a key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
+Searches products across all granted catalogs by free-text keyword. Pass `catalog` only when you want to restrict search to one key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
 
 ## MCP vs REST API
 

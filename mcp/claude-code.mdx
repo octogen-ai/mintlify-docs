@@ -63,6 +63,6 @@ Once connected, your agent has access to three tools:
 
 - **`list_catalogs()`** — discover which catalogs your organization has access to.
 - **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
-- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword within a single catalog.
+- **`search_products(catalog?, query?, limit?, cursor?)`** — search products by keyword across all granted catalogs, or within one catalog when `catalog` is provided.
 
 For a full description of each tool's arguments and return values, see the [MCP overview](/mcp/overview).
