@@ -1,0 +1,104 @@
+---
+title: "Platform Catalog API v1 overview"
+description: "REST API reference for the Octogen Platform Catalog API v1 — base URL, authentication, all three endpoints, error codes, and OpenAPI spec link."
+sidebarTitle: "Overview"
+---
+
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products within a catalog, look up a product by its page URL, and list the catalogs your organization has been granted access to. Every response shape is identical to the [Catalog Partner MCP server](/mcp/overview) — choose the surface that fits your runtime.
+
+## Base URL and content type
+
+All requests go to:
+
+```http
+https://api.octogen.ai/v1
+```
+
+Every request body and response body uses `application/json`. Set `Content-Type: application/json` on requests that include a body.
+
+## Authentication
+
+Send your Platform API key as a Bearer token on every request:
+
+```http
+Authorization: Bearer octo_live_<32-hex-id>_<base64url-secret>
+Content-Type: application/json
+```
+
+API keys are organization-scoped and currently usable only by Catalog Partner organizations. A key can access only the catalogs granted to the organization that owns it. Rotate or deactivate keys via the partner portal; deactivation takes effect on the next request.
+
+<Warning>
+  Never expose your Platform API key in client-side code or public repositories.
+  Treat it like a password.
+</Warning>
+
+## OpenAPI specification
+
+The machine-readable contract is published at every platform deploy:
+
+```text
+https://cdn.octogen.ai/openapi/platform/v1/openapi.json
+```
+
+The document includes server URLs, operation IDs (`listCatalogs`, `searchProducts`, `lookupProduct`), full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it — for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
+
+## Endpoints
+
+The API exposes three endpoints.
+
+| Method | Path | Operation | Description |
+| --- | --- | --- | --- |
+| `GET` | `/catalogs` | `listCatalogs` | Returns the catalogs granted to your organization. |
+| `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a canonical product record. |
+| `POST` | `/products/search` | `searchProducts` | Searches products within a single granted catalog. |
+
+## Error model
+
+All error responses carry a top-level `detail` field.
+
+**String detail** (auth, authorization, and not-found errors):
+
+```json
+{"detail": "product_not_found"}
+```
+
+**Array detail** (validation errors):
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "catalog"],
+      "msg": "Field required",
+      "type": "missing"
+    }
+  ]
+}
+```
+
+### Error status codes
+
+| Status | Meaning | Action |
+| --- | --- | --- |
+| `401` | Missing, malformed, or invalid Bearer token. | Rotate or replace the API key. |
+| `403` | Key is valid but not authorized for this resource. | Confirm the organization has access to the requested catalog. |
+| `404` | Catalog or product is not visible for this key. | Verify the catalog key and that the product URL belongs to a granted catalog. |
+| `422` | Request body or field validation failed. | Surface the field-level `loc` and `msg` to identify the invalid field. |
+
+Retry only transient network errors or `5xx` responses. The `4xx` codes listed above require a change in the caller.
+
+## REST and MCP: choosing a surface
+
+Both surfaces run against the same grants table. A grant change on one path takes effect immediately on the other.
+
+| | REST (`/v1`, API keys) | MCP (OAuth) |
+| --- | --- | --- |
+| Best for | Backends, batch jobs, server-to-server | Interactive agents (Claude Code, Codex, Claude Desktop) |
+| Auth | Bearer `octo_live_...` key | OAuth 2.1 + PKCE, audience-bound access token |
+| Token lifetime | Until manually revoked | ~5 minutes access; refresh until session expiry |
+| Revocation | Revoke the API key | Sign out or remove the user from the organization |
+
+<Tip>
+  If you are building an agent-based workflow and already have OAuth in place,
+  prefer the MCP server — the tool signatures map 1:1 to these REST endpoints.
+</Tip>

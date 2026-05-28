@@ -1,0 +1,95 @@
+---
+title: "Authenticate with the Octogen Platform API"
+description: "Learn how to create a Platform API key, configure OCTO_API_KEY in your environment, and send it as a Bearer token on every request."
+---
+
+Every request to the Octogen Platform Catalog API must include a valid API key. Keys are issued per organization through the partner portal and grant access only to the catalogs assigned to that organization. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+
+## API key format
+
+Octogen Platform API keys follow this structure:
+
+```
+octo_live_<32-hex-id>_<base64url-secret>
+```
+
+Keep your key private. Do not commit it to source control or expose it in client-side code.
+
+## Set up your API key
+
+<Steps>
+  <Step title="Create a key in the partner portal">
+    Log in to the Octogen partner portal and navigate to **API Keys**. Generate a new key and copy it immediately — the secret portion is only shown once.
+  </Step>
+  <Step title="Set the environment variable">
+    Add your key to your environment so the SDKs can pick it up automatically:
+
+    ```bash
+    export OCTO_API_KEY="octo_live_<your-key>"
+    ```
+
+    For long-lived deployments, set this in your server's secrets manager or environment configuration rather than in shell profiles.
+  </Step>
+  <Step title="Verify the setup">
+    Confirm the key works by listing your catalogs:
+
+    ```bash
+    curl -sS https://api.octogen.ai/v1/catalogs \
+      -H "Authorization: Bearer $OCTO_API_KEY"
+    ```
+
+    A successful response returns a JSON array of catalogs. An empty array means your organization has no active catalog grants — not an authentication failure.
+  </Step>
+</Steps>
+
+## Attach the key to requests
+
+Send the key as a Bearer token in the `Authorization` header on every request:
+
+```http
+Authorization: Bearer octo_live_<your-key>
+Content-Type: application/json
+```
+
+### SDKs handle this automatically
+
+If you use the Python or TypeScript SDK, authentication is handled for you. The client reads `OCTO_API_KEY` from the environment by default, or you can pass the key explicitly:
+
+```python
+from octogen_ai_sdk import OctogenClient
+
+# Reads OCTO_API_KEY from the environment automatically
+client = OctogenClient()
+
+# Or pass the key directly
+client = OctogenClient(api_key="octo_live_<your-key>")
+```
+
+```typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+// Reads OCTO_API_KEY from the environment automatically
+const client = new OctogenClient();
+
+// Or pass the key directly
+const client = new OctogenClient({ apiKey: "octo_live_<your-key>" });
+```
+
+## Rotate and revoke keys
+
+Rotate keys from the **API Keys** section of the partner portal. When you deactivate a key, it is revoked immediately — the next request using that key returns a `401` error. Issue a replacement key before deactivating the old one to avoid downtime.
+
+<Warning>
+  Deactivating a key takes effect on the next API request. There is no grace period. Always create and deploy a replacement key before revoking the old one.
+</Warning>
+
+## Error reference
+
+| Status | Meaning | What to do |
+| --- | --- | --- |
+| `401` | The key is missing, malformed, or has been revoked. | Check that `OCTO_API_KEY` is set correctly and that the key has not been deactivated in the portal. |
+| `403` | The key is valid, but your organization is not authorized for this resource. | Confirm that your organization is provisioned as a Catalog Partner and that the catalog has been granted to your account. |
+
+<Note>
+  API keys are organization-scoped. A key can only access catalogs explicitly granted to the organization that owns it. If you believe a catalog should be available but you receive a `403`, contact Octogen to verify the grant.
+</Note>

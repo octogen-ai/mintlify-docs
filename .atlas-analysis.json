@@ -1,0 +1,96 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Octogen",
+  "projectDescription": "SDKs and tools for accessing the Octogen AI commerce platform — enabling catalog search, product lookup, and AI agent integrations.",
+  "theme": "luma",
+  "primaryColor": "#1c1c1c",
+  "lightColor": "#848484",
+  "darkColor": "#dbdbdb",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "authentication",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/python",
+              "sdks/typescript"
+            ]
+          },
+          {
+            "group": "MCP Integration",
+            "pages": [
+              "mcp/overview",
+              "mcp/claude-code",
+              "mcp/claude-desktop",
+              "mcp/codex-cli"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/catalog-search",
+              "guides/product-lookup",
+              "guides/pagination",
+              "guides/error-handling"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Catalog API",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/list-catalogs",
+              "api-reference/lookup-product",
+              "api-reference/search-products"
+            ]
+          },
+          {
+            "group": "Data Models",
+            "pages": [
+              "api-reference/models/catalog",
+              "api-reference/models/product"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Platform Catalog API v1 — REST surface for server-to-server catalog and product access",
+    "Catalog Partner MCP server — OAuth 2.1 tool integration for AI agents (Claude Code, Codex, Claude Desktop)",
+    "Python SDK (async, httpx + Pydantic) for the Octogen commerce API",
+    "TypeScript/ESM SDK for the Octogen commerce API",
+    "Faceted product search with price range, color, category, and attribute filters",
+    "Product URL lookup — resolve any product page URL to a canonical enriched record",
+    "Cursor-based pagination for large catalog traversal",
+    "Structured error model with typed exceptions per status code"
+  ],
+  "publicApiSurface": [
+    "GET /v1/catalogs — list granted catalogs",
+    "POST /v1/products/lookup — resolve a product URL",
+    "POST /v1/products/search — search products by query and facets",
+    "OctogenClient.list_catalogs() — Python SDK",
+    "OctogenClient.lookup_product(url) — Python SDK",
+    "OctogenClient.search_products(...) — Python SDK",
+    "OctogenClient.listCatalogs() — TypeScript SDK",
+    "OctogenClient.lookupProduct(url) — TypeScript SDK",
+    "OctogenClient.searchProducts(params) — TypeScript SDK",
+    "MCP tool: list_catalogs()",
+    "MCP tool: lookup_product(canonical_url, catalogs?)",
+    "MCP tool: search_products(catalog, query?, limit?, cursor?)"
+  ]
+}

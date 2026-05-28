@@ -1,0 +1,68 @@
+---
+title: "Use Octogen with Claude Code via MCP"
+description: "Register the Octogen MCP server in Claude Code with one command, then let your agent search and look up products from any granted catalog."
+sidebarTitle: "Claude Code"
+---
+
+Claude Code supports MCP servers over HTTP natively. Registering Octogen takes a single command, and the first tool call handles authentication automatically through a browser sign-in. No API keys, client IDs, or manual credential management are required.
+
+<Steps>
+  <Step title="Register the Octogen MCP server">
+    Run the following command in your terminal:
+
+    ```bash
+    claude mcp add --transport http octogen https://mcp.octogen.ai/mcp
+    ```
+
+    This adds an entry named `octogen` pointing at the Octogen MCP server. Claude Code stores the configuration locally and loads it at startup.
+  </Step>
+
+  <Step title="Sign in on first use">
+    The first time your agent calls an Octogen tool, Claude Code opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
+
+    1. Enter the email that belongs to your Catalog Partner organization.
+    2. Authenticate using your organization's configured method (password, SSO, or magic link).
+    3. If your account belongs to multiple organizations, select the Catalog Partner organization you want to act as.
+    4. Consent to the requested scopes.
+
+    After you complete sign-in, the browser redirects back to Claude Code. The resulting access token and refresh token are cached locally. Subsequent tool calls reuse the cached token without any browser interaction.
+
+    <Note>
+      Access tokens are valid for approximately five minutes. Claude Code refreshes them transparently in the background — you will not be prompted again unless your Octogen sign-in session expires.
+    </Note>
+  </Step>
+
+  <Step title="Verify the server is registered">
+    Confirm the entry appears in your MCP server list:
+
+    ```bash
+    claude mcp list
+    ```
+
+    You should see `octogen` listed with the URL `https://mcp.octogen.ai/mcp`.
+  </Step>
+
+  <Step title="Share the config with your team (optional)">
+    To commit the MCP configuration to your repository so teammates pick it up automatically, re-run the registration command with the `--scope project` flag:
+
+    ```bash
+    claude mcp add --transport http --scope project octogen https://mcp.octogen.ai/mcp
+    ```
+
+    This writes the entry to `.mcp.json` at your repository root instead of your personal config. Each team member still signs in with their own Octogen account on first use — credentials are never stored in the project file.
+
+    <Tip>
+      Commit `.mcp.json` to version control. Anyone who clones the repository and runs Claude Code will have the Octogen server registered automatically.
+    </Tip>
+  </Step>
+</Steps>
+
+## What your agent can do
+
+Once connected, your agent has access to three tools:
+
+- **`list_catalogs()`** — discover which catalogs your organization has access to.
+- **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
+- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword within a single catalog.
+
+For a full description of each tool's arguments and return values, see the [MCP overview](/mcp/overview).

@@ -1,0 +1,74 @@
+---
+title: "MerchantCatalogSummary data model"
+description: "The catalog object returned by GET /catalogs, containing the key, display name, product count, and indexing metadata for a granted catalog."
+sidebarTitle: "Catalog"
+---
+
+`MerchantCatalogSummary` represents a single catalog that has been granted to your organization. It is the element type of the array returned by [`GET /catalogs`](/api-reference/list-catalogs). The `catalog` field is the key you pass to [`POST /products/search`](/api-reference/search-products) to scope a search to this catalog.
+
+## Fields
+
+<ResponseField name="catalog" type="string" required>
+  Unique catalog key. This is the identifier you pass as the `catalog` field in search requests. Example: `"warrenlotas"`.
+</ResponseField>
+
+<ResponseField name="displayName" type="string" required>
+  Human-readable catalog name suitable for display in a UI. Example: `"Warren Lotas"`.
+</ResponseField>
+
+<ResponseField name="sourceBaseUrl" type="string | null">
+  Base URL of the merchant's product site. Use this to construct or validate product page URLs before calling the lookup endpoint. `null` if not configured for this catalog.
+</ResponseField>
+
+<ResponseField name="productCount" type="integer" required>
+  Number of active indexed products currently in the catalog. This count updates after each index run.
+</ResponseField>
+
+<ResponseField name="lastIndexedAt" type="datetime | null">
+  ISO 8601 UTC timestamp of the most recently completed index run. Use this to detect whether catalog data is stale. `null` if the catalog has never been indexed.
+</ResponseField>
+
+## Example
+
+```json
+{
+  "catalog": "warrenlotas",
+  "displayName": "Warren Lotas",
+  "sourceBaseUrl": "https://warrenlotas.com",
+  "productCount": 1248,
+  "lastIndexedAt": "2026-05-19T18:04:10Z"
+}
+```
+
+## SDK types
+
+<CodeGroup>
+
+```python Python
+# octogen_ai_sdk.models.MerchantCatalogSummary
+class MerchantCatalogSummary(_ResponseModel):
+    catalog: str
+    display_name: str          # JSON alias: "displayName"
+    source_base_url: str | None  # JSON alias: "sourceBaseUrl"
+    product_count: int         # JSON alias: "productCount"
+    last_indexed_at: datetime | None  # JSON alias: "lastIndexedAt"
+```
+
+```typescript TypeScript
+// @octogen-ai/sdk: MerchantCatalogSummary
+interface MerchantCatalogSummary {
+  catalog: string;
+  displayName: string;
+  sourceBaseUrl?: string | null;
+  productCount: number;
+  lastIndexedAt?: string | null;
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Python SDK attributes use `snake_case` while JSON wire format and the
+  TypeScript SDK use `camelCase`. The Python SDK handles the mapping
+  automatically via Pydantic field aliases.
+</Note>

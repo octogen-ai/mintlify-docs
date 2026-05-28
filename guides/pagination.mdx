@@ -1,0 +1,132 @@
+---
+title: "Paginate through large Octogen search results"
+description: "Use cursor-based pagination to iterate through all matching products in an Octogen catalog search, page by page, without missing or duplicating results."
+sidebarTitle: "Pagination"
+---
+
+The Octogen search endpoint returns results one page at a time. When more products match your query than fit on a single page, the response includes a `nextCursor` field you pass back to fetch the next page. This cursor-based model ensures you can iterate through a full result set consistently, even as the underlying catalog updates.
+
+## How cursor-based pagination works
+
+Each `POST /v1/products/search` response contains:
+
+- `items` — the current page of products (up to `limit` items)
+- `nextCursor` — a string token encoding the engine's continuation state, or `null` if you have reached the last page
+
+To advance to the next page, send the same request again with the `nextCursor` value passed as `cursor`. Keep repeating until `nextCursor` is `null`.
+
+<Warning>
+  Cursors are opaque. Do not parse, decode, or construct them manually. Their internal format may change between API versions. Always pass the cursor value through verbatim. A malformed cursor is silently treated as a first-page request, which means you will restart iteration from the beginning rather than receiving an error.
+</Warning>
+
+## The pagination pattern
+
+<Steps>
+  <Step title="Send your initial search request">
+    Issue `POST /v1/products/search` with your filters and an optional `limit` (1–100, default 50). Do not include a `cursor` on the first request.
+  </Step>
+  <Step title="Check nextCursor in the response">
+    If `nextCursor` is `null`, the response is the only (or last) page — you are done. If `nextCursor` is a non-null string, there are more results.
+  </Step>
+  <Step title="Send the next request with cursor">
+    Repeat the same request, passing the `nextCursor` value as `cursor`. Keep all other parameters — `catalog`, `q`, `facets`, `price_min`, `price_max`, `limit` — identical to the original request.
+  </Step>
+  <Step title="Repeat until nextCursor is null">
+    Continue sending requests until `nextCursor` is `null`. That response contains the final page of results.
+  </Step>
+</Steps>
+
+## Complete pagination loop
+
+The examples below collect all matching products into a list. For large catalogs, consider processing each page as it arrives rather than accumulating everything in memory.
+
+<CodeGroup>
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+from octogen_ai_sdk.models import Facet, FacetName, MerchantProductListItem
+
+async def fetch_all_products(
+    catalog: str,
+    query: str,
+) -> list[MerchantProductListItem]:
+    all_items: list[MerchantProductListItem] = []
+
+    async with OctogenClient() as client:
+        cursor: str | None = None
+
+        while True:
+            page = await client.search_products(
+                catalog=catalog,
+                q=query,
+                cursor=cursor,
+                limit=50,
+            )
+            all_items.extend(page.items)
+
+            if page.next_cursor is None:
+                break  # reached the last page
+            cursor = page.next_cursor
+
+    return all_items
+
+
+async def main() -> None:
+    products = await fetch_all_products("warrenlotas", "hoodie")
+    print(f"Total products fetched: {len(products)}")
+    for product in products:
+        print(f"- {product.title} ({product.product_url})")
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+import type { MerchantProductListItem } from "@octogen-ai/sdk";
+
+async function fetchAllProducts(
+  catalog: string,
+  query: string,
+): Promise<MerchantProductListItem[]> {
+  const client = new OctogenClient();
+  const allItems: MerchantProductListItem[] = [];
+  let cursor: string | undefined;
+
+  while (true) {
+    const page = await client.searchProducts({
+      catalog,
+      q: query,
+      cursor,
+      limit: 50,
+    });
+
+    allItems.push(...page.items);
+
+    if (page.nextCursor == null) {
+      break; // reached the last page
+    }
+    cursor = page.nextCursor;
+  }
+
+  return allItems;
+}
+
+const products = await fetchAllProducts("warrenlotas", "hoodie");
+console.log(`Total products fetched: ${products.length}`);
+for (const product of products) {
+  console.log(`- ${product.title ?? "Untitled"} (${product.productUrl})`);
+}
+```
+
+</CodeGroup>
+
+## The limit parameter
+
+Set `limit` to control how many items the API returns per page. The valid range is 1–100 and the default is 50.
+
+Smaller page sizes reduce response latency for interactive use cases. Larger page sizes reduce the total number of round trips for batch jobs. Keep `limit` consistent across pages: changing it mid-iteration does not cause an error, but it may produce unexpected page boundaries.
+
+<Tip>
+  For batch export jobs that process the entire catalog, `limit: 100` minimizes the number of API calls. For interactive search UIs where the user sees results one page at a time, `limit: 20` or `limit: 25` keeps each response fast.
+</Tip>

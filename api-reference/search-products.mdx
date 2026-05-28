@@ -1,0 +1,249 @@
+---
+title: "POST /products/search — search catalog products"
+description: "Searches products within a single granted catalog using free-text queries, structured facet filters, price ranges, and cursor-based pagination."
+sidebarTitle: "Search Products"
+---
+
+`POST /products/search` lets you search and browse products within a single catalog your organization has been granted access to. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/products/search
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="catalog" type="string" required>
+  Key of the catalog to search. Must be a catalog currently granted to your organization. Retrieve available keys from [`GET /catalogs`](/api-reference/list-catalogs). Cross-catalog search is not supported — issue separate requests for each catalog.
+</ParamField>
+
+<ParamField body="q" type="string">
+  Free-text keyword query. Omit or set to `null` to browse the catalog without keyword filtering. Can be combined with `facets` and price filters.
+</ParamField>
+
+<ParamField body="facets" type="Facet[]">
+  Array of structured facet filters. Each facet has a `name` and a `values` array. Multiple facets are ANDed; multiple values within a facet are ORed.
+
+  ```json
+  [
+    {"name": "color_family", "values": ["Black", "Gray"]},
+    {"name": "gender", "values": ["female"]}
+  ]
+  ```
+
+  See [Facet names](#facet-names) below for the full list of supported names.
+</ParamField>
+
+<ParamField body="price_min" type="number">
+  Inclusive minimum price filter. Only products with `currentPrice >= price_min` are returned.
+</ParamField>
+
+<ParamField body="price_max" type="number">
+  Inclusive maximum price filter. Only products with `currentPrice <= price_max` are returned.
+</ParamField>
+
+<ParamField body="cursor" type="string">
+  Opaque pagination cursor from a previous response's `nextCursor` field. Pass this value — unmodified — along with the same filters to retrieve the next page. Omit on the first request.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="50">
+  Number of products to return per page. Accepted range: 1–100. Defaults to 50.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "catalog": "warrenlotas",
+    "q": "black hoodie",
+    "facets": [
+      {"name": "color_family", "values": ["Black"]},
+      {"name": "gender", "values": ["male", "unisex"]}
+    ],
+    "price_min": 50,
+    "price_max": 300,
+    "limit": 25
+  }'
+```
+
+## Response
+
+<ResponseField name="items" type="MerchantProductListItem[]" required>
+  The current page of product results. See the [Product model](/api-reference/models/product) for the full field reference.
+
+  <Expandable title="MerchantProductListItem properties">
+    <ResponseField name="uuid" type="string" required>
+      Stable unique identifier for this product record.
+    </ResponseField>
+
+    <ResponseField name="productUrl" type="string" required>
+      Canonical product page URL on the merchant's site.
+    </ResponseField>
+
+    <ResponseField name="title" type="string | null">
+      Product title.
+    </ResponseField>
+
+    <ResponseField name="brand" type="object | null">
+      Brand with `name` (string), `slug` (string | null), and `url` (string | null).
+    </ResponseField>
+
+    <ResponseField name="currentPrice" type="number | null">
+      Current sale or listing price.
+    </ResponseField>
+
+    <ResponseField name="originalPrice" type="number | null">
+      Pre-discount price. `null` when no discount is active.
+    </ResponseField>
+
+    <ResponseField name="imageUrl" type="string | null">
+      Primary product image URL.
+    </ResponseField>
+
+    <ResponseField name="images" type="string[]">
+      All product image URLs.
+    </ResponseField>
+
+    <ResponseField name="rating" type="object | null">
+      Aggregate rating with `average` (number | null) and `count` (integer | null).
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="datetime | null">
+      ISO 8601 UTC timestamp of the last update to this product record.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Opaque cursor for the next page of results. Pass as `cursor` on your next request with the same filters. `null` when you have reached the last page.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "items": [
+    {
+      "uuid": "prod_01HX...",
+      "title": "Black Hoodie",
+      "productUrl": "https://warrenlotas.com/products/black-hoodie",
+      "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
+      "images": ["https://cdn.example.com/black-hoodie.jpg"],
+      "brand": {"name": "Warren Lotas", "slug": "warren-lotas", "url": null},
+      "currentPrice": 180,
+      "originalPrice": null,
+      "rating": null,
+      "updatedAt": "2026-05-19T18:04:10Z"
+    }
+  ],
+  "nextCursor": "eyJzZWFyY2hBZnRlciI6Wy4uLl19"
+}
+```
+
+## Facet names
+
+Use these values for the `name` field in each facet object. Facet values should be lowercase; phrase values may contain spaces.
+
+| Facet name | Description |
+| --- | --- |
+| `brand_name` | Canonical brand display name. |
+| `brand_slug` | URL-safe brand identifier. |
+| `product_type` | Product type classification (e.g. `"hoodie"`, `"sneaker"`). |
+| `gender` | Target gender: `male`, `female`, or `unisex`. |
+| `age_groups` | Target age group: `infant`, `toddler`, `kids`, or `adult`. |
+| `color` | Specific color label as indexed from the merchant. |
+| `color_family` | Normalized color family: `Black`, `Blue`, `Brown`, `Gray`, `Green`, `Orange`, `Pink`, `Purple`, `Red`, `White`, `Yellow`. |
+| `category_path.depth_0` | Top-level category. |
+| `category_path.depth_1` | Second-level category. |
+| `category_path.depth_2` | Third-level category. |
+| `category_path.depth_3` | Fourth-level category. |
+| `category_path.depth_4` | Fifth-level category. |
+| `category_path.depth_5` | Sixth-level category. |
+| `category_path.depth_6` | Seventh-level category. |
+
+You can also filter on dynamic product attribute facets by passing the bare attribute key (e.g. `fit`) or its fully qualified form (e.g. `attribute_facets.fit`).
+
+## Pagination
+
+<Note>
+  For a detailed walkthrough of cursor-based pagination, see [Pagination guide](/guides/pagination).
+</Note>
+
+Advance through pages by repeating your request with the same filters and the `cursor` value from the previous response:
+
+1. Send your initial search request with the desired filters and an optional `limit`.
+2. If `nextCursor` is non-null in the response, send a new request with `cursor` set to that value and all other fields unchanged.
+3. Repeat until `nextCursor` is `null`.
+
+Cursors are opaque — do not parse or construct them. They encode internal continuation state and may change shape across releases.
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+from octogen_ai_sdk.models import Facet
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        cursor = None
+        while True:
+            page = await client.search_products(
+                catalog="warrenlotas",
+                q="black hoodie",
+                facets=[
+                    Facet(name="color_family", values=["Black"]),
+                    Facet(name="gender", values=["male", "unisex"]),
+                ],
+                price_min=50,
+                price_max=300,
+                limit=25,
+                cursor=cursor,
+            )
+            for product in page.items:
+                print(product.title, product.current_price)
+            if page.next_cursor is None:
+                break
+            cursor = page.next_cursor
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+let cursor: string | undefined;
+
+while (true) {
+  const page = await client.searchProducts({
+    catalog: "warrenlotas",
+    q: "black hoodie",
+    facets: [
+      { name: "color_family", values: ["Black"] },
+      { name: "gender", values: ["male", "unisex"] },
+    ],
+    priceMin: 50,
+    priceMax: 300,
+    limit: 25,
+    cursor,
+  });
+
+  for (const product of page.items) {
+    console.log(product.title, product.currentPrice);
+  }
+
+  if (page.nextCursor == null) break;
+  cursor = page.nextCursor;
+}
+```
+
+</CodeGroup>

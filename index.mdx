@@ -1,0 +1,48 @@
+---
+title: "Octogen: AI Commerce Platform for Catalog Partners"
+description: "Search and look up products across granted catalogs using the Octogen REST API, Python SDK, TypeScript SDK, or MCP integration for AI agents."
+---
+
+Octogen gives Catalog Partners programmatic access to curated product catalogs — enabling product search, URL-based product lookup, and seamless AI agent integrations. Whether you're building a backend service, a shopping assistant, or integrating with Claude or Codex, Octogen provides the tools you need.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Make your first API call in minutes. List catalogs, search products, and look up items by URL.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Get your API key and learn how to authenticate every request to the Octogen platform.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/sdks/python">
+    Install the async Python SDK and start querying catalogs with typed Pydantic models.
+  </Card>
+  <Card title="TypeScript SDK" icon="js" href="/sdks/typescript">
+    Use the ESM TypeScript SDK with full type safety in Node.js or edge runtimes.
+  </Card>
+  <Card title="MCP Integration" icon="robot" href="/mcp/overview">
+    Connect Claude Code, Codex CLI, or Claude Desktop to Octogen catalogs via MCP.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Full reference for the Platform Catalog API v1 — endpoints, parameters, and response schemas.
+  </Card>
+</CardGroup>
+
+## How it works
+
+<Steps>
+  <Step title="Get access">
+    Contact Octogen to provision your organization as a Catalog Partner and have catalogs granted to your account.
+  </Step>
+  <Step title="Authenticate">
+    Create a Platform API key from the partner portal. Set it as `OCTO_API_KEY` in your environment or pass it directly to the SDK client.
+  </Step>
+  <Step title="List your catalogs">
+    Call `GET /v1/catalogs` (or `client.list_catalogs()`) to see which product catalogs your key can access.
+  </Step>
+  <Step title="Search and look up products">
+    Use `POST /v1/products/search` to find products by keyword or facet, or `POST /v1/products/lookup` to resolve a product page URL to its full canonical record.
+  </Step>
+</Steps>
+
+<Note>
+  Both the REST API and MCP server enforce the same per-organization catalog grants. A catalog grant revoked in the partner portal takes effect immediately on all access paths.
+</Note>

@@ -1,0 +1,271 @@
+---
+title: "POST /products/lookup — resolve a product URL"
+description: "POST /products/lookup resolves any product page URL to a full canonical product record, including pricing, images, sizes, variants, and enrichment."
+sidebarTitle: "Lookup Product"
+---
+
+`POST /products/lookup` takes a product page URL and returns the full canonical product record for that URL from within your granted catalogs. The response includes catalog metadata alongside a `MerchantProductView` — the richest product shape the API offers, with optional fields like `variants`, `colors`, `reviews`, `breadcrumbs`, and `enrichment` populated whenever the underlying record has them.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/products/lookup
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="url" type="string" required>
+  The canonical product page URL to resolve. Must be a URL belonging to a catalog granted to your organization.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/lookup \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://warrenlotas.com/products/black-hoodie"}'
+```
+
+## Response
+
+The response is a `MerchantProductUrlLookupResponse` object.
+
+<ResponseField name="catalogKey" type="string" required>
+  The catalog key the product was found in. Matches the `catalog` field on a `MerchantCatalogSummary`.
+</ResponseField>
+
+<ResponseField name="catalogDisplayName" type="string" required>
+  Human-readable name of the catalog containing this product.
+</ResponseField>
+
+<ResponseField name="sourceBaseUrl" type="string | null">
+  Base URL of the merchant's product site. May be `null` if not configured on the catalog.
+</ResponseField>
+
+<ResponseField name="product" type="MerchantProductView" required>
+  Full product record. Extends the search list item shape with additional detail fields.
+
+  <Expandable title="Core fields (shared with search results)">
+    <ResponseField name="uuid" type="string" required>
+      Stable unique identifier for this product record.
+    </ResponseField>
+
+    <ResponseField name="productUrl" type="string" required>
+      Canonical product page URL.
+    </ResponseField>
+
+    <ResponseField name="title" type="string | null">
+      Product title as indexed from the merchant.
+    </ResponseField>
+
+    <ResponseField name="brand" type="object | null">
+      Brand information.
+      <Expandable title="BrandView properties">
+        <ResponseField name="name" type="string" required>
+          Brand display name.
+        </ResponseField>
+        <ResponseField name="slug" type="string | null">
+          URL-safe brand identifier.
+        </ResponseField>
+        <ResponseField name="url" type="string | null">
+          URL of the brand's page on the merchant site.
+        </ResponseField>
+        <ResponseField name="description" type="string | null">
+          Short brand description.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="currentPrice" type="number | null">
+      Current sale or listing price.
+    </ResponseField>
+
+    <ResponseField name="originalPrice" type="number | null">
+      Pre-discount price. `null` when no discount is present.
+    </ResponseField>
+
+    <ResponseField name="imageUrl" type="string | null">
+      Primary product image URL.
+    </ResponseField>
+
+    <ResponseField name="images" type="string[]">
+      All product image URLs including the primary image.
+    </ResponseField>
+
+    <ResponseField name="rating" type="object | null">
+      Aggregate customer rating.
+      <Expandable title="RatingView properties">
+        <ResponseField name="average" type="number | null">
+          Average rating value.
+        </ResponseField>
+        <ResponseField name="count" type="integer | null">
+          Total number of ratings.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="datetime | null">
+      ISO 8601 UTC timestamp of the last update to this product record.
+    </ResponseField>
+  </Expandable>
+
+  <Expandable title="Extended fields (lookup only)">
+    <ResponseField name="description" type="string | null">
+      Full product description.
+    </ResponseField>
+
+    <ResponseField name="inStock" type="boolean | null">
+      Whether any variant is currently in stock.
+    </ResponseField>
+
+    <ResponseField name="categories" type="CategoryView[]">
+      Categories assigned to the product. Each item has `name` (string) and optional `url` (string).
+    </ResponseField>
+
+    <ResponseField name="sizes" type="string[]">
+      Available size labels, e.g. `["s", "m", "l", "xl"]`.
+    </ResponseField>
+
+    <ResponseField name="colors" type="ColorView[]">
+      Available colors. Each item has `label` (string), optional `hexCode` (string), and optional `swatchUrl` (string).
+    </ResponseField>
+
+    <ResponseField name="tags" type="string[]">
+      Free-form tags associated with the product.
+    </ResponseField>
+
+    <ResponseField name="variants" type="MerchantVariantView[]">
+      Individual SKU-level variants. Each variant has `sku`, `productUrl`, `color`, `size`, `inStock`, and `imageUrl`.
+    </ResponseField>
+
+    <ResponseField name="details" type="ProductDetailsView">
+      Structured product attributes: `materials` (string[]), `fit` (string[]), `dimensions` (string | null), `patterns` (string[]).
+    </ResponseField>
+
+    <ResponseField name="audience" type="object | null">
+      Intended audience. Has `genders` (string[]) and `ageGroups` (string[]).
+    </ResponseField>
+
+    <ResponseField name="identifiers" type="IdentifiersView">
+      External product identifiers.
+      <Expandable title="IdentifiersView properties">
+        <ResponseField name="productId" type="string | null">
+          Merchant's internal product ID.
+        </ResponseField>
+        <ResponseField name="gtin" type="string | null">
+          Global Trade Item Number (barcode).
+        </ResponseField>
+        <ResponseField name="productGroupId" type="string | null">
+          ID grouping product variants together.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="breadcrumbs" type="BreadcrumbView[]">
+      Navigation path on the merchant site. Each item has `name` (string) and optional `url` (string).
+    </ResponseField>
+
+    <ResponseField name="promotions" type="PromotionView[]">
+      Active promotions. Each item has optional `description` (string) and `code` (string).
+    </ResponseField>
+
+    <ResponseField name="reviews" type="ReviewView[]">
+      Customer reviews. Each item has optional `author`, `rating`, `body`, and `publishedAt` fields.
+    </ResponseField>
+
+    <ResponseField name="videos" type="VideoView[]">
+      Associated product videos. Each item has optional `url`, `thumbnailUrl`, and `name` fields.
+    </ResponseField>
+
+    <ResponseField name="enrichment" type="ProductEnrichment | null">
+      Octogen-generated enrichment data including `type`, `gender`, `age_groups`, `color`, `color_family`, `category_path`, `attributes`, and `canonical_brand`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "catalogKey": "warrenlotas",
+  "catalogDisplayName": "Warren Lotas",
+  "sourceBaseUrl": "https://warrenlotas.com",
+  "product": {
+    "uuid": "prod_01HX...",
+    "title": "Black Hoodie",
+    "description": "Heavyweight cotton hoodie with screen-printed graphics.",
+    "productUrl": "https://warrenlotas.com/products/black-hoodie",
+    "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
+    "images": ["https://cdn.example.com/black-hoodie.jpg"],
+    "currentPrice": 180,
+    "originalPrice": null,
+    "inStock": true,
+    "sizes": ["s", "m", "l", "xl"],
+    "colors": [{"label": "Black", "hexCode": "#000000", "swatchUrl": null}],
+    "tags": ["hoodie", "black"],
+    "identifiers": {
+      "productId": "WL-BH-001",
+      "gtin": null,
+      "productGroupId": null
+    },
+    "updatedAt": "2026-05-19T18:04:10Z"
+  }
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `"product_not_found"` | No product matching the URL was found in any catalog granted to your key. |
+
+<Note>
+  A `404` means the URL is either not indexed in any of your granted catalogs or
+  does not belong to a catalog your organization has access to. Confirm the URL
+  is a valid product page for a granted catalog and that the catalog key is
+  active via `GET /catalogs`.
+</Note>
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient, OctogenNotFoundError
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        try:
+            result = await client.lookup_product(
+                "https://warrenlotas.com/products/black-hoodie"
+            )
+            print(result.catalog_key, result.product.title, result.product.current_price)
+        except OctogenNotFoundError:
+            print("Product not found in any granted catalog.")
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient, OctogenNotFoundError } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+try {
+  const result = await client.lookupProduct(
+    "https://warrenlotas.com/products/black-hoodie"
+  );
+  console.log(result.catalogKey, result.product.title, result.product.currentPrice);
+} catch (error) {
+  if (error instanceof OctogenNotFoundError) {
+    console.log("Product not found in any granted catalog.");
+  } else {
+    throw error;
+  }
+}
+```
+
+</CodeGroup>

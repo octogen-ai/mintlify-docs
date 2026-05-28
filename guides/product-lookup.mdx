@@ -1,0 +1,159 @@
+---
+title: "Look up a product by URL in Octogen"
+description: "Resolve any product page URL to a full canonical enriched product record, including variants, sizes, colors, and Octogen enrichment data."
+sidebarTitle: "Product Lookup"
+---
+
+Product lookup resolves a product page URL to the full canonical record Octogen holds for that product. Instead of a lightweight search item, you get the complete product view — description, sizes, colors, variants, identifiers, enrichment metadata, and more. Lookup searches across all catalogs your API key has access to, so you don't need to know which catalog a URL belongs to before calling it.
+
+## What lookup does
+
+When you call `POST /v1/products/lookup` with a product page URL, Octogen matches the URL against active product records across your granted catalogs and returns the canonical record from the first matching catalog. The response tells you which catalog matched (`catalogKey`, `catalogDisplayName`) alongside the full product object.
+
+## When to use lookup vs search
+
+| Use case | Recommended endpoint |
+| --- | --- |
+| User pastes or shares a product URL | `POST /v1/products/lookup` |
+| User types a keyword or browses by category | `POST /v1/products/search` |
+| You want full product detail from a search result | Look up the `productUrl` from the search item |
+
+## Making a lookup request
+
+Send a POST request to `/v1/products/lookup` with a JSON body containing the product page URL.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/lookup \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://warrenlotas.com/products/black-hoodie"}'
+```
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient, OctogenNotFoundError
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        try:
+            result = await client.lookup_product(
+                "https://warrenlotas.com/products/black-hoodie"
+            )
+            product = result.product
+            print(f"Catalog: {result.catalog_display_name}")
+            print(f"Title: {product.title}")
+            print(f"Price: ${product.current_price}")
+            print(f"In stock: {product.in_stock}")
+            print(f"Sizes: {product.sizes}")
+        except OctogenNotFoundError:
+            print("No active product found for that URL.")
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient, OctogenNotFoundError } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+try {
+  const result = await client.lookupProduct(
+    "https://warrenlotas.com/products/black-hoodie"
+  );
+  const { product } = result;
+  console.log(`Catalog: ${result.catalogDisplayName}`);
+  console.log(`Title: ${product.title}`);
+  console.log(`Price: $${product.currentPrice}`);
+  console.log(`In stock: ${product.inStock}`);
+  console.log(`Sizes: ${product.sizes?.join(", ")}`);
+} catch (error) {
+  if (error instanceof OctogenNotFoundError) {
+    console.log("No active product found for that URL.");
+  } else {
+    throw error;
+  }
+}
+```
+
+</CodeGroup>
+
+## Response fields
+
+The response wraps the catalog context and the full product object.
+
+### Top-level response
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `catalogKey` | string | The catalog key that matched the URL (e.g. `"warrenlotas"`). |
+| `catalogDisplayName` | string | Human-readable catalog name (e.g. `"Warren Lotas"`). |
+| `sourceBaseUrl` | string \| null | Base domain of the catalog source. |
+| `product` | object | The full product record (see below). |
+
+### Product object
+
+The `product` object extends the search item with additional detail fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `uuid` | string | Stable unique identifier for the product. |
+| `title` | string \| null | Product display name. |
+| `description` | string \| null | Full product description. |
+| `productUrl` | string | Canonical URL on the retailer's site. |
+| `imageUrl` | string \| null | Primary product image URL. |
+| `images` | string[] | All product image URLs. |
+| `currentPrice` | number \| null | Current selling price. |
+| `originalPrice` | number \| null | Pre-discount price, if available. |
+| `inStock` | boolean \| null | Whether the product is currently in stock. |
+| `sizes` | string[] | Available sizes (e.g. `["s", "m", "l", "xl"]`). |
+| `colors` | object[] | Available colors, each with `label`, `hexCode`, and optional `swatchUrl`. |
+| `tags` | string[] | Free-form tags assigned to the product. |
+| `identifiers` | object | External identifiers: `productId`, `gtin`, `productGroupId`. |
+| `variants` | object[] | Per-variant records with `sku`, `productUrl`, `color`, `size`, `inStock`, `imageUrl`. |
+| `categories` | object[] | Category objects with `name` and optional `url`. |
+| `breadcrumbs` | object[] | Breadcrumb trail with `name` and optional `url`. |
+| `audience` | object \| null | Target audience with `genders` and `ageGroups` arrays. |
+| `details` | object | Structured product details: `materials`, `fit`, `dimensions`, `patterns`. |
+| `promotions` | object[] | Active promotions with optional `description` and `code`. |
+| `reviews` | object[] | Customer reviews with `author`, `rating`, `body`, and `publishedAt`. |
+| `videos` | object[] | Product videos with `url`, `thumbnailUrl`, and `name`. |
+| `enrichment` | object \| null | Octogen-computed enrichment: product type, gender, age groups, color family, category path, structured attributes, and canonical brand data. |
+| `brand` | object \| null | Brand with `name` and optional `slug`, `url`, `description`. |
+| `rating` | object \| null | Aggregate rating with `average` and `count`. |
+| `updatedAt` | string \| null | ISO 8601 timestamp of the last catalog update. |
+
+### Example response
+
+```json
+{
+  "catalogKey": "warrenlotas",
+  "catalogDisplayName": "Warren Lotas",
+  "sourceBaseUrl": "https://warrenlotas.com",
+  "product": {
+    "uuid": "prod_01HX...",
+    "title": "Black Hoodie",
+    "description": "Heavyweight cotton hoodie...",
+    "productUrl": "https://warrenlotas.com/products/black-hoodie",
+    "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
+    "images": ["https://cdn.example.com/black-hoodie.jpg"],
+    "currentPrice": 180,
+    "originalPrice": null,
+    "inStock": true,
+    "sizes": ["s", "m", "l", "xl"],
+    "colors": [{"label": "Black", "hexCode": "#000000"}],
+    "tags": ["hoodie", "black"],
+    "identifiers": {"productId": "WL-BH-001", "gtin": null, "productGroupId": null},
+    "isActive": true,
+    "updatedAt": "2026-05-19T18:04:10Z"
+  }
+}
+```
+
+## Handling the not-found case
+
+<Note>
+  If no active product in your granted catalogs matches the URL, the API returns HTTP `404` with `"product_not_found"` in the error detail. The SDK raises `OctogenNotFoundError`. This is not a retryable error — it means the URL is not indexed in any catalog you have access to.
+</Note>
+
+Check that the URL is a canonical product page URL (not a search results page or category page), and that your organization has an active grant for the catalog that sells the product. Use `GET /v1/catalogs` to confirm your grants.

@@ -1,0 +1,75 @@
+---
+title: "Use Octogen with Codex CLI via MCP"
+description: "Connect Codex CLI to Octogen using its dedicated compatibility endpoint, then sign in once to give your agent access to your granted catalogs."
+sidebarTitle: "Codex CLI"
+---
+
+Codex CLI connects to Octogen through a dedicated compatibility endpoint rather than the standard MCP base URL. This endpoint handles OAuth discovery and token minting in a way that is compatible with how Codex implements the OAuth 2.1 flow. Everything else — the tools, the response shapes, and the catalog grants — is identical to other clients.
+
+<Note>
+  Always use `https://codex-mcp.octogen.ai/mcp` with Codex CLI. Do not substitute the standard `https://mcp.octogen.ai/mcp` URL — authentication will not complete correctly.
+</Note>
+
+<Steps>
+  <Step title="Register the Octogen MCP server">
+    Run the following command in your terminal:
+
+    ```bash
+    codex mcp add octogen --url https://codex-mcp.octogen.ai/mcp
+    ```
+
+    This registers a server named `octogen` in your Codex configuration.
+
+    Alternatively, add the entry manually to your Codex config file at `~/.codex/config.toml`:
+
+    ```toml
+    [mcp_servers.octogen]
+    url = "https://codex-mcp.octogen.ai/mcp"
+    ```
+  </Step>
+
+  <Step title="Sign in to Octogen">
+    Trigger the OAuth sign-in flow by running:
+
+    ```bash
+    codex mcp login octogen
+    ```
+
+    Codex opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
+
+    1. Enter the email that belongs to your Catalog Partner organization.
+    2. Authenticate using your organization's configured method (password, SSO, or magic link).
+    3. If your account belongs to multiple organizations, select the Catalog Partner organization you want to act as.
+    4. Consent to the requested scopes.
+
+    After you complete sign-in, the browser redirects back to Codex, which stores the resulting tokens locally.
+
+    <Note>
+      Access tokens are valid for approximately five minutes. Codex refreshes them transparently — you will not be prompted again unless your Octogen sign-in session expires.
+    </Note>
+  </Step>
+
+  <Step title="Verify the registration">
+    Confirm the server is registered with the correct URL:
+
+    ```bash
+    codex mcp get octogen
+    ```
+
+    The output should show `url = "https://codex-mcp.octogen.ai/mcp"`. If the URL differs, remove the entry and re-run step 1.
+  </Step>
+</Steps>
+
+## Why a separate URL?
+
+The Codex CLI uses a different OAuth discovery path than other MCP clients. The compatibility endpoint at `https://codex-mcp.octogen.ai` advertises OAuth resource indicator support and handles the `authorize` and `token` requests in the format Codex expects. Internally, it attaches the canonical MCP resource identifier (`https://mcp.octogen.ai`) before forwarding the request to Octogen AuthKit, so the access token it issues is audience-bound to the same resource as every other client. The separate hostname is purely a compatibility shim — your catalog grants, tool calls, and response shapes are identical regardless of which endpoint you authenticated through.
+
+## What your agent can do
+
+Once connected, your agent has access to three tools:
+
+- **`list_catalogs()`** — discover which catalogs your organization has access to.
+- **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
+- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword within a single catalog.
+
+For a full description of each tool's arguments and return values, see the [MCP overview](/mcp/overview).

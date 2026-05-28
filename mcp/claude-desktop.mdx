@@ -1,0 +1,88 @@
+---
+title: "Use Octogen with Claude Desktop via MCP"
+description: "Bridge Claude Desktop to the Octogen MCP server using the mcp-remote adapter — edit one config file, restart the app, and sign in once."
+sidebarTitle: "Claude Desktop"
+---
+
+Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to the Octogen MCP server, you use the open-source [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) adapter, which bridges stdio to the Octogen streamable HTTP endpoint. The setup requires editing a single JSON config file and restarting the application.
+
+<Steps>
+  <Step title="Locate your Claude Desktop config file">
+    The config file path depends on your operating system:
+
+    <Tabs>
+      <Tab title="macOS">
+        ```text
+        ~/Library/Application Support/Claude/claude_desktop_config.json
+        ```
+      </Tab>
+      <Tab title="Windows">
+        ```text
+        %APPDATA%\Claude\claude_desktop_config.json
+        ```
+      </Tab>
+      <Tab title="Linux">
+        ```text
+        ~/.config/Claude/claude_desktop_config.json
+        ```
+      </Tab>
+    </Tabs>
+
+    If the file does not exist yet, create it at that path.
+  </Step>
+
+  <Step title="Add the Octogen MCP server entry">
+    Open the config file and add (or merge) the following JSON:
+
+    ```json
+    {
+      "mcpServers": {
+        "Octogen MCP": {
+          "command": "npx",
+          "args": ["-y", "mcp-remote", "https://mcp.octogen.ai/mcp"]
+        }
+      }
+    }
+    ```
+
+    The `npx -y mcp-remote` invocation downloads and runs the adapter on first launch; it is kept up to date automatically on each restart. If your config file already contains other `mcpServers` entries, add the `"Octogen MCP"` key alongside them without removing the existing ones.
+
+    <Note>
+      You do not need to install `mcp-remote` globally. The `npx -y` flag fetches the latest published version each time Claude Desktop starts.
+    </Note>
+  </Step>
+
+  <Step title="Fully quit and reopen Claude Desktop">
+    Claude Desktop only reads the config file on startup. A window close is not enough — you must fully quit the application:
+
+    - **macOS:** Choose **Claude → Quit Claude** from the menu bar, or press `⌘Q`.
+    - **Windows / Linux:** Right-click the tray icon and choose **Quit**, or close all windows and confirm exit.
+
+    Then reopen Claude Desktop normally.
+
+    <Warning>
+      Closing the Claude Desktop window without quitting the application does not reload the MCP server config. If the Octogen tools do not appear after restarting, confirm the app was fully quit before reopening.
+    </Warning>
+  </Step>
+
+  <Step title="Sign in on first connection">
+    The first time Claude Desktop connects to the Octogen MCP server, the `mcp-remote` adapter opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
+
+    1. Enter the email that belongs to your Catalog Partner organization.
+    2. Authenticate using your organization's configured method (password, SSO, or magic link).
+    3. If your account belongs to multiple organizations, select the Catalog Partner organization you want to act as.
+    4. Consent to the requested scopes.
+
+    After sign-in, the browser redirects back to the adapter and the connection completes. Subsequent launches reuse the cached tokens without prompting.
+  </Step>
+</Steps>
+
+## What your agent can do
+
+Once connected, Claude Desktop has access to three Octogen tools:
+
+- **`list_catalogs()`** — discover which catalogs your organization has access to.
+- **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
+- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword within a single catalog.
+
+For a full description of each tool's arguments and return values, see the [MCP overview](/mcp/overview).

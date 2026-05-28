@@ -1,0 +1,24 @@
+---
+title: "Changelog"
+description: "New features, improvements, and fixes for the Octogen Platform."
+---
+
+<Update label="May 22, 2026" description="Week of May 18">
+
+## New features
+
+**Catalog Partner MCP server is live.** Connect any MCP-compatible AI agent — Claude Code, Claude Desktop, Codex CLI, and others — directly to your granted Octogen catalogs over OAuth 2.1 + PKCE. The server exposes three tools that mirror the REST API: `list_catalogs`, `lookup_product`, and `search_products`. Tokens are scoped to your organization and refresh automatically until your sign-in session expires.
+
+See the [MCP overview](/mcp/overview) to choose a client and get started.
+
+**Platform Catalog API v1 (REST) is generally available.** Backends and batch jobs can now hit the same catalog data over HTTPS with an `octo_live_...` API key. Endpoints include `POST /v1/catalogs`, `POST /v1/products/lookup`, and `POST /v1/products/search`, with cursor-based pagination and facet support.
+
+See the [API reference overview](/api-reference/overview) for endpoint details and the [authentication guide](/authentication) for key setup.
+
+## Updates
+
+**Codex CLI now uses a dedicated MCP endpoint.** Codex CLI users should point their client at `https://codex-mcp.octogen.ai/mcp` instead of the standard MCP base URL. The compatibility endpoint handles OAuth discovery in the format Codex expects, while issued tokens still target the canonical MCP audience — tools, response shapes, and catalog grants are unchanged.
+
+If you set up Codex CLI before this week, update your registration following the [Codex CLI guide](/mcp/codex-cli). All other clients continue to use `https://mcp.octogen.ai/mcp`.
+
+</Update>

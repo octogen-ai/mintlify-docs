@@ -1,0 +1,47 @@
+---
+title: "What is Octogen? AI commerce for Catalog Partners"
+description: "Octogen gives Catalog Partners programmatic access to curated product catalogs — search products, look up items by URL, and power AI agent integrations."
+---
+
+Octogen is an AI commerce platform that gives Catalog Partner organizations programmatic access to curated product catalogs. Once a catalog is granted to your organization, you can search products by keyword or facets, resolve any product page URL to a full canonical product record, and build commerce workflows into your backend services or AI agents — all through a single API surface.
+
+## What you can do
+
+- **Search products** — query a granted catalog by keyword, filter by color, category, brand, price range, and other facets, and paginate through results.
+- **Look up products by URL** — resolve a product page URL to a structured record with full detail: pricing, sizing, images, variants, and more.
+- **List your catalogs** — discover which catalogs are active and available to your API key at any time.
+- **Build AI agent workflows** — connect Claude Code, Codex CLI, or Claude Desktop directly to your granted catalogs via the Catalog Partner MCP server.
+
+## Two ways to access Octogen
+
+You can reach the same product data through two fully supported surfaces. Choose based on your runtime:
+
+| Surface | Best for | Auth |
+| --- | --- | --- |
+| **REST API** | Backend services, batch jobs, server-to-server | Bearer API key (`octo_live_...`) |
+| **MCP server** | Interactive AI agents (Claude Code, Codex, Claude Desktop) | OAuth 2.1 + PKCE |
+
+Both surfaces enforce the same per-organization catalog grants. A grant change takes effect immediately on all access paths.
+
+## Start here
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Get your API key and learn how to authenticate every request.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Make your first API call and retrieve real product data in minutes.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/sdks/python">
+    Install the async Python SDK and query catalogs with typed Pydantic models.
+  </Card>
+  <Card title="TypeScript SDK" icon="js" href="/sdks/typescript">
+    Use the ESM TypeScript SDK with full type safety in Node.js or edge runtimes.
+  </Card>
+  <Card title="MCP Integration" icon="robot" href="/mcp/overview">
+    Connect AI agents to your granted catalogs via the Catalog Partner MCP server.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Full reference for the Platform Catalog API v1 — endpoints, parameters, and schemas.
+  </Card>
+</CardGroup>

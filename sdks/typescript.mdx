@@ -1,0 +1,307 @@
+---
+title: "Octogen TypeScript SDK — async client API reference"
+description: "Install the TypeScript SDK for Octogen, set your API key, and search or look up products from your granted catalogs with full ESM type safety in Node.js."
+sidebarTitle: "TypeScript SDK"
+---
+
+The Octogen TypeScript SDK gives you a fully typed, async client for the Octogen commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
+
+## Installation
+
+<Steps>
+  <Step title="Install the package">
+    Requires Node.js 20 or later. The SDK ships as ESM only.
+
+    ```bash
+    npm install @octogen-ai/sdk
+    ```
+  </Step>
+  <Step title="Set your API key">
+    The client reads your key from the `OCTO_API_KEY` environment variable automatically.
+
+    ```bash
+    export OCTO_API_KEY=octo_live_...
+    ```
+
+    You can also pass `apiKey:` in the constructor options if you prefer to manage secrets yourself (see [Authentication](#authentication) below).
+  </Step>
+</Steps>
+
+## Authentication
+
+`OctogenClient` resolves your API key in this order:
+
+1. The `apiKey` option passed to the constructor, if provided.
+2. The `OCTO_API_KEY` environment variable (`process.env.OCTO_API_KEY`).
+
+If neither is set, the constructor throws `MissingAPIKeyError` immediately — before any network request is made. Every request then sends the key as `Authorization: Bearer <api-key>`.
+
+```typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+// From environment variable (recommended)
+const client = new OctogenClient();
+
+// Explicit key
+const client = new OctogenClient({ apiKey: "octo_live_..." });
+```
+
+## Client options
+
+`OctogenClient` accepts an optional `OctogenClientOptions` object:
+
+| Option      | Type                      | Default                        | Description                                                           |
+| ----------- | ------------------------- | ------------------------------ | --------------------------------------------------------------------- |
+| `apiKey`    | `string`                  | `process.env.OCTO_API_KEY`     | Your Platform API key.                                                |
+| `baseUrl`   | `string`                  | `https://api.octogen.ai/v1`    | Override the API base URL (useful for testing).                       |
+| `timeoutMs` | `number`                  | `30000`                        | Request timeout in milliseconds.                                      |
+| `fetch`     | `FetchLike`               | `globalThis.fetch`             | Custom fetch function — useful for edge runtimes or test mocks.       |
+
+```typescript
+const client = new OctogenClient({
+  timeoutMs: 10_000,
+  baseUrl: "https://api.octogen.ai/v1",
+});
+```
+
+## Methods
+
+### `listCatalogs`
+
+```typescript
+async listCatalogs(): Promise<MerchantCatalogSummary[]>
+```
+
+Returns all active catalogs granted to your API key's organization. Use the `catalog` field from each result as the identifier for `searchProducts`.
+
+```typescript
+const catalogs = await client.listCatalogs();
+for (const c of catalogs) {
+  console.log(c.catalog, c.displayName, c.productCount);
+}
+```
+
+**Returns:** `Promise<MerchantCatalogSummary[]>`
+
+Each `MerchantCatalogSummary` has:
+
+| Field           | Type              | Description                                        |
+| --------------- | ----------------- | -------------------------------------------------- |
+| `catalog`       | `string`          | Catalog identifier — pass this to `searchProducts`. |
+| `displayName`   | `string`          | Human-readable catalog name.                       |
+| `productCount`  | `number`          | Number of indexed products.                        |
+| `sourceBaseUrl` | `string \| null`  | Base URL of the catalog source.                    |
+| `lastIndexedAt` | `string \| null`  | ISO 8601 timestamp of the last index run.          |
+
+---
+
+### `lookupProduct`
+
+```typescript
+async lookupProduct(url: string): Promise<MerchantProductUrlLookupResponse>
+```
+
+Resolves a canonical product page URL to its full product record, including pricing, images, variants, sizes, and enrichment data. The URL must belong to a catalog granted to your key.
+
+```typescript
+const result = await client.lookupProduct(
+  "https://example.com/products/blue-linen-dress"
+);
+console.log(result.product.title);
+console.log(result.product.currentPrice);
+```
+
+**Returns:** `Promise<MerchantProductUrlLookupResponse>`
+
+| Field                | Type                  | Description                               |
+| -------------------- | --------------------- | ----------------------------------------- |
+| `catalogKey`         | `string`              | Catalog the product belongs to.           |
+| `catalogDisplayName` | `string`              | Human-readable catalog name.              |
+| `product`            | `MerchantProductView` | Full product record with all detail fields. |
+
+---
+
+### `searchProducts`
+
+```typescript
+async searchProducts(params: SearchProductsParams): Promise<MerchantProductListPage>
+```
+
+Searches products in a single authorized catalog. Only `catalog` is required.
+
+**`SearchProductsParams` fields:**
+
+| Field       | Type              | Default | Description                                                             |
+| ----------- | ----------------- | ------- | ----------------------------------------------------------------------- |
+| `catalog`   | `string`          | —       | **Required.** Catalog identifier from `listCatalogs()`.                |
+| `q`         | `string`          | —       | Keyword search query.                                                   |
+| `facets`    | `Facet[]`         | —       | List of facet filters to apply. See [Faceted search](#faceted-search).  |
+| `priceMin`  | `number`          | —       | Minimum price filter (inclusive).                                       |
+| `priceMax`  | `number`          | —       | Maximum price filter (inclusive).                                       |
+| `cursor`    | `string`          | —       | Pagination cursor from a previous response's `nextCursor`.              |
+| `limit`     | `number`          | `50`    | Number of results per page. Must be an integer between 1 and 100.       |
+
+**Returns:** `Promise<MerchantProductListPage>`
+
+| Field        | Type                           | Description                                            |
+| ------------ | ------------------------------ | ------------------------------------------------------ |
+| `items`      | `MerchantProductListItem[]`    | Products on this page.                                 |
+| `nextCursor` | `string \| null`               | Pass as `cursor` in your next call to get the next page. `null` means no more results. |
+
+Each `MerchantProductListItem` includes `uuid`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `imageUrl`, `images`, `rating`, and `updatedAt`.
+
+## Complete example
+
+The following example lists your first catalog, searches for women's linen dresses, and prints each result with its brand and price:
+
+```typescript
+import { inspect } from "node:util";
+import { OctogenAPIError, OctogenClient } from "@octogen-ai/sdk";
+
+async function main(): Promise<void> {
+  try {
+    const client = new OctogenClient();
+    const catalogs = await client.listCatalogs();
+    if (catalogs.length === 0) {
+      console.log("No catalogs are available for this API key.");
+      return;
+    }
+
+    const catalog = catalogs[0];
+    if (catalog === undefined) {
+      console.log("No catalogs are available for this API key.");
+      return;
+    }
+
+    const results = await client.searchProducts({
+      catalog: catalog.catalog,
+      limit: 5,
+      q: "women's linen summer dresses",
+    });
+
+    console.log(`Catalog: ${catalog.catalog}`);
+    for (const product of results.items) {
+      const brand = product.brand?.name ?? "Unknown brand";
+      const price =
+        product.currentPrice === null || product.currentPrice === undefined
+          ? "Price unavailable"
+          : `$${product.currentPrice.toFixed(2)}`;
+      const title = product.title ?? "Untitled product";
+      console.log(`- ${title} | ${brand} | ${price}`);
+      console.log(`  ${product.productUrl}`);
+    }
+  } catch (error) {
+    if (error instanceof OctogenAPIError) {
+      console.error(`Octogen API error: status=${String(error.statusCode)}`);
+      console.error(inspect(error.detail, { depth: null }));
+    }
+    throw error;
+  }
+}
+
+await main();
+```
+
+## Faceted search
+
+Use `Facet` objects to filter by brand, gender, color, category, and other attributes. Pass them in the `facets` field of `SearchProductsParams`.
+
+```typescript
+import { FacetName, OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const catalogs = await client.listCatalogs();
+
+const results = await client.searchProducts({
+  catalog: catalogs[0].catalog,
+  q: "summer dress",
+  facets: [
+    { name: FacetName.GENDER, values: ["female"] },
+    { name: FacetName.COLOR_FAMILY, values: ["Blue", "Green"] },
+  ],
+  priceMax: 150,
+  limit: 20,
+});
+
+for (const product of results.items) {
+  console.log(product.title, product.productUrl);
+}
+```
+
+<Tip>
+  `FacetName` is a const object with string values for all built-in facet fields: `BRAND_NAME`, `GENDER`, `AGE_GROUPS`, `COLOR`, `COLOR_FAMILY`, `IS_ACTIVEWEAR`, `PRODUCT_TYPE`, `CATEGORY_PATH_DEPTH_0` through `CATEGORY_PATH_DEPTH_6`, and more. You can also pass any custom attribute facet name as a plain string.
+</Tip>
+
+## Pagination
+
+When `nextCursor` is not `null` in a response, pass it as `cursor` in your next call to retrieve the following page:
+
+```typescript
+let cursor: string | undefined;
+
+while (true) {
+  const page = await client.searchProducts({
+    catalog,
+    q: "linen dress",
+    cursor,
+    limit: 50,
+  });
+
+  for (const product of page.items) {
+    console.log(product.title);
+  }
+
+  if (page.nextCursor == null) break;
+  cursor = page.nextCursor;
+}
+```
+
+## Error handling
+
+All SDK errors extend `OctogenError`. HTTP errors extend `OctogenAPIError`, which exposes `statusCode`, `detail`, and `response` properties.
+
+<AccordionGroup>
+  <Accordion title="OctogenAuthenticationError — 401">
+    Thrown when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in the partner portal.
+  </Accordion>
+  <Accordion title="OctogenForbiddenError — 403">
+    Thrown when a valid key attempts an action it is not authorized for — for example, accessing a catalog that has not been granted to your organization.
+  </Accordion>
+  <Accordion title="OctogenNotFoundError — 404">
+    Thrown when a catalog or product URL cannot be found. For `lookupProduct`, verify the URL belongs to a catalog your key can access.
+  </Accordion>
+  <Accordion title="OctogenValidationError — 422">
+    Thrown when the API rejects a request due to invalid parameters. The `detail` property contains the validation error list from the API.
+  </Accordion>
+  <Accordion title="OctogenConnectionError">
+    Thrown when the SDK cannot reach the API — for example, due to a network timeout or DNS failure. Does not have a `statusCode`.
+  </Accordion>
+</AccordionGroup>
+
+Catch the base `OctogenAPIError` to handle all HTTP errors in one place:
+
+```typescript
+import {
+  OctogenAPIError,
+  OctogenAuthenticationError,
+  OctogenConnectionError,
+} from "@octogen-ai/sdk";
+
+try {
+  const results = await client.searchProducts({ catalog, q: "dress" });
+} catch (error) {
+  if (error instanceof OctogenAuthenticationError) {
+    console.error("Check your OCTO_API_KEY.");
+  } else if (error instanceof OctogenAPIError) {
+    console.error(`API error ${String(error.statusCode)}:`, error.detail);
+  } else if (error instanceof OctogenConnectionError) {
+    console.error("Network error:", error.message);
+  } else {
+    throw error;
+  }
+}
+```
+
+<Warning>
+  `MissingAPIKeyError` is thrown by the constructor, not by a network call. It will surface at client creation time if neither `apiKey` nor `OCTO_API_KEY` is present.
+</Warning>

@@ -1,0 +1,80 @@
+---
+title: "Connect AI agents to Octogen via MCP"
+description: "Let AI coding tools search and look up products in your granted Octogen catalogs using the Model Context Protocol — no API keys required."
+sidebarTitle: "Overview"
+---
+
+The Octogen Catalog Partner MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call three tools — `list_catalogs`, `lookup_product`, and `search_products` — without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
+
+## Connection details
+
+| Property    | Value                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| Base URL    | `https://mcp.octogen.ai/mcp` (Codex CLI uses `https://codex-mcp.octogen.ai/mcp`)          |
+| Transport   | Streamable HTTP                                                                             |
+| Auth        | OAuth 2.1 with PKCE-S256 against `https://auth.octogen.ai`                                 |
+| Discovery   | RFC 9728 protected-resource metadata at `https://mcp.octogen.ai/.well-known/oauth-protected-resource` |
+
+## Authentication
+
+There are no API keys to generate or rotate. MCP clients that implement OAuth 2.1 discovery walk the authorization chain automatically:
+
+1. On the first tool call, your client opens a browser tab pointed at the Octogen sign-in page.
+2. You sign in with the email that belongs to your Catalog Partner organization. If you belong to multiple organizations, you choose which one to act as.
+3. You consent to the requested scopes.
+4. The browser redirects back to your client, which exchanges the authorization code for an access token and a refresh token stored locally.
+
+Access tokens are valid for approximately five minutes. Refresh happens transparently in the background as long as your Octogen sign-in session is active. To end access, sign out of the Octogen Platform or have your organization administrator remove your account.
+
+## Prerequisites
+
+<Info>
+Both conditions must be true before your first tool call.
+</Info>
+
+- Your organization is provisioned as a Catalog Partner and has been granted at least one catalog. If you do not yet have a Catalog Partner organization, contact Octogen support.
+- You can sign in to the Octogen Platform with the email that belongs to that organization.
+
+## Available tools
+
+Three tools are exposed by the MCP server. Each maps 1:1 to an endpoint in the [Platform Catalog API v1](/api-reference/overview), so the argument names and response shapes are the same on either surface.
+
+### `list_catalogs()`
+
+Returns all catalogs currently granted to your organization. Call this first when you or your agent does not know which catalog keys are available. An organization with no active grants receives an empty list, not an error.
+
+### `lookup_product(canonical_url, catalogs?)`
+
+Resolves a product page URL to a full canonical product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. If no active product matches, the tool returns a structured `product_not_found` value — not a transport-level failure — so your agent can recover gracefully.
+
+### `search_products(catalog, query?, limit?, cursor?)`
+
+Searches products within a single granted catalog by free-text keyword. The `catalog` argument must be a key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
+
+## MCP vs REST API
+
+Both surfaces are equally supported and enforce the same per-organization catalog grants. A grant change on one path takes effect immediately on the other.
+
+| | Platform Catalog API v1 (API keys) | MCP (OAuth) |
+| --- | --- | --- |
+| Best for | Backends, batch jobs, server-to-server | Interactive AI agents (Claude Code, Codex CLI, Claude Desktop) |
+| Auth | Bearer `octo_live_...` key | OAuth 2.1 + PKCE — browser sign-in, tokens cached locally |
+| Caller identity | `(api_key_id, org_id)` | `(user_sub, org_id, oauth_client_id)` |
+| Token lifetime | Until manually revoked | ~5 minutes access; refresh until session expiry |
+| Revocation | Revoke the API key | Sign out of Octogen Platform or remove user from org |
+
+## Set up your client
+
+Choose the guide for the AI tool you are using.
+
+<CardGroup cols={3}>
+  <Card title="Claude Code" icon="terminal" href="/mcp/claude-code">
+    Add Octogen to Claude Code with a single command and share the config with your team via `.mcp.json`.
+  </Card>
+  <Card title="Claude Desktop" icon="desktop" href="/mcp/claude-desktop">
+    Connect Claude Desktop using the `mcp-remote` adapter and a one-time JSON config change.
+  </Card>
+  <Card title="Codex CLI" icon="code" href="/mcp/codex-cli">
+    Register Octogen with Codex CLI using its dedicated compatibility endpoint.
+  </Card>
+</CardGroup>

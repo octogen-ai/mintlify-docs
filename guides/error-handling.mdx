@@ -1,0 +1,218 @@
+---
+title: "Handle Octogen API errors in your integration"
+description: "Understand the Octogen error model, SDK exception types, and recovery strategies for auth failures, missing resources, and validation errors."
+sidebarTitle: "Error Handling"
+---
+
+The Octogen API uses standard HTTP status codes for errors. The Python and TypeScript SDKs translate every non-2xx response into a typed exception, so you can catch specific error conditions without inspecting raw HTTP status codes. Understanding which errors are transient and which require a code or configuration change helps you build integrations that fail fast on bugs and recover gracefully from network issues.
+
+## Error categories
+
+Octogen API errors fall into two categories:
+
+1. **HTTP errors (4xx/5xx)** — The server returned a non-2xx response. The SDK raises a typed exception with a `status_code`, `detail`, and the raw `response` attached.
+2. **Network errors** — The request never reached the server (DNS failure, timeout, connection reset). The SDK raises `OctogenConnectionError`.
+
+<Note>
+  If you are using the Catalog Partner MCP server instead of the REST API, tool-level errors are returned as HTTP 200 responses with an `error` field in the payload rather than as HTTP error codes. This guide covers the REST API only.
+</Note>
+
+## HTTP error reference
+
+<AccordionGroup>
+  <Accordion title="401 — Authentication error">
+    **SDK exception:** `OctogenAuthenticationError`
+
+    The API key is missing, malformed, or has been revoked. Common causes:
+
+    - `OCTO_API_KEY` environment variable is not set
+    - The key string was truncated or contains extra whitespace
+    - The key was deactivated in the partner portal
+
+    **Recovery:** Rotate or replace the API key. Do not retry the request with the same key.
+  </Accordion>
+
+  <Accordion title="403 — Forbidden">
+    **SDK exception:** `OctogenForbiddenError`
+
+    The API key is valid, but your organization is not allowed to perform this operation. Common causes:
+
+    - Your organization does not have a Catalog Partner grant
+    - The API key belongs to the wrong organization
+    - The key's org type does not have permission for the endpoint
+
+    **Recovery:** Check your organization's access in the partner portal. Contact Octogen if you believe the grant is missing.
+  </Accordion>
+
+  <Accordion title="404 — Not found">
+    **SDK exception:** `OctogenNotFoundError`
+
+    The requested catalog or product is not visible to your API key. Common `detail` values:
+
+    - `"catalog_not_found"` — The catalog key you passed in `catalog` is not granted to your organization. Use `GET /v1/catalogs` to see available keys.
+    - `"product_not_found"` — No active product in your granted catalogs matches the URL you passed to `/products/lookup`.
+
+    **Recovery:** Verify the catalog key using `GET /v1/catalogs`. For product lookup, confirm the URL is a canonical product page URL and that the catalog covering that domain is granted to your organization.
+  </Accordion>
+
+  <Accordion title="422 — Validation error">
+    **SDK exception:** `OctogenValidationError`
+
+    The request body failed schema validation. The response body contains a `detail` array where each entry identifies the invalid field:
+
+    ```json
+    {
+      "detail": [
+        {
+          "loc": ["body", "catalog"],
+          "msg": "Field required",
+          "type": "missing",
+          "input": {}
+        }
+      ]
+    }
+    ```
+
+    Each entry has:
+    - `loc` — path to the invalid field (e.g. `["body", "limit"]`)
+    - `msg` — human-readable error message
+    - `type` — machine-readable error type
+
+    **Recovery:** Fix the request based on the field-level messages. This is always a client-side bug.
+  </Accordion>
+</AccordionGroup>
+
+## SDK exception hierarchy
+
+All SDK exceptions inherit from `OctogenError`. The full hierarchy:
+
+```
+OctogenError
+├── MissingAPIKeyError          # OCTO_API_KEY not set and no api_key argument passed
+├── OctogenConnectionError      # Network-level failure (timeout, DNS, connection reset)
+└── OctogenAPIError             # Non-2xx HTTP response
+    ├── OctogenAuthenticationError   # 401
+    ├── OctogenForbiddenError        # 403
+    ├── OctogenNotFoundError         # 404
+    └── OctogenValidationError       # 422
+```
+
+`OctogenAPIError` and its subclasses expose:
+- `.status_code` (Python) / `.statusCode` (TypeScript) — the HTTP status code
+- `.detail` — the parsed error body from the `detail` field, or the raw response text
+- `.response` — the underlying HTTP response object
+
+## Handling errors in code
+
+<CodeGroup>
+
+```python python
+import asyncio
+from octogen_ai_sdk import (
+    OctogenClient,
+    OctogenAuthenticationError,
+    OctogenConnectionError,
+    OctogenForbiddenError,
+    OctogenNotFoundError,
+    OctogenValidationError,
+    OctogenAPIError,
+)
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        try:
+            result = await client.lookup_product(
+                "https://warrenlotas.com/products/black-hoodie"
+            )
+            print(result.product.title)
+
+        except OctogenAuthenticationError:
+            # 401 — rotate or replace the API key
+            print("Invalid API key. Check OCTO_API_KEY and rotate if needed.")
+
+        except OctogenForbiddenError as exc:
+            # 403 — org does not have access
+            print(f"Access denied: {exc.detail}")
+
+        except OctogenNotFoundError as exc:
+            # 404 — catalog or product not found
+            print(f"Not found: {exc.detail}")
+
+        except OctogenValidationError as exc:
+            # 422 — fix the request fields
+            print(f"Validation error: {exc.detail}")
+
+        except OctogenConnectionError as exc:
+            # Network failure — safe to retry with backoff
+            print(f"Connection error: {exc}")
+
+        except OctogenAPIError as exc:
+            # Catch-all for unexpected 5xx or other API errors
+            print(f"API error {exc.status_code}: {exc.detail}")
+            raise
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import {
+  OctogenClient,
+  OctogenAuthenticationError,
+  OctogenConnectionError,
+  OctogenForbiddenError,
+  OctogenNotFoundError,
+  OctogenValidationError,
+  OctogenAPIError,
+} from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+
+try {
+  const result = await client.lookupProduct(
+    "https://warrenlotas.com/products/black-hoodie"
+  );
+  console.log(result.product.title);
+} catch (error) {
+  if (error instanceof OctogenAuthenticationError) {
+    // 401 — rotate or replace the API key
+    console.error("Invalid API key. Check OCTO_API_KEY and rotate if needed.");
+  } else if (error instanceof OctogenForbiddenError) {
+    // 403 — org does not have access
+    console.error("Access denied:", error.detail);
+  } else if (error instanceof OctogenNotFoundError) {
+    // 404 — catalog or product not found
+    console.error("Not found:", error.detail);
+  } else if (error instanceof OctogenValidationError) {
+    // 422 — fix the request fields
+    console.error("Validation error:", error.detail);
+  } else if (error instanceof OctogenConnectionError) {
+    // Network failure — safe to retry with backoff
+    console.error("Connection error:", error.message);
+  } else if (error instanceof OctogenAPIError) {
+    // Catch-all for unexpected 5xx or other API errors
+    console.error(`API error ${String(error.statusCode)}:`, error.detail);
+    throw error;
+  } else {
+    throw error;
+  }
+}
+```
+
+</CodeGroup>
+
+## Retry guidance
+
+<Warning>
+  Do not automatically retry `4xx` errors. A `401`, `403`, `404`, or `422` response means the request itself is invalid or unauthorized — retrying it will produce the same error and may exhaust rate limits. Fix the underlying cause (key, permissions, or request body) before trying again.
+</Warning>
+
+| Error type | Retry? | Action |
+| --- | --- | --- |
+| `OctogenAuthenticationError` (401) | No | Replace the API key |
+| `OctogenForbiddenError` (403) | No | Check org catalog grants |
+| `OctogenNotFoundError` (404) | No | Verify catalog key or product URL |
+| `OctogenValidationError` (422) | No | Fix the request body |
+| `OctogenConnectionError` | Yes | Retry with exponential backoff |
+| `OctogenAPIError` with 5xx | Yes | Retry with exponential backoff |
+
+For transient errors and `5xx` responses, use an exponential backoff strategy with jitter. Start with a 1-second delay, double on each retry, and cap at 30 seconds. After three to five failed attempts, surface the error to the caller rather than retrying indefinitely.

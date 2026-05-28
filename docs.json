@@ -1,0 +1,101 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Octogen",
+  "theme": "luma",
+  "logo": {
+    "light": "/images/octogen-logo-light.svg",
+    "dark": "/images/octogen-logo-dark.svg"
+  },
+  "favicon": "https://media.brand.dev/6c319a44-8606-481f-a8e7-e8cd409c68e3.jpg",
+  "colors": {
+    "primary": "#1c1c1c",
+    "light": "#848484",
+    "dark": "#dbdbdb"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/octogen-ai/octogen-dev"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "authentication",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/python",
+              "sdks/typescript"
+            ]
+          },
+          {
+            "group": "MCP Integration",
+            "pages": [
+              "mcp/overview",
+              "mcp/claude-code",
+              "mcp/claude-desktop",
+              "mcp/codex-cli"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/catalog-search",
+              "guides/product-lookup",
+              "guides/pagination",
+              "guides/error-handling"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Catalog API",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/list-catalogs",
+              "api-reference/lookup-product",
+              "api-reference/search-products"
+            ]
+          },
+          {
+            "group": "Data Models",
+            "pages": [
+              "api-reference/models/catalog",
+              "api-reference/models/product"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Changelog",
+        "groups": [
+          {
+            "group": "Changelog",
+            "pages": [
+              "changelog/overview"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "fonts": {
+    "family": "Geist"
+  }
+}

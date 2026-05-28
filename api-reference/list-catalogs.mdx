@@ -1,0 +1,102 @@
+---
+title: "GET /catalogs — list granted catalogs"
+description: "Returns the array of active catalogs your organization has been granted access to, including product counts and last-indexed timestamps."
+sidebarTitle: "List Catalogs"
+---
+
+`GET /catalogs` returns every catalog your Platform API key is authorized to access. Each item in the response array is a `MerchantCatalogSummary` object containing the catalog's key, display name, source URL, current product count, and the timestamp of the most recent index run. Use the `catalog` key from this response as the required `catalog` field when calling [`POST /products/search`](/api-reference/search-products).
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/catalogs
+Authorization: Bearer <your-platform-api-key>
+```
+
+This endpoint takes no request body and no query parameters.
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/catalogs \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+The response is a JSON array of [MerchantCatalogSummary](/api-reference/models/catalog) objects.
+
+<ResponseField name="[]" type="MerchantCatalogSummary[]">
+  Array of catalogs granted to the organization. An empty array means the organization has no active catalog grants — this is not an error.
+
+  <Expandable title="MerchantCatalogSummary properties">
+    <ResponseField name="catalog" type="string" required>
+      Unique catalog key. Pass this value as the `catalog` field in search requests.
+    </ResponseField>
+
+    <ResponseField name="displayName" type="string" required>
+      Human-readable catalog name for display purposes.
+    </ResponseField>
+
+    <ResponseField name="sourceBaseUrl" type="string | null">
+      Base URL of the merchant's product site (e.g. `https://warrenlotas.com`). May be `null` if not configured.
+    </ResponseField>
+
+    <ResponseField name="productCount" type="integer" required>
+      Number of active indexed products currently in the catalog.
+    </ResponseField>
+
+    <ResponseField name="lastIndexedAt" type="datetime | null">
+      ISO 8601 UTC timestamp of the most recent completed index run. `null` if the catalog has never been indexed.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example response
+
+```json
+[
+  {
+    "catalog": "warrenlotas",
+    "displayName": "Warren Lotas",
+    "sourceBaseUrl": "https://warrenlotas.com",
+    "productCount": 1248,
+    "lastIndexedAt": "2026-05-19T18:04:10Z"
+  }
+]
+```
+
+<Note>
+  An empty array (`[]`) means the organization has no active catalog grants. It
+  is not an error condition — treat it as a normal response and prompt your users
+  to request catalog access via the partner portal.
+</Note>
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        catalogs = await client.list_catalogs()
+        for c in catalogs:
+            print(c.catalog, c.display_name, c.product_count)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const catalogs = await client.listCatalogs();
+for (const c of catalogs) {
+  console.log(c.catalog, c.displayName, c.productCount);
+}
+```
+
+</CodeGroup>

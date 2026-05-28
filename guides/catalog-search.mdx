@@ -1,0 +1,301 @@
+---
+title: "Search products across Octogen catalogs"
+description: "Learn how to search products by keyword, filter by facets like color and category, and apply price ranges using the Octogen Catalog API."
+sidebarTitle: "Catalog Search"
+---
+
+The Octogen search endpoint lets you find products within a catalog using free-text queries, structured facet filters, and price range constraints — in any combination. Every search request targets a single catalog by design: Octogen enforces per-organization catalog grants and does not support cross-catalog search in a single request. Use `GET /v1/catalogs` to discover which catalog keys your API key can access, then pass one of those keys as `catalog` in your search request.
+
+## How search works
+
+When you call `POST /v1/products/search`, Octogen runs the query against one catalog at a time. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
+
+Cross-catalog search is intentionally not supported. If you need results from multiple catalogs, issue one request per catalog and merge the results in your application.
+
+## Basic keyword search
+
+Pass a free-text string as `q` to search by keyword. Omit `q` entirely to browse a catalog without any keyword filter.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "catalog": "warrenlotas",
+    "q": "black hoodie",
+    "limit": 10
+  }'
+```
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        results = await client.search_products(
+            catalog="warrenlotas",
+            q="black hoodie",
+            limit=10,
+        )
+        for product in results.items:
+            print(product.title, product.product_url)
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const results = await client.searchProducts({
+  catalog: "warrenlotas",
+  q: "black hoodie",
+  limit: 10,
+});
+
+for (const product of results.items) {
+  console.log(product.title, product.productUrl);
+}
+```
+
+</CodeGroup>
+
+## Faceted filtering
+
+Facets let you filter by structured product attributes. Each facet is an object with a `name` and a `values` array. You can apply multiple facets in a single request — the filters are combined with AND logic, so each additional facet narrows the result set.
+
+The `FacetName` enum defines the supported facet keys:
+
+| Facet name | Description |
+| --- | --- |
+| `brand_name` | Canonical brand name (e.g. `"Warren Lotas"`) |
+| `brand_slug` | URL-safe brand identifier (e.g. `"warren-lotas"`) |
+| `product_type` | Product category type (e.g. `"hoodie"`, `"sneaker"`) |
+| `gender` | `male`, `female`, or `unisex` |
+| `age_groups` | `infant`, `toddler`, `kids`, or `adult` |
+| `color` | Specific color label (e.g. `"black"`, `"vintage white"`) |
+| `color_family` | Broad color family: `Black`, `Blue`, `Green`, `Gray`, `Pink`, `Purple`, `Red`, `Orange`, `Brown`, `Yellow`, `White` |
+| `category_path.depth_0` – `depth_6` | Hierarchical category path at a given depth |
+
+Facet values are **case-insensitive** and phrase values may contain spaces. You can also pass dynamic attribute keys directly (e.g. `fit`, or its fully-qualified form `attribute_facets.fit`).
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "catalog": "warrenlotas",
+    "facets": [
+      {"name": "color", "values": ["black"]},
+      {"name": "gender", "values": ["male"]},
+      {"name": "category_path.depth_0", "values": ["tops"]}
+    ],
+    "limit": 25
+  }'
+```
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+from octogen_ai_sdk.models import Facet, FacetName
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        results = await client.search_products(
+            catalog="warrenlotas",
+            facets=[
+                Facet(name=FacetName.COLOR, values=["black"]),
+                Facet(name=FacetName.GENDER, values=["male"]),
+                Facet(name=FacetName.CATEGORY_PATH_DEPTH_0, values=["tops"]),
+            ],
+            limit=25,
+        )
+        for product in results.items:
+            price = f"${product.current_price:.2f}" if product.current_price else "N/A"
+            print(f"{product.title} — {price}")
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient, FacetName } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const results = await client.searchProducts({
+  catalog: "warrenlotas",
+  facets: [
+    { name: FacetName.COLOR, values: ["black"] },
+    { name: FacetName.GENDER, values: ["male"] },
+    { name: FacetName.CATEGORY_PATH_DEPTH_0, values: ["tops"] },
+  ],
+  limit: 25,
+});
+
+for (const product of results.items) {
+  const price = product.currentPrice != null ? `$${product.currentPrice.toFixed(2)}` : "N/A";
+  console.log(`${product.title ?? "Untitled"} — ${price}`);
+}
+```
+
+</CodeGroup>
+
+## Price range filtering
+
+Use `price_min` and `price_max` to restrict results to a price range. Both bounds are inclusive. You can use either bound on its own.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "catalog": "warrenlotas",
+    "q": "hoodie",
+    "price_min": 100,
+    "price_max": 300
+  }'
+```
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        results = await client.search_products(
+            catalog="warrenlotas",
+            q="hoodie",
+            price_min=100,
+            price_max=300,
+        )
+        for product in results.items:
+            print(product.title, product.current_price)
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const results = await client.searchProducts({
+  catalog: "warrenlotas",
+  q: "hoodie",
+  priceMin: 100,
+  priceMax: 300,
+});
+
+for (const product of results.items) {
+  console.log(product.title, product.currentPrice);
+}
+```
+
+</CodeGroup>
+
+## Combined example: keyword, facets, and price range
+
+You can combine `q`, `facets`, and price filters in a single request. All active filters are applied together.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "catalog": "warrenlotas",
+    "q": "graphic tee",
+    "facets": [
+      {"name": "color_family", "values": ["Black"]},
+      {"name": "gender", "values": ["unisex"]}
+    ],
+    "price_min": 50,
+    "price_max": 200,
+    "limit": 20
+  }'
+```
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+from octogen_ai_sdk.models import Facet, FacetName
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        results = await client.search_products(
+            catalog="warrenlotas",
+            q="graphic tee",
+            facets=[
+                Facet(name=FacetName.COLOR_FAMILY, values=["Black"]),
+                Facet(name=FacetName.GENDER, values=["unisex"]),
+            ],
+            price_min=50,
+            price_max=200,
+            limit=20,
+        )
+        print(f"Found {len(results.items)} products")
+        for product in results.items:
+            brand = product.brand.name if product.brand else "Unknown"
+            print(f"- {product.title} | {brand} | ${product.current_price}")
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient, FacetName } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const results = await client.searchProducts({
+  catalog: "warrenlotas",
+  q: "graphic tee",
+  facets: [
+    { name: FacetName.COLOR_FAMILY, values: ["Black"] },
+    { name: FacetName.GENDER, values: ["unisex"] },
+  ],
+  priceMin: 50,
+  priceMax: 200,
+  limit: 20,
+});
+
+console.log(`Found ${results.items.length} products`);
+for (const product of results.items) {
+  const brand = product.brand?.name ?? "Unknown";
+  console.log(`- ${product.title} | ${brand} | $${product.currentPrice}`);
+}
+```
+
+</CodeGroup>
+
+## Understanding results
+
+Each search response contains two top-level fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `items` | array | List of product records matching the query. |
+| `nextCursor` | string \| null | Pagination cursor. Non-null means more pages are available. See [Pagination](/guides/pagination). |
+
+Each item in `items` contains the following fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `uuid` | string | Stable unique identifier for the product. |
+| `productUrl` | string | Canonical URL on the retailer's site. |
+| `title` | string \| null | Product display name. |
+| `brand` | object \| null | Brand with `name` and optional `slug`, `url`, `description`. |
+| `currentPrice` | number \| null | Current selling price. |
+| `originalPrice` | number \| null | Pre-discount price, if available. |
+| `imageUrl` | string \| null | Primary product image URL. |
+| `images` | string[] | All product image URLs. |
+| `rating` | object \| null | Average rating and review count, if available. |
+| `updatedAt` | string \| null | ISO 8601 timestamp of the last catalog update. |
+
+<Tip>
+  To get the full product record with fields like `description`, `sizes`, `colors`, `variants`, `identifiers`, and `enrichment`, use [product lookup](/guides/product-lookup) with the `productUrl` from a search result.
+</Tip>

@@ -1,0 +1,226 @@
+---
+title: "Get started with Octogen in minutes"
+description: "Go from zero to your first product search result: set up your API key, list your catalogs, search products, and look up a product by URL."
+---
+
+This guide walks you through making your first calls to the Octogen Platform Catalog API. By the end, you will have listed your granted catalogs, searched for products, and resolved a product page URL to a full product record — using curl, the Python SDK, or the TypeScript SDK.
+
+## Prerequisites
+
+Before you start, make sure you have:
+
+- A **Catalog Partner organization** provisioned by Octogen
+- A **Platform API key** from the partner portal (see [Authentication](/authentication))
+- At least one catalog granted to your organization
+
+<Steps>
+  <Step title="Set your API key">
+    Export your API key so it's available to all three methods below:
+
+    ```bash
+    export OCTO_API_KEY="octo_live_<your-key>"
+    ```
+
+    The Python and TypeScript SDKs read `OCTO_API_KEY` from the environment automatically. You can also pass the key directly to the client constructor — see [Authentication](/authentication) for details.
+  </Step>
+
+  <Step title="List your catalogs">
+    Retrieve the catalogs your organization has been granted access to. The `catalog` value from each result is what you pass to the search endpoint.
+
+    <CodeGroup>
+      ```bash curl
+      curl -sS https://api.octogen.ai/v1/catalogs \
+        -H "Authorization: Bearer $OCTO_API_KEY"
+      ```
+
+      ```python Python
+      import asyncio
+      from octogen_ai_sdk import OctogenClient
+
+      async def main():
+          async with OctogenClient() as client:
+              catalogs = await client.list_catalogs()
+              for c in catalogs:
+                  print(c.catalog, "-", c.display_name)
+
+      asyncio.run(main())
+      ```
+
+      ```typescript TypeScript
+      import { OctogenClient } from "@octogen-ai/sdk";
+
+      const client = new OctogenClient();
+      const catalogs = await client.listCatalogs();
+      for (const c of catalogs) {
+        console.log(c.catalog, "-", c.displayName);
+      }
+      ```
+    </CodeGroup>
+
+    Example response:
+
+    ```json
+    [
+      {
+        "catalog": "warrenlotas",
+        "displayName": "Warren Lotas",
+        "sourceBaseUrl": "https://warrenlotas.com",
+        "productCount": 1248,
+        "lastIndexedAt": "2026-05-19T18:04:10Z"
+      }
+    ]
+    ```
+
+    <Note>
+      An empty array means your organization has no active catalog grants. Contact Octogen to have catalogs assigned to your account.
+    </Note>
+  </Step>
+
+  <Step title="Search products">
+    Search for products in a catalog using a keyword query. Use the `catalog` value from the previous step.
+
+    <CodeGroup>
+      ```bash curl
+      curl -sS https://api.octogen.ai/v1/products/search \
+        -H "Authorization: Bearer $OCTO_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "catalog": "warrenlotas",
+          "q": "women'\''s linen summer dresses",
+          "limit": 5
+        }'
+      ```
+
+      ```python Python
+      import asyncio
+      from octogen_ai_sdk import OctogenAPIError, OctogenClient
+
+      async def main():
+          try:
+              async with OctogenClient() as client:
+                  catalogs = await client.list_catalogs()
+                  if not catalogs:
+                      print("No catalogs are available for this API key.")
+                      return
+
+                  catalog = catalogs[0].catalog
+                  results = await client.search_products(
+                      catalog=catalog,
+                      q="women's linen summer dresses",
+                      limit=5,
+                  )
+
+                  print(f"Catalog: {catalog}")
+                  for product in results.items:
+                      brand = product.brand.name if product.brand else "Unknown brand"
+                      price = (
+                          f"${product.current_price:.2f}"
+                          if product.current_price is not None
+                          else "Price unavailable"
+                      )
+                      title = product.title or "Untitled product"
+                      print(f"- {title} | {brand} | {price}")
+                      print(f"  {product.product_url}")
+          except OctogenAPIError as exc:
+              print(f"Octogen API error: status={exc.status_code}")
+              raise
+
+      asyncio.run(main())
+      ```
+
+      ```typescript TypeScript
+      import { OctogenAPIError, OctogenClient } from "@octogen-ai/sdk";
+
+      try {
+        const client = new OctogenClient();
+        const catalogs = await client.listCatalogs();
+        if (catalogs.length === 0) {
+          console.log("No catalogs are available for this API key.");
+          process.exit(0);
+        }
+
+        const catalog = catalogs[0];
+        const results = await client.searchProducts({
+          catalog: catalog.catalog,
+          q: "women's linen summer dresses",
+          limit: 5,
+        });
+
+        console.log(`Catalog: ${catalog.catalog}`);
+        for (const product of results.items) {
+          const brand = product.brand?.name ?? "Unknown brand";
+          const price =
+            product.currentPrice == null
+              ? "Price unavailable"
+              : `$${product.currentPrice.toFixed(2)}`;
+          console.log(`- ${product.title ?? "Untitled product"} | ${brand} | ${price}`);
+          console.log(`  ${product.productUrl}`);
+        }
+      } catch (error) {
+        if (error instanceof OctogenAPIError) {
+          console.error(`Octogen API error: status=${String(error.statusCode)}`);
+        }
+        throw error;
+      }
+      ```
+    </CodeGroup>
+
+    The response includes an `items` array and a `nextCursor` field for pagination. When `nextCursor` is non-null, pass it as `cursor` in your next request (with the same filters) to fetch the next page.
+  </Step>
+
+  <Step title="Look up a product by URL">
+    Resolve any product page URL to its full canonical record — including pricing, sizing, images, and variants.
+
+    <CodeGroup>
+      ```bash curl
+      curl -sS https://api.octogen.ai/v1/products/lookup \
+        -H "Authorization: Bearer $OCTO_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{"url": "https://warrenlotas.com/products/black-hoodie"}'
+      ```
+
+      ```python Python
+      import asyncio
+      from octogen_ai_sdk import OctogenClient
+
+      async def main():
+          async with OctogenClient() as client:
+              result = await client.lookup_product(
+                  "https://warrenlotas.com/products/black-hoodie"
+              )
+              product = result.product
+              print(f"{product.title} — ${product.current_price:.2f}")
+              print(f"In stock: {product.in_stock}")
+              print(f"Sizes: {product.sizes}")
+
+      asyncio.run(main())
+      ```
+
+      ```typescript TypeScript
+      import { OctogenClient } from "@octogen-ai/sdk";
+
+      const client = new OctogenClient();
+      const result = await client.lookupProduct(
+        "https://warrenlotas.com/products/black-hoodie"
+      );
+      const { product } = result;
+      console.log(`${product.title} — $${product.currentPrice?.toFixed(2)}`);
+      console.log(`In stock: ${product.inStock}`);
+      console.log(`Sizes: ${product.sizes?.join(", ")}`);
+      ```
+    </CodeGroup>
+
+    The lookup response includes the full product record with optional fields such as `variants`, `categories`, `colors`, `reviews`, `promotions`, and `identifiers` when the underlying catalog record has them.
+
+    <Note>
+      The URL you pass must belong to a catalog granted to your organization. A URL from an unrecognized domain or an ungranted catalog returns a `404` error.
+    </Note>
+  </Step>
+</Steps>
+
+## Next steps
+
+- **Filter searches** — use `facets`, `price_min`, and `price_max` to narrow results. See [Catalog search](/guides/catalog-search).
+- **Paginate results** — use the `nextCursor` field to fetch subsequent pages. See [Pagination](/guides/pagination).
+- **Handle errors** — understand `401`, `403`, `404`, and `422` responses. See [Error handling](/guides/error-handling).
+- **Connect an AI agent** — use the Catalog Partner MCP server to give Claude or Codex direct catalog access. See [MCP overview](/mcp/overview).
