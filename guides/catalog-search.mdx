@@ -1,20 +1,18 @@
 ---
 title: "Search products across Octogen catalogs"
-description: "Learn how to search products by keyword, filter by facets like color and category, and apply price ranges using the Octogen Catalog API."
+description: "Learn how to search products across your granted catalogs, filter by facets like color and category, and apply price ranges using the Octogen Catalog API."
 sidebarTitle: "Catalog Search"
 ---
 
-The Octogen search endpoint lets you find products within a catalog using free-text queries, structured facet filters, and price range constraints — in any combination. Every search request targets a single catalog by design: Octogen enforces per-organization catalog grants and does not support cross-catalog search in a single request. Use `GET /v1/catalogs` to discover which catalog keys your API key can access, then pass one of those keys as `catalog` in your search request.
+The Octogen search endpoint lets you find products across your granted catalogs using free-text queries, structured facet filters, and price range constraints — in any combination. Omit `catalog` to search every catalog your API key can access. Include `catalog` only when you want to restrict search to one granted catalog.
 
 ## How search works
 
-When you call `POST /v1/products/search`, Octogen runs the query against one catalog at a time. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
-
-Cross-catalog search is intentionally not supported. If you need results from multiple catalogs, issue one request per catalog and merge the results in your application.
+When you call `POST /v1/products/search`, Octogen runs the query against all granted catalogs by default, or one granted catalog when `catalog` is provided. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
 
 ## Basic keyword search
 
-Pass a free-text string as `q` to search by keyword. Omit `q` entirely to browse a catalog without any keyword filter.
+Pass a free-text string as `q` to search by keyword. Omit `q` entirely to browse without any keyword filter.
 
 <CodeGroup>
 
@@ -23,7 +21,6 @@ curl -sS https://api.octogen.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "catalog": "warrenlotas",
     "q": "black hoodie",
     "limit": 10
   }'
@@ -36,7 +33,6 @@ from octogen_ai_sdk import OctogenClient
 async def main() -> None:
     async with OctogenClient() as client:
         results = await client.search_products(
-            catalog="warrenlotas",
             q="black hoodie",
             limit=10,
         )
@@ -51,7 +47,6 @@ import { OctogenClient } from "@octogen-ai/sdk";
 
 const client = new OctogenClient();
 const results = await client.searchProducts({
-  catalog: "warrenlotas",
   q: "black hoodie",
   limit: 10,
 });
@@ -89,7 +84,6 @@ curl -sS https://api.octogen.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "catalog": "warrenlotas",
     "facets": [
       {"name": "color", "values": ["black"]},
       {"name": "gender", "values": ["male"]},
@@ -107,7 +101,6 @@ from octogen_ai_sdk.models import Facet, FacetName
 async def main() -> None:
     async with OctogenClient() as client:
         results = await client.search_products(
-            catalog="warrenlotas",
             facets=[
                 Facet(name=FacetName.COLOR, values=["black"]),
                 Facet(name=FacetName.GENDER, values=["male"]),
@@ -127,7 +120,6 @@ import { OctogenClient, FacetName } from "@octogen-ai/sdk";
 
 const client = new OctogenClient();
 const results = await client.searchProducts({
-  catalog: "warrenlotas",
   facets: [
     { name: FacetName.COLOR, values: ["black"] },
     { name: FacetName.GENDER, values: ["male"] },
@@ -155,7 +147,6 @@ curl -sS https://api.octogen.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "catalog": "warrenlotas",
     "q": "hoodie",
     "price_min": 100,
     "price_max": 300
@@ -169,7 +160,6 @@ from octogen_ai_sdk import OctogenClient
 async def main() -> None:
     async with OctogenClient() as client:
         results = await client.search_products(
-            catalog="warrenlotas",
             q="hoodie",
             price_min=100,
             price_max=300,
@@ -185,7 +175,6 @@ import { OctogenClient } from "@octogen-ai/sdk";
 
 const client = new OctogenClient();
 const results = await client.searchProducts({
-  catalog: "warrenlotas",
   q: "hoodie",
   priceMin: 100,
   priceMax: 300,
@@ -209,7 +198,6 @@ curl -sS https://api.octogen.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "catalog": "warrenlotas",
     "q": "graphic tee",
     "facets": [
       {"name": "color_family", "values": ["Black"]},
@@ -229,7 +217,6 @@ from octogen_ai_sdk.models import Facet, FacetName
 async def main() -> None:
     async with OctogenClient() as client:
         results = await client.search_products(
-            catalog="warrenlotas",
             q="graphic tee",
             facets=[
                 Facet(name=FacetName.COLOR_FAMILY, values=["Black"]),
@@ -252,7 +239,6 @@ import { OctogenClient, FacetName } from "@octogen-ai/sdk";
 
 const client = new OctogenClient();
 const results = await client.searchProducts({
-  catalog: "warrenlotas",
   q: "graphic tee",
   facets: [
     { name: FacetName.COLOR_FAMILY, values: ["Black"] },

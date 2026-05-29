@@ -25,7 +25,7 @@ Before you start, make sure you have:
   </Step>
 
   <Step title="List your catalogs">
-    Retrieve the catalogs your organization has been granted access to. The `catalog` value from each result is what you pass to the search endpoint.
+    Retrieve the catalogs your organization has been granted access to. You can search all of these catalogs by omitting `catalog` from the search request, or pass a `catalog` value to restrict search to one catalog.
 
     <CodeGroup>
       ```bash curl
@@ -77,7 +77,7 @@ Before you start, make sure you have:
   </Step>
 
   <Step title="Search products">
-    Search for products in a catalog using a keyword query. Use the `catalog` value from the previous step.
+    Search for products across all granted catalogs using a keyword query. To restrict search to one catalog, pass a `catalog` value from the previous step.
 
     <CodeGroup>
       ```bash curl
@@ -85,7 +85,6 @@ Before you start, make sure you have:
         -H "Authorization: Bearer $OCTO_API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
-          "catalog": "warrenlotas",
           "q": "women'\''s linen summer dresses",
           "limit": 5
         }'
@@ -103,14 +102,12 @@ Before you start, make sure you have:
                       print("No catalogs are available for this API key.")
                       return
 
-                  catalog = catalogs[0].catalog
                   results = await client.search_products(
-                      catalog=catalog,
                       q="women's linen summer dresses",
                       limit=5,
                   )
 
-                  print(f"Catalog: {catalog}")
+                  print("Catalog scope: all granted catalogs")
                   for product in results.items:
                       brand = product.brand.name if product.brand else "Unknown brand"
                       price = (
@@ -139,14 +136,12 @@ Before you start, make sure you have:
           process.exit(0);
         }
 
-        const catalog = catalogs[0];
         const results = await client.searchProducts({
-          catalog: catalog.catalog,
           q: "women's linen summer dresses",
           limit: 5,
         });
 
-        console.log(`Catalog: ${catalog.catalog}`);
+        console.log("Catalog scope: all granted catalogs");
         for (const product of results.items) {
           const brand = product.brand?.name ?? "Unknown brand";
           const price =
