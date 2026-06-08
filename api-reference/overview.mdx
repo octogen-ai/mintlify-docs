@@ -84,8 +84,15 @@ All error responses carry a top-level `detail` field.
 | `403` | Key is valid but not authorized for this resource. | Confirm the organization has access to the requested catalog. |
 | `404` | Catalog or product is not visible for this key. | Verify the catalog key and that the product URL belongs to a granted catalog. |
 | `422` | Request body or field validation failed. | Surface the field-level `loc` and `msg` to identify the invalid field. |
+| `429` | Per-organization rate limit exceeded. | Wait the `Retry-After` interval, then retry — see [Rate limits](#rate-limits). |
 
-Retry only transient network errors or `5xx` responses. The `4xx` codes listed above require a change in the caller.
+Retry transient network errors, `5xx` responses, and `429` (after waiting `Retry-After`). The other `4xx` codes listed above require a change in the caller.
+
+## Rate limits
+
+Requests are rate limited **per organization** — one budget shared across all of your API keys and MCP sessions. The cap is a generous safety ceiling set well above normal traffic and is not published as a fixed number; read your current allowance from the `X-RateLimit-Limit` response header.
+
+Every response includes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`. When you exceed the limit, the API returns `429 Too Many Requests` with `detail: "rate_limit_exceeded"` and a `Retry-After` header. See the [Rate Limits guide](/guides/rate-limits) for the headers, backoff code, and the MCP equivalent.
 
 ## REST and MCP: choosing a surface
 
