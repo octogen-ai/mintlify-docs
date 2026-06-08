@@ -53,7 +53,8 @@
               "guides/catalog-search",
               "guides/product-lookup",
               "guides/pagination",
-              "guides/error-handling"
+              "guides/error-handling",
+              "guides/rate-limits"
             ]
           }
         ]

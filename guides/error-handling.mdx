@@ -81,6 +81,14 @@ Octogen API errors fall into two categories:
 
     **Recovery:** Fix the request based on the field-level messages. This is always a client-side bug.
   </Accordion>
+
+  <Accordion title="429 — Rate limited">
+    **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `429`
+
+    Your organization exceeded its shared per-organization rate limit — one budget across all of your API keys and MCP sessions. The response carries `detail: "rate_limit_exceeded"` and a `Retry-After` header with the number of seconds to wait.
+
+    **Recovery:** Unlike the other `4xx` errors, `429` is transient. Wait the `Retry-After` interval, then retry with exponential backoff. See [Rate Limits](/guides/rate-limits) for the headers, the MCP equivalent, and bulk-job guidance.
+  </Accordion>
 </AccordionGroup>
 
 ## SDK exception hierarchy
@@ -204,7 +212,7 @@ try {
 ## Retry guidance
 
 <Warning>
-  Do not automatically retry `4xx` errors. A `401`, `403`, `404`, or `422` response means the request itself is invalid or unauthorized — retrying it will produce the same error and may exhaust rate limits. Fix the underlying cause (key, permissions, or request body) before trying again.
+  Do not automatically retry most `4xx` errors. A `401`, `403`, `404`, or `422` response means the request itself is invalid or unauthorized — retrying it will produce the same error. Fix the underlying cause (key, permissions, or request body) before trying again. The exception is `429` (rate limited): retry it, but only after waiting the `Retry-After` interval. See [Rate Limits](/guides/rate-limits).
 </Warning>
 
 | Error type | Retry? | Action |
@@ -213,6 +221,7 @@ try {
 | `OctogenForbiddenError` (403) | No | Check org catalog grants |
 | `OctogenNotFoundError` (404) | No | Verify catalog key or product URL |
 | `OctogenValidationError` (422) | No | Fix the request body |
+| `OctogenAPIError` with 429 | Yes, after delay | Honor `Retry-After`, then retry with backoff |
 | `OctogenConnectionError` | Yes | Retry with exponential backoff |
 | `OctogenAPIError` with 5xx | Yes | Retry with exponential backoff |
 

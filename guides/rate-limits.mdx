@@ -1,0 +1,110 @@
+---
+title: "Stay within Octogen's API rate limits"
+description: "Understand Octogen's per-organization rate limit, the X-RateLimit headers and 429 responses on the REST API, the equivalent MCP error, and how to back off correctly."
+sidebarTitle: "Rate Limits"
+---
+
+Octogen rate limits requests **per organization**. The budget is shared across every Platform API key *and* MCP session in your organization — it keys on your organization, not on an individual key or agent — so all of your automated traffic draws from one pool.
+
+<Note>
+  The limit is a generous safety ceiling set well above normal integration traffic, and it may be tuned over time. It is **not published as a fixed number** — read your current allowance from the `X-RateLimit-Limit` response header rather than hard-coding a value.
+</Note>
+
+## How the limit works
+
+The limiter is a token bucket: it holds up to one minute of requests and refills continuously, so short bursts above your average rate succeed as long as the bucket has tokens. You only approach the limit under sustained, high-volume traffic — a runaway loop, an unthrottled backfill, or a leaked key.
+
+## REST API (`/v1`)
+
+Every REST response reports your current budget in headers:
+
+| Header | Meaning |
+| --- | --- |
+| `X-RateLimit-Limit` | Requests allowed per minute for your organization. |
+| `X-RateLimit-Remaining` | Tokens left in the bucket right now. |
+| `X-RateLimit-Reset` | Unix epoch seconds when the bucket is fully refilled. |
+
+When the bucket is empty, the API returns **`429 Too Many Requests`** with `detail: "rate_limit_exceeded"` and a `Retry-After` header (integer seconds to wait):
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 8
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1749593400
+
+{ "detail": "rate_limit_exceeded" }
+```
+
+The Python and TypeScript SDKs surface a `429` as an `OctogenAPIError` whose `status_code` (Python) / `statusCode` (TypeScript) equals `429`. Catch it, wait, and retry with backoff:
+
+<CodeGroup>
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient, OctogenAPIError
+
+async def lookup_with_backoff(client: OctogenClient, url: str, attempts: int = 5):
+    delay = 1.0
+    for _ in range(attempts):
+        try:
+            return await client.lookup_product(url)
+        except OctogenAPIError as exc:
+            if exc.status_code != 429:
+                raise  # not a rate-limit error — surface it
+            # Over the shared per-org rate limit — back off and retry.
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, 30)
+    raise RuntimeError("Rate limit retries exhausted")
+```
+
+```typescript typescript
+import { OctogenClient, OctogenAPIError } from "@octogen-ai/sdk";
+
+async function lookupWithBackoff(client: OctogenClient, url: string, attempts = 5) {
+  let delay = 1_000;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await client.lookupProduct(url);
+    } catch (error) {
+      if (!(error instanceof OctogenAPIError) || error.statusCode !== 429) {
+        throw error; // not a rate-limit error — surface it
+      }
+      // Over the shared per-org rate limit — back off and retry.
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 2, 30_000);
+    }
+  }
+  throw new Error("Rate limit retries exhausted");
+}
+```
+
+</CodeGroup>
+
+## MCP
+
+MCP tool calls draw on the **same** per-organization budget as the REST API. Only tool calls count toward it; the `initialize` and `tools/list` handshakes do not.
+
+When the budget is exhausted, a tool call fails with an `McpError` (JSON-RPC error code `-32029`) instead of a tool-level value:
+
+```json
+{
+  "code": -32029,
+  "message": "rate_limited",
+  "data": { "error": "rate_limited", "retry_after": 8 }
+}
+```
+
+`retry_after` is the number of seconds to wait before the next tool call. Compliant MCP clients surface this to the agent. Because the budget is shared, heavy API-key traffic can throttle interactive agents and vice versa.
+
+## Best practices
+
+<Warning>
+  `429` is the one `4xx` you should retry — but only after waiting. Retrying immediately, without honoring `Retry-After`, turns a brief spike into sustained throttling.
+</Warning>
+
+- **Honor `Retry-After`.** Wait at least that long before retrying, then add exponential backoff with jitter for repeated `429`s.
+- **Throttle bulk work.** For backfills or batch jobs, cap your concurrency and add a small delay between requests instead of firing them all at once.
+- **Share the budget deliberately.** Because API keys and MCP sessions share one per-org pool, a heavy backend job can starve your interactive agents. Schedule large jobs accordingly.
+- **Ask for more if you need it.** If your steady-state load approaches the limit, contact Octogen support to raise your organization's allowance rather than retrying through `429`s.
+
+See [Error Handling](/guides/error-handling) for the full error model and SDK exception hierarchy.
