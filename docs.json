@@ -52,6 +52,7 @@
             "pages": [
               "guides/catalog-search",
               "guides/product-lookup",
+              "guides/bigquery-subscribe",
               "guides/pagination",
               "guides/error-handling",
               "guides/rate-limits"

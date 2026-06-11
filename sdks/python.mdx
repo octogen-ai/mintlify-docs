@@ -307,3 +307,61 @@ except OctogenConnectionError as exc:
 <Warning>
   `MissingAPIKeyError` is raised by the constructor, not by a network call. It will surface at client creation time if neither `api_key` nor `OCTO_API_KEY` is present.
 </Warning>
+
+## BigQuery subscribe (optional)
+
+If Octogen shares a catalog with you over [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction), the SDK can subscribe to the listing and create a linked dataset in your own Google Cloud project, so you can query the catalog with SQL. See the [Subscribe to a catalog in BigQuery](/guides/bigquery-subscribe) guide for the full walkthrough.
+
+This helper uses your **Google Cloud** Application Default Credentials — not your `OCTO_API_KEY` — so it's an optional extra:
+
+```bash
+pip install "octogen-ai-sdk[bigquery]"
+gcloud auth application-default login
+```
+
+It also installs the `octogen-bq-subscribe` CLI (dry-run by default; `--apply` to subscribe):
+
+```bash
+octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
+```
+
+### `subscribe_to_listing`
+
+```python
+def subscribe_to_listing(
+    *,
+    listing_resource: str,
+    destination_project: str,
+    destination_dataset_id: str | None = None,
+    location: str | None = None,
+    friendly_name: str | None = None,
+    credentials: Any = None,
+) -> BigQuerySubscriptionResult
+```
+
+A **synchronous** function (unlike the async `OctogenClient`). Idempotent — an existing subscription to the same listing in `destination_project` is returned as-is.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `listing_resource` | `str` | — | Listing resource name from the Platform UI BigQuery sharing page. |
+| `destination_project` | `str` | — | Destination GCP project for the linked dataset (must be yours). |
+| `destination_dataset_id` | `str \| None` | `octogen_<listing-id>` | Linked dataset id. |
+| `location` | `str \| None` | The listing's location | BigQuery dataset location. |
+| `friendly_name` | `str \| None` | `None` | Linked dataset display name. |
+| `credentials` | `google.auth.credentials.Credentials \| None` | `None` (uses ADC) | Explicit Google credentials, if you don't want to use ADC. |
+
+**Returns:** `BigQuerySubscriptionResult` with `listing_resource`, `linked_project`, `linked_dataset`, `state`, `already_subscribed`, `subscription_name`, and a ready-to-run `sample_query`.
+
+```python
+from octogen_ai_sdk import subscribe_to_listing
+
+result = subscribe_to_listing(
+    listing_resource="projects/octogen-prod/locations/us/dataExchanges/oneoff/listings/farfetch",
+    destination_project="my-gcp-project",
+)
+print(result.linked_dataset, result.state)
+```
+
+<Note>
+  Two BigQuery error types extend `OctogenError`: `OctogenBigQueryError` (base) and `OctogenBigQueryAccessPendingError`, raised when Octogen's IAM grant on the listing hasn't propagated yet. Because the grant is asynchronous, catch the access-pending error and retry after a few minutes.
+</Note>
