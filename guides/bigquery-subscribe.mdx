@@ -1,0 +1,170 @@
+---
+title: "Subscribe to a catalog in BigQuery"
+description: "Query an Octogen catalog as a native BigQuery dataset in your own Google Cloud project by subscribing to its Analytics Hub listing with the Python SDK."
+sidebarTitle: "BigQuery Subscribe"
+---
+
+For analytical and bulk workloads, Octogen can publish a granted catalog as a [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction) **listing**. Subscribing to that listing creates a **linked dataset** in *your* Google Cloud project, so you can query the full catalog with standard SQL — and Octogen's updates flow through automatically. This is the bulk-data counterpart to the per-request [Catalog Search API](/guides/catalog-search): use search/MCP for interactive lookups, and BigQuery when you want to join the catalog against your own data or run large scans.
+
+The Octogen Python SDK ships a helper — and a CLI, `octogen-bq-subscribe` — that performs the subscribe step under **your** Google Cloud credentials.
+
+<Note>
+  This flow uses your **Google Cloud** credentials (Application Default Credentials), **not** your `OCTO_API_KEY`. The linked dataset is created in your own GCP project and billed to you. The helper is part of the Python SDK only.
+</Note>
+
+## How it works
+
+Subscribing is a two-party flow:
+
+1. **Octogen grants access.** Octogen publishes the catalog as an Analytics Hub listing and grants your principal the `roles/analyticshub.subscriber` role on it. This grant is **asynchronous** — it can take a few minutes to propagate after it's requested.
+2. **You subscribe.** Once the grant lands, you subscribe to the listing from your own GCP project. That creates a linked dataset (containing a `product` table, among others) that you query like any other BigQuery dataset.
+
+Only step 2 needs your credentials, which is why it lives in the customer SDK rather than on the Octogen platform.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Ask Octogen to share the catalog over BigQuery">
+    Your Octogen contact enables BigQuery listing access for your organization and grants your Google Cloud principal (user or service account) the subscriber role. You'll then find the **listing resource name** on the Platform UI BigQuery sharing page — it looks like:
+
+    ```text
+    projects/octogen-prod/locations/us/dataExchanges/oneoff/listings/farfetch
+    ```
+  </Step>
+  <Step title="Install the SDK with the bigquery extra">
+    The Analytics Hub dependency is optional, so install the `bigquery` extra:
+
+    ```bash
+    pip install "octogen-ai-sdk[bigquery]"
+    ```
+  </Step>
+  <Step title="Authenticate to Google Cloud">
+    The helper runs under [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials). For local use:
+
+    ```bash
+    gcloud auth application-default login
+    ```
+
+    The authenticated principal must be the same one Octogen granted access to. In automation, a service account with the subscriber role works the same way.
+  </Step>
+</Steps>
+
+## Subscribe with the CLI
+
+The `octogen-bq-subscribe` command is **dry-run by default** — it prints the plan and exits without touching Google Cloud. Add `--apply` to actually subscribe.
+
+<Steps>
+  <Step title="Preview the plan (dry run)">
+    ```bash
+    octogen-bq-subscribe \
+      --listing projects/octogen-prod/locations/us/dataExchanges/oneoff/listings/farfetch \
+      --project my-gcp-project
+    ```
+
+    ```text
+    DRY RUN (pass --apply to subscribe)
+      listing : projects/octogen-prod/locations/us/dataExchanges/oneoff/listings/farfetch
+      -> my-gcp-project.octogen_farfetch  (location us)
+    ```
+
+    By default the linked dataset id is derived from the listing id (`farfetch` → `octogen_farfetch`) and the location is taken from the listing. Override them with `--dataset` and `--location` if you need to.
+  </Step>
+  <Step title="Apply">
+    ```bash
+    octogen-bq-subscribe \
+      --listing projects/octogen-prod/locations/us/dataExchanges/oneoff/listings/farfetch \
+      --project my-gcp-project \
+      --apply
+    ```
+
+    ```text
+    Subscribed: my-gcp-project.octogen_farfetch  [STATE_ACTIVE]
+      sample query: SELECT * FROM `my-gcp-project.octogen_farfetch.product` LIMIT 10;
+    ```
+
+    Re-running is safe: if a subscription to the same listing already exists in your project, the command reports it instead of creating a duplicate.
+  </Step>
+  <Step title="Query the linked dataset">
+    The linked dataset is now queryable in BigQuery:
+
+    ```sql
+    SELECT * FROM `my-gcp-project.octogen_farfetch.product` LIMIT 10;
+    ```
+  </Step>
+</Steps>
+
+### CLI options
+
+| Flag | Required | Default | Description |
+| --- | --- | --- | --- |
+| `--listing` | Yes | — | Listing resource name from the Platform UI BigQuery sharing page. |
+| `--project` | Yes | — | Destination GCP project for the linked dataset (must be yours). |
+| `--dataset` | No | `octogen_<listing-id>` | Linked dataset id. |
+| `--location` | No | The listing's location | BigQuery dataset location. |
+| `--friendly-name` | No | `Octogen <dataset>` | Linked dataset display name. |
+| `--apply` | No | off (dry run) | Actually subscribe. Without it, prints the plan and exits. |
+| `--json` | No | off | Emit JSON instead of text. |
+
+`--json` emits the same snake_case schema in both dry-run and applied modes (`applied`, `linked_project`, `linked_dataset`, `sample_query`), so automation can parse either with one schema.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success (or dry run). |
+| `1` | Subscribe failed. |
+| `2` | Usage / invalid arguments. |
+| `3` | Access not granted yet — Octogen's IAM grant hasn't propagated. Retry shortly. |
+
+## Subscribe programmatically
+
+`subscribe_to_listing` is a regular **synchronous** function — unlike the async [`OctogenClient`](/sdks/python), it talks to Google Cloud over your ADC.
+
+```python
+from octogen_ai_sdk import (
+    OctogenBigQueryAccessPendingError,
+    OctogenBigQueryError,
+    subscribe_to_listing,
+)
+
+try:
+    result = subscribe_to_listing(
+        listing_resource="projects/octogen-prod/locations/us/dataExchanges/oneoff/listings/farfetch",
+        destination_project="my-gcp-project",
+        # destination_dataset_id="octogen_farfetch",  # optional override
+        # location="us",                                # optional override
+    )
+except OctogenBigQueryAccessPendingError:
+    # Expected right after access is requested — the grant is asynchronous.
+    print("Access isn't ready yet. Retry in a few minutes.")
+    raise
+except OctogenBigQueryError as exc:
+    print(f"Subscribe failed: {exc}")
+    raise
+
+verb = "Already subscribed" if result.already_subscribed else "Subscribed"
+print(f"{verb}: {result.linked_project}.{result.linked_dataset} [{result.state}]")
+print(result.sample_query)
+```
+
+`subscribe_to_listing` returns a `BigQuerySubscriptionResult`:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `listing_resource` | `str` | The listing you subscribed to. |
+| `linked_project` | `str` | Project the linked dataset was created in. |
+| `linked_dataset` | `str` | Linked dataset id. |
+| `state` | `str \| None` | Subscription state (e.g. `STATE_ACTIVE`). |
+| `already_subscribed` | `bool` | `True` if an existing subscription was reused. |
+| `subscription_name` | `str \| None` | Full Analytics Hub subscription resource name. |
+| `sample_query` | `str` | A ready-to-run query against the linked dataset's `product` table. |
+
+## Handling the asynchronous grant
+
+Because Octogen grants the subscriber role asynchronously, an attempt made too soon fails with `OctogenBigQueryAccessPendingError` (CLI exit code `3`). This is expected immediately after access is requested — wait a few minutes and retry. It's a distinct subclass of `OctogenBigQueryError`, so you can branch on "not ready yet" versus a real failure.
+
+<Warning>
+  A `403` while *listing* your existing subscriptions (rather than subscribing) is reported as a generic `OctogenBigQueryError`, not access-pending — it usually means your Google Cloud credentials lack permission in your **own** project. Check your ADC and project IAM.
+</Warning>
+
+<Tip>
+  The call is **idempotent**. Re-running after the dataset is linked returns the existing subscription with `already_subscribed=True` instead of creating another one, so it's safe to bake into a retry loop or a scheduled job.
+</Tip>

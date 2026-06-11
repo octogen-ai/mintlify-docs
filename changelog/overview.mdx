@@ -3,6 +3,21 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="June 11, 2026" description="BigQuery catalog subscriptions">
+
+## New features
+
+**Subscribe to a catalog in BigQuery.** When Octogen shares a catalog over BigQuery Analytics Hub, the Python SDK can now subscribe to the listing and create a linked dataset in your own Google Cloud project — so you can query the full catalog with SQL for bulk and analytical workloads. The `bigquery` extra adds the `subscribe_to_listing` helper and an `octogen-bq-subscribe` CLI (dry-run by default), both running under your Application Default Credentials.
+
+```bash
+pip install "octogen-ai-sdk[bigquery]"
+octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
+```
+
+See the [BigQuery subscribe guide](/guides/bigquery-subscribe) to get started.
+
+</Update>
+
 <Update label="May 28, 2026" description="All-catalog search">
 
 ## Update
