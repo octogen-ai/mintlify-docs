@@ -4,7 +4,7 @@ description: "Let AI coding tools search and look up products in your granted Oc
 sidebarTitle: "Overview"
 ---
 
-The Octogen Catalog Partner MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call three tools — `list_catalogs`, `lookup_product`, and `search_products` — without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
+The Octogen Catalog Partner MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call catalog lookup/search tools and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
 
 ## Connection details
 
@@ -37,7 +37,7 @@ Both conditions must be true before your first tool call.
 
 ## Available tools
 
-Three tools are exposed by the MCP server. They use the same catalog grants as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
+The product tools use the same catalog grants as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
 
 ### `list_catalogs()`
 
@@ -50,6 +50,20 @@ Resolves a product page URL to a full canonical product record, including title,
 ### `search_products(catalog?, query?, limit?, cursor?)`
 
 Searches products across all granted catalogs by free-text keyword. Pass `catalog` only when you want to restrict search to one key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
+
+## BigQuery subscription tools
+
+Catalog Partner organizations can also use MCP to automate BigQuery subscriber registration and status refresh:
+
+| Tool | Purpose |
+| --- | --- |
+| `list_bigquery_listing_resources` | Lists BigQuery Analytics Hub listings granted to your organization. |
+| `list_bigquery_subscribers` | Lists registered subscriber projects, principals, and per-catalog status cells. |
+| `register_bigquery_subscriber` | Registers the GCP project and principal that should receive Analytics Hub subscriber access. |
+| `refresh_bigquery_subscription_status` | Checks whether a linked dataset subscription exists and updates Octogen status. |
+| `delete_bigquery_subscriber` | Disables a registered subscriber. |
+
+For most scheduled jobs, use the Python SDK's `octogen-bq-autosubscribe` command instead of calling these tools directly. See [Subscribe to catalogs in BigQuery](/guides/bigquery-subscribe).
 
 ## MCP vs REST API
 
