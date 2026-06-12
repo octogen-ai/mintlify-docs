@@ -66,10 +66,10 @@ The Codex CLI uses a different OAuth discovery path than other MCP clients. The 
 
 ## What your agent can do
 
-Once connected, your agent has access to three tools:
+Once connected, your agent can use the catalog read tools and, when BigQuery access is enabled, the BigQuery subscription tools:
 
 - **`list_catalogs()`** — discover which catalogs your organization has access to.
 - **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
-- **`search_products(catalog?, query?, limit?, cursor?)`** — search products by keyword across all granted catalogs, or within one catalog when `catalog` is provided.
+- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword inside one granted catalog.
 
-For a full description of each tool's arguments and return values, see the [MCP overview](/mcp/overview).
+For a full description of each tool, including BigQuery listing and subscriber helpers, see the [MCP overview](/mcp/overview).

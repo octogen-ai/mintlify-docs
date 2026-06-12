@@ -319,7 +319,7 @@ pip install "octogen-ai-sdk[bigquery]"
 gcloud auth application-default login
 ```
 
-It also installs the `octogen-bq-subscribe` CLI (dry-run by default; `--apply` to subscribe):
+It also installs the `octogen-bq-subscribe` CLI (dry-run by default; `--apply` to subscribe) and the `octogen-bq-autosubscribe` cron helper for keeping linked datasets current as new listings become available:
 
 ```bash
 octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
@@ -343,7 +343,7 @@ A **synchronous** function (unlike the async `OctogenClient`). Idempotent — an
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `listing_resource` | `str` | — | Listing resource name from the Platform UI BigQuery sharing page. |
+| `listing_resource` | `str` | — | Listing resource name from the Platform UI BigQuery sharing page or MCP `list_bigquery_listing_resources` tool. |
 | `destination_project` | `str` | — | Destination GCP project for the linked dataset (must be yours). |
 | `destination_dataset_id` | `str \| None` | `octogen_<listing-id>` | Linked dataset id. |
 | `location` | `str \| None` | The listing's location | BigQuery dataset location. |
