@@ -47,9 +47,9 @@ Returns all catalogs currently granted to your organization. Call this first whe
 
 Resolves a product page URL to a full canonical product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. If no active product matches, the tool returns a structured `product_not_found` value — not a transport-level failure — so your agent can recover gracefully.
 
-### `search_products(catalog?, query?, limit?, cursor?)`
+### `search_products(catalog, query?, limit?, cursor?)`
 
-Searches products across all granted catalogs by free-text keyword. Pass `catalog` only when you want to restrict search to one key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
+Searches products inside one granted catalog by free-text keyword. Use a catalog key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
 
 ## BigQuery subscription tools
 
