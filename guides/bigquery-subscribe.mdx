@@ -36,8 +36,18 @@ The grant is asynchronous. It can take a few minutes for a listing to move from 
     ```
   </Step>
   <Step title="Install the Python SDK with the BigQuery extra">
+    The SDK ships from the public [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository and is managed with [uv](https://docs.astral.sh/uv/). Clone the repository and sync the `sdks/python` project with the `bigquery` extra:
+
     ```bash
-    pip install "octogen-ai-sdk[bigquery]"
+    git clone https://github.com/octogen-ai/octogen-dev.git
+    cd octogen-dev
+    uv sync --project sdks/python --extra bigquery
+    ```
+
+    This installs `octogen-bq-subscribe`, `octogen-bq-autosubscribe`, and `octogen-mcp-login` into the project environment. Confirm the install:
+
+    ```bash
+    uv run --project sdks/python --extra bigquery octogen-bq-subscribe --help
     ```
   </Step>
   <Step title="Authenticate to Google Cloud">
@@ -50,6 +60,10 @@ The grant is asynchronous. It can take a few minutes for a listing to move from 
     In production, run with service account credentials that can create linked datasets in the destination project.
   </Step>
 </Steps>
+
+<Note>
+  Run the `octogen-bq-*` and `octogen-mcp-login` commands below from the `octogen-dev` repository. Either activate the synced environment once with `source sdks/python/.venv/bin/activate` so the commands are on your `PATH` exactly as written, or prefix each one with `uv run --project sdks/python --extra bigquery`.
+</Note>
 
 ## Manual subscription
 
@@ -142,7 +156,7 @@ octogen-bq-autosubscribe \
 ### Apply from cron
 
 ```cron
-*/15 * * * * OCTOGEN_MCP_CLIENT_ID_FILE=/secure/octogen-mcp.client-id OCTOGEN_MCP_REFRESH_TOKEN_FILE=/secure/octogen-mcp.refresh octogen-bq-autosubscribe --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
+*/15 * * * * cd /path/to/octogen-dev && OCTOGEN_MCP_CLIENT_ID_FILE=/secure/octogen-mcp.client-id OCTOGEN_MCP_REFRESH_TOKEN_FILE=/secure/octogen-mcp.refresh uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
 ```
 
 `OCTOGEN_MCP_REFRESH_TOKEN_FILE` should contain an Octogen MCP OAuth refresh token. If the identity provider rotates that refresh token during exchange, the command writes the replacement back to the same file while holding a sibling `.lock` file, so overlapping cron runs do not overwrite the same rotating token at once.
