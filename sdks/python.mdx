@@ -4,17 +4,21 @@ description: "Install the async Python SDK for Octogen, set your API key, and se
 sidebarTitle: "Python SDK"
 ---
 
-The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with pip, point it at your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
+The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
 
 ## Installation
 
 <Steps>
   <Step title="Install the package">
-    Requires Python 3.11 or later.
+    Requires Python 3.11 or later. The SDK ships from the public [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository and is managed with [uv](https://docs.astral.sh/uv/). Clone the repository and sync the `sdks/python` project:
 
     ```bash
-    pip install octogen-ai-sdk
+    git clone https://github.com/octogen-ai/octogen-dev.git
+    cd octogen-dev
+    uv sync --project sdks/python
     ```
+
+    Run your code against the synced environment with `uv run --project sdks/python python your_script.py`, or activate it with `source sdks/python/.venv/bin/activate`.
   </Step>
   <Step title="Set your API key">
     The client reads your key from the `OCTO_API_KEY` environment variable automatically.
@@ -312,17 +316,17 @@ except OctogenConnectionError as exc:
 
 If Octogen shares a catalog with you over [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction), the SDK can subscribe to the listing and create a linked dataset in your own Google Cloud project, so you can query the catalog with SQL. See the [Subscribe to a catalog in BigQuery](/guides/bigquery-subscribe) guide for the full walkthrough.
 
-This helper uses your **Google Cloud** Application Default Credentials — not your `OCTO_API_KEY` — so it's an optional extra:
+This helper uses your **Google Cloud** Application Default Credentials — not your `OCTO_API_KEY` — so it lives behind an optional `bigquery` extra. Sync it from the [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository:
 
 ```bash
-pip install "octogen-ai-sdk[bigquery]"
+uv sync --project sdks/python --extra bigquery
 gcloud auth application-default login
 ```
 
-It also installs the `octogen-bq-subscribe` CLI (dry-run by default; `--apply` to subscribe) and the `octogen-bq-autosubscribe` cron helper for keeping linked datasets current as new listings become available:
+This installs the `octogen-bq-subscribe` CLI (dry-run by default; `--apply` to subscribe) and the `octogen-bq-autosubscribe` cron helper for keeping linked datasets current as new listings become available:
 
 ```bash
-octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
+uv run --project sdks/python --extra bigquery octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
 ```
 
 ### `subscribe_to_listing`
