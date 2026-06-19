@@ -1,12 +1,12 @@
 ---
-title: "Request a product recrawl"
-description: "Schedule a specific set of products for an on-demand Octogen crawl by URL or UUID."
-sidebarTitle: "Product Recrawl"
+title: "Request a product refresh"
+description: "Refresh a specific set of products by URL or UUID."
+sidebarTitle: "Product Refresh"
 ---
 
-Product recrawl lets you refresh a known set of product pages without waiting for the daily sitemap collector. Use it when your system already knows which products changed, such as a new drop, a merchandiser correction, or a small set of products that should be updated quickly.
+Product refresh lets you update a known set of product pages without waiting for the standard catalog update cadence. Use it when your system already knows which products changed, such as a new drop, a merchandiser correction, or a small set of products that should be updated quickly.
 
-Recrawl schedules crawler tasks only. The rest of the product pipeline still runs asynchronously, so downstream product data updates after crawl, extraction, enrichment, and indexing complete.
+Refresh starts an asynchronous Octogen workflow. The API returns after the request is accepted, and product data becomes visible after refresh processing and indexing complete.
 
 ## Choose identifiers
 
@@ -24,7 +24,7 @@ Every target must contain exactly one of `url` or `uuid`. Add `catalog` when you
 ## Make a request
 
 ```bash
-curl -sS https://api.octogen.ai/v1/products/recrawl \
+curl -sS https://api.octogen.ai/v1/products/refresh \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -38,7 +38,7 @@ curl -sS https://api.octogen.ai/v1/products/recrawl \
   }'
 ```
 
-The response includes `taskIds` for internal support and debugging. You do not need to poll them for normal use.
+The response includes a `workflowId` that Octogen support can use to trace the refresh. You do not need to poll it for normal use.
 
 ## Handle partial success
 
@@ -46,9 +46,10 @@ The endpoint accepts valid targets and rejects invalid targets in the same respo
 
 ```json
 {
+  "requestId": "62cf3df6-30f2-4c0e-b13d-fc509bba8d4f",
   "submitted": 2,
-  "tasksCreated": 1,
-  "taskIds": ["recrawl-62cf3df6-30f2-4c0e-b13d-fc509bba8d4f-warrenlotas-0001-products"],
+  "workflowId": "4b4b68de-65f3-4f79-af57-a4a1d6ef4e13",
+  "workflowError": null,
   "accepted": [
     {
       "catalog": "warrenlotas",
@@ -71,4 +72,4 @@ If every target is rejected, the API returns `400` with the same response shape.
 
 Retry `503` responses and transient network errors. Do not automatically retry `400`, `403`, or `422`; those require a request change.
 
-Avoid sending the same large request repeatedly. If you need to recrawl many products, batch up to 500 targets per call and retry only the targets that were rejected for transient reasons.
+Avoid sending the same large request repeatedly. If you need to refresh many products, batch up to 500 targets per call and retry only the targets that were rejected for transient reasons.

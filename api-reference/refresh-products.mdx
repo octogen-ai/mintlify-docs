@@ -1,15 +1,15 @@
 ---
-title: "POST /products/recrawl - schedule product crawls"
-description: "POST /products/recrawl schedules one or more product URLs or UUIDs for an on-demand crawl across your granted catalogs."
-sidebarTitle: "Recrawl Products"
+title: "POST /products/refresh - refresh products"
+description: "POST /products/refresh requests a fresh update for one or more product URLs or UUIDs across your granted catalogs."
+sidebarTitle: "Refresh Products"
 ---
 
-`POST /products/recrawl` schedules specific products for an on-demand crawl. Use it when you need Octogen to refresh a known set of product pages sooner than the daily sitemap-driven crawl. The endpoint returns as soon as crawler tasks are scheduled; it does not wait for crawling, extraction, enrichment, or indexing to finish.
+`POST /products/refresh` requests a fresh update for specific products. Use it when you need Octogen to refresh a known set of product pages sooner than the standard catalog update cadence. The endpoint returns as soon as the request is accepted; it does not wait for downstream processing or indexing to finish.
 
 ## Request
 
 ```http
-POST https://api.octogen.ai/v1/products/recrawl
+POST https://api.octogen.ai/v1/products/refresh
 Authorization: Bearer <your-platform-api-key>
 Content-Type: application/json
 ```
@@ -17,15 +17,15 @@ Content-Type: application/json
 ### Body parameters
 
 <ParamField body="targets" type="object[]" required>
-  Product identifiers to schedule for recrawl. Maximum 500 targets per request.
+  Product identifiers to refresh. Maximum 500 targets per request.
 </ParamField>
 
 <ParamField body="targets[].url" type="string">
-  Product page URL to recrawl. Provide either `url` or `uuid`, not both.
+  Product page URL to refresh. Provide either `url` or `uuid`, not both.
 </ParamField>
 
 <ParamField body="targets[].uuid" type="string">
-  Octogen product UUID to recrawl. Provide either `uuid` or `url`, not both.
+  Octogen product UUID to refresh. Provide either `uuid` or `url`, not both.
 </ParamField>
 
 <ParamField body="targets[].catalog" type="string">
@@ -35,7 +35,7 @@ Content-Type: application/json
 ### Example
 
 ```bash
-curl -sS https://api.octogen.ai/v1/products/recrawl \
+curl -sS https://api.octogen.ai/v1/products/refresh \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -52,30 +52,30 @@ curl -sS https://api.octogen.ai/v1/products/recrawl \
 
 ## Response
 
-The endpoint returns `202 Accepted` when at least one target was scheduled. It returns `400 Bad Request` with the same response shape when no target could be scheduled.
+The endpoint returns `202 Accepted` when at least one target was accepted for refresh. It returns `400 Bad Request` with the same response shape when no target could be accepted.
 
 <ResponseField name="requestId" type="string" required>
-  Request identifier used to group the crawler tasks created for this call.
+  Request identifier for this refresh request.
 </ResponseField>
 
 <ResponseField name="submitted" type="integer" required>
   Number of targets received in the request.
 </ResponseField>
 
-<ResponseField name="tasksCreated" type="integer" required>
-  Number of crawler tasks created.
+<ResponseField name="workflowId" type="string | null">
+  Provider-neutral workflow identifier for the asynchronous refresh, when a workflow was started.
 </ResponseField>
 
-<ResponseField name="taskIds" type="string[]" required>
-  Crawler task IDs created for accepted targets.
+<ResponseField name="workflowError" type="string | null">
+  Non-fatal workflow launch error. If this is present, accepted targets were still accepted, but Octogen could not start the downstream refresh workflow automatically.
 </ResponseField>
 
 <ResponseField name="accepted" type="object[]" required>
-  Targets accepted for crawling after authorization and validation.
+  Targets accepted for refresh after authorization and validation.
 </ResponseField>
 
 <ResponseField name="rejected" type="object[]" required>
-  Targets that were not scheduled. Each rejection includes the original `target`, a machine-readable `code`, and a human-readable `message`.
+  Targets that were not accepted. Each rejection includes the original `target`, a machine-readable `code`, and a human-readable `message`.
 </ResponseField>
 
 ### Example response
@@ -84,8 +84,8 @@ The endpoint returns `202 Accepted` when at least one target was scheduled. It r
 {
   "requestId": "62cf3df6-30f2-4c0e-b13d-fc509bba8d4f",
   "submitted": 3,
-  "tasksCreated": 1,
-  "taskIds": ["recrawl-62cf3df6-30f2-4c0e-b13d-fc509bba8d4f-warrenlotas-0001-products"],
+  "workflowId": "4b4b68de-65f3-4f79-af57-a4a1d6ef4e13",
+  "workflowError": null,
   "accepted": [
     {
       "catalog": "warrenlotas",
@@ -108,21 +108,21 @@ The endpoint returns `202 Accepted` when at least one target was scheduled. It r
 
 | Target | Behavior |
 | --- | --- |
-| `{"uuid": "..."}` | Finds the product UUID within your granted catalogs and schedules its canonical `productUrl`. |
+| `{"uuid": "..."}` | Finds the product UUID within your granted catalogs and refreshes its canonical `productUrl`. |
 | `{"catalog": "...", "uuid": "..."}` | Finds the UUID only in the requested granted catalog. |
 | `{"url": "..."}` | Finds the URL in your granted catalogs. If multiple catalogs match, the target is rejected with `ambiguous_url`. |
-| `{"catalog": "...", "url": "..."}` | Schedules the URL for that granted catalog, even if the product is not indexed yet. |
+| `{"catalog": "...", "url": "..."}` | Refreshes the URL for that granted catalog, even if the product is not indexed yet. |
 
 ## Errors
 
 | Status | `detail` or rejection code | Meaning |
 | --- | --- | --- |
-| `400` | response body with `rejected` targets | No target could be scheduled. |
+| `400` | response body with `rejected` targets | No target could be accepted. |
 | `403` | `"catalog_not_granted"` | The request named a catalog your API key cannot access. |
 | `422` | validation error array | The body is malformed, has more than 500 targets, or a target contains both `url` and `uuid`. |
-| `503` | `"crawler_service_unavailable"` | Octogen could not contact the internal crawler scheduler. Retry later. |
+| `503` | `"product_refresh_unavailable"` | Octogen could not start product refresh processing. Retry later. |
 
 <Note>
-  A scheduled recrawl only starts the crawl pipeline. Downstream extraction,
-  enrichment, indexing, and image processing still complete asynchronously.
+  Product refresh is asynchronous. Search and lookup results update after
+  downstream processing and indexing complete.
 </Note>

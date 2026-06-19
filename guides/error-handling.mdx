@@ -23,7 +23,7 @@ Octogen API errors fall into two categories:
   <Accordion title="400 — Bad request">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `400`
 
-    The request was syntactically valid JSON but could not be accepted for the requested operation. For `POST /products/recrawl`, this means no target could be scheduled; inspect the response body's `rejected` array for per-target codes and messages.
+    The request was syntactically valid JSON but could not be accepted for the requested operation. For `POST /products/refresh`, this means no target could be accepted; inspect the response body's `rejected` array for per-target codes and messages.
 
     **Recovery:** Fix the rejected targets and retry only those targets.
   </Accordion>
@@ -101,7 +101,7 @@ Octogen API errors fall into two categories:
   <Accordion title="503 — Service unavailable">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `503`
 
-    A downstream Octogen service was temporarily unavailable. For `POST /products/recrawl`, `detail: "crawler_service_unavailable"` means Octogen could not contact the internal crawler scheduler.
+    A downstream Octogen service was temporarily unavailable. For `POST /products/refresh`, `detail: "product_refresh_unavailable"` means Octogen could not start product refresh processing.
 
     **Recovery:** Retry with exponential backoff. If the error persists, contact Octogen support with the timestamp and request body summary.
   </Accordion>

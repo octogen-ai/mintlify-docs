@@ -52,7 +52,7 @@
             "pages": [
               "guides/catalog-search",
               "guides/product-lookup",
-              "guides/product-recrawl",
+              "guides/product-refresh",
               "guides/bigquery-subscribe",
               "guides/pagination",
               "guides/error-handling",
@@ -70,7 +70,7 @@
               "api-reference/overview",
               "api-reference/list-catalogs",
               "api-reference/lookup-product",
-              "api-reference/recrawl-products",
+              "api-reference/refresh-products",
               "api-reference/search-products"
             ]
           },
