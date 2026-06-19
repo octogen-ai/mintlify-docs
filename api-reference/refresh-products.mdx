@@ -1,0 +1,128 @@
+---
+title: "POST /products/refresh - refresh products"
+description: "POST /products/refresh requests a fresh update for one or more product URLs or UUIDs across your granted catalogs."
+sidebarTitle: "Refresh Products"
+---
+
+`POST /products/refresh` requests a fresh update for specific products. Use it when you need Octogen to refresh a known set of product pages sooner than the standard catalog update cadence. The endpoint returns as soon as the request is accepted; it does not wait for downstream processing or indexing to finish.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/products/refresh
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="targets" type="object[]" required>
+  Product identifiers to refresh. Maximum 500 targets per request.
+</ParamField>
+
+<ParamField body="targets[].url" type="string">
+  Product page URL to refresh. Provide either `url` or `uuid`, not both.
+</ParamField>
+
+<ParamField body="targets[].uuid" type="string">
+  Octogen product UUID to refresh. Provide either `uuid` or `url`, not both.
+</ParamField>
+
+<ParamField body="targets[].catalog" type="string">
+  Optional catalog key. Include this when the URL is not already indexed, or when the same URL could belong to more than one granted catalog.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/refresh \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "targets": [
+      {"url": "https://warrenlotas.com/products/black-hoodie"},
+      {"uuid": "11111111-1111-4111-8111-111111111111"},
+      {
+        "catalog": "warrenlotas",
+        "url": "https://warrenlotas.com/products/new-drop"
+      }
+    ]
+  }'
+```
+
+## Response
+
+The endpoint returns `202 Accepted` when at least one target was accepted for refresh. It returns `400 Bad Request` with the same response shape when no target could be accepted.
+
+<ResponseField name="requestId" type="string" required>
+  Request identifier for this refresh request.
+</ResponseField>
+
+<ResponseField name="submitted" type="integer" required>
+  Number of targets received in the request.
+</ResponseField>
+
+<ResponseField name="workflowId" type="string | null">
+  Provider-neutral workflow identifier for the asynchronous refresh, when a workflow was started.
+</ResponseField>
+
+<ResponseField name="workflowError" type="string | null">
+  Non-fatal workflow launch error. If this is present, accepted targets were still accepted, but Octogen could not start the downstream refresh workflow automatically.
+</ResponseField>
+
+<ResponseField name="accepted" type="object[]" required>
+  Targets accepted for refresh after authorization and validation.
+</ResponseField>
+
+<ResponseField name="rejected" type="object[]" required>
+  Targets that were not accepted. Each rejection includes the original `target`, a machine-readable `code`, and a human-readable `message`.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "requestId": "62cf3df6-30f2-4c0e-b13d-fc509bba8d4f",
+  "submitted": 3,
+  "workflowId": "4b4b68de-65f3-4f79-af57-a4a1d6ef4e13",
+  "workflowError": null,
+  "accepted": [
+    {
+      "catalog": "warrenlotas",
+      "url": "https://warrenlotas.com/products/black-hoodie"
+    }
+  ],
+  "rejected": [
+    {
+      "target": {
+        "url": "https://unknown.example/products/1"
+      },
+      "code": "product_not_found",
+      "message": "No active product matched that URL in granted catalogs."
+    }
+  ]
+}
+```
+
+## Resolution rules
+
+| Target | Behavior |
+| --- | --- |
+| `{"uuid": "..."}` | Finds the product UUID within your granted catalogs and refreshes its canonical `productUrl`. |
+| `{"catalog": "...", "uuid": "..."}` | Finds the UUID only in the requested granted catalog. |
+| `{"url": "..."}` | Finds the URL in your granted catalogs. If multiple catalogs match, the target is rejected with `ambiguous_url`. |
+| `{"catalog": "...", "url": "..."}` | Refreshes the URL for that granted catalog, even if the product is not indexed yet. |
+
+## Errors
+
+| Status | `detail` or rejection code | Meaning |
+| --- | --- | --- |
+| `400` | response body with `rejected` targets | No target could be accepted. |
+| `403` | `"catalog_not_granted"` | The request named a catalog your API key cannot access. |
+| `422` | validation error array | The body is malformed, has more than 500 targets, or a target contains both `url` and `uuid`. |
+| `503` | `"product_refresh_unavailable"` | Octogen could not start product refresh processing. Retry later. |
+
+<Note>
+  Product refresh is asynchronous. Search and lookup results update after
+  downstream processing and indexing complete.
+</Note>

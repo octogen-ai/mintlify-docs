@@ -20,6 +20,14 @@ Octogen API errors fall into two categories:
 ## HTTP error reference
 
 <AccordionGroup>
+  <Accordion title="400 — Bad request">
+    **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `400`
+
+    The request was syntactically valid JSON but could not be accepted for the requested operation. For `POST /products/refresh`, this means no target could be accepted; inspect the response body's `rejected` array for per-target codes and messages.
+
+    **Recovery:** Fix the rejected targets and retry only those targets.
+  </Accordion>
+
   <Accordion title="401 — Authentication error">
     **SDK exception:** `OctogenAuthenticationError`
 
@@ -88,6 +96,14 @@ Octogen API errors fall into two categories:
     Your organization exceeded its shared per-organization rate limit — one budget across all of your API keys and MCP sessions. The response carries `detail: "rate_limit_exceeded"` and a `Retry-After` header with the number of seconds to wait.
 
     **Recovery:** Unlike the other `4xx` errors, `429` is transient. Wait the `Retry-After` interval, then retry with exponential backoff. See [Rate Limits](/guides/rate-limits) for the headers, the MCP equivalent, and bulk-job guidance.
+  </Accordion>
+
+  <Accordion title="503 — Service unavailable">
+    **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `503`
+
+    A downstream Octogen service was temporarily unavailable. For `POST /products/refresh`, `detail: "product_refresh_unavailable"` means Octogen could not start product refresh processing.
+
+    **Recovery:** Retry with exponential backoff. If the error persists, contact Octogen support with the timestamp and request body summary.
   </Accordion>
 </AccordionGroup>
 
@@ -212,17 +228,19 @@ try {
 ## Retry guidance
 
 <Warning>
-  Do not automatically retry most `4xx` errors. A `401`, `403`, `404`, or `422` response means the request itself is invalid or unauthorized — retrying it will produce the same error. Fix the underlying cause (key, permissions, or request body) before trying again. The exception is `429` (rate limited): retry it, but only after waiting the `Retry-After` interval. See [Rate Limits](/guides/rate-limits).
+  Do not automatically retry most `4xx` errors. A `400`, `401`, `403`, `404`, or `422` response means the request itself is invalid or unauthorized — retrying it will produce the same error. Fix the underlying cause (body, key, permissions, or request target) before trying again. The exception is `429` (rate limited): retry it, but only after waiting the `Retry-After` interval. See [Rate Limits](/guides/rate-limits).
 </Warning>
 
 | Error type | Retry? | Action |
 | --- | --- | --- |
+| `OctogenAPIError` with 400 | No | Fix the rejected targets or request body |
 | `OctogenAuthenticationError` (401) | No | Replace the API key |
 | `OctogenForbiddenError` (403) | No | Check org catalog grants |
 | `OctogenNotFoundError` (404) | No | Verify catalog key or product URL |
 | `OctogenValidationError` (422) | No | Fix the request body |
 | `OctogenAPIError` with 429 | Yes, after delay | Honor `Retry-After`, then retry with backoff |
 | `OctogenConnectionError` | Yes | Retry with exponential backoff |
+| `OctogenAPIError` with 503 | Yes | Retry with exponential backoff |
 | `OctogenAPIError` with 5xx | Yes | Retry with exponential backoff |
 
 For transient errors and `5xx` responses, use an exponential backoff strategy with jitter. Start with a 1-second delay, double on each retry, and cap at 30 seconds. After three to five failed attempts, surface the error to the caller rather than retrying indefinitely.
