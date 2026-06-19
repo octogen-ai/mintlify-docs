@@ -1,0 +1,74 @@
+---
+title: "Request a product recrawl"
+description: "Schedule a specific set of products for an on-demand Octogen crawl by URL or UUID."
+sidebarTitle: "Product Recrawl"
+---
+
+Product recrawl lets you refresh a known set of product pages without waiting for the daily sitemap collector. Use it when your system already knows which products changed, such as a new drop, a merchandiser correction, or a small set of products that should be updated quickly.
+
+Recrawl schedules crawler tasks only. The rest of the product pipeline still runs asynchronously, so downstream product data updates after crawl, extraction, enrichment, and indexing complete.
+
+## Choose identifiers
+
+Use the identifier you already have:
+
+| You have | Send |
+| --- | --- |
+| An indexed Octogen product | `uuid` |
+| A canonical product page URL | `url` |
+| A product page URL that may not be indexed yet | `catalog` and `url` |
+| A URL that could appear in more than one granted catalog | `catalog` and `url` |
+
+Every target must contain exactly one of `url` or `uuid`. Add `catalog` when you want to pin the request to one granted catalog.
+
+## Make a request
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/recrawl \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "targets": [
+      {"uuid": "11111111-1111-4111-8111-111111111111"},
+      {
+        "catalog": "warrenlotas",
+        "url": "https://warrenlotas.com/products/new-drop"
+      }
+    ]
+  }'
+```
+
+The response includes `taskIds` for internal support and debugging. You do not need to poll them for normal use.
+
+## Handle partial success
+
+The endpoint accepts valid targets and rejects invalid targets in the same response. Treat `accepted` as scheduled work and `rejected` as caller-actionable feedback.
+
+```json
+{
+  "submitted": 2,
+  "tasksCreated": 1,
+  "taskIds": ["recrawl-62cf3df6-30f2-4c0e-b13d-fc509bba8d4f-warrenlotas-0001-products"],
+  "accepted": [
+    {
+      "catalog": "warrenlotas",
+      "url": "https://warrenlotas.com/products/new-drop"
+    }
+  ],
+  "rejected": [
+    {
+      "target": {"url": "https://shared.example/products/1"},
+      "code": "ambiguous_url",
+      "message": "URL matched more than one granted catalog; include catalog."
+    }
+  ]
+}
+```
+
+If every target is rejected, the API returns `400` with the same response shape. Fix the rejected targets and retry.
+
+## Retry guidance
+
+Retry `503` responses and transient network errors. Do not automatically retry `400`, `403`, or `422`; those require a request change.
+
+Avoid sending the same large request repeatedly. If you need to recrawl many products, batch up to 500 targets per call and retry only the targets that were rejected for transient reasons.

@@ -1,10 +1,10 @@
 ---
 title: "Platform Catalog API v1 overview"
-description: "REST API reference for the Octogen Platform Catalog API v1 — base URL, authentication, all three endpoints, error codes, and OpenAPI spec link."
+description: "REST API reference for the Octogen Platform Catalog API v1 - base URL, authentication, all four endpoints, error codes, and OpenAPI spec link."
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products across your granted catalogs, look up a product by its page URL, and list the catalogs your organization has been granted access to. Choose the REST API for API-key server workloads, or use the [Catalog Partner MCP server](/mcp/overview) for OAuth-based agent workflows.
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products across your granted catalogs, look up a product by its page URL, request a fresh product crawl, and list the catalogs your organization has been granted access to. Choose the REST API for API-key server workloads, or use the [Catalog Partner MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -40,16 +40,17 @@ The machine-readable contract is published at every platform deploy:
 https://cdn.octogen.ai/openapi/platform/v1/openapi.json
 ```
 
-The document includes server URLs, operation IDs (`listCatalogs`, `searchProducts`, `lookupProduct`), full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it — for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
+The document includes server URLs, operation IDs (`listCatalogs`, `searchProducts`, `lookupProduct`, `recrawlProducts`), full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
 
 ## Endpoints
 
-The API exposes three endpoints.
+The API exposes four endpoints.
 
 | Method | Path | Operation | Description |
 | --- | --- | --- | --- |
 | `GET` | `/catalogs` | `listCatalogs` | Returns the catalogs granted to your organization. |
 | `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a canonical product record. |
+| `POST` | `/products/recrawl` | `recrawlProducts` | Schedules product URLs or UUIDs for an on-demand crawl. |
 | `POST` | `/products/search` | `searchProducts` | Searches products across all granted catalogs, or within one catalog when `catalog` is provided. |
 
 ## Error model
