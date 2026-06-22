@@ -4,14 +4,18 @@ description: "Reference for MerchantProductListItem returned by search and Merch
 sidebarTitle: "Product"
 ---
 
-The Platform Catalog API uses two product shapes depending on the endpoint. `MerchantProductListItem` is the compact shape returned in search results — it carries the fields needed to render a product card. `MerchantProductView` extends the list item with full detail fields and is returned only by the [`POST /products/lookup`](/api-reference/lookup-product) endpoint. Every field present on a list item is also present on a view.
+The Platform Catalog API uses two product shapes depending on the endpoint. `MerchantProductListItem` is the compact shape returned in search and More Like This results — it carries the fields needed to render a product card. `MerchantProductView` extends the list item with full detail fields and is returned only by the [`POST /products/lookup`](/api-reference/lookup-product) endpoint. Every field present on a list item is also present on a view.
 
 ## MerchantProductListItem
 
-Returned as elements of the `items` array in [`POST /products/search`](/api-reference/search-products) responses.
+Returned as elements of the `items` array in [`POST /products/search`](/api-reference/search-products) and [`POST /products/more-like-this`](/api-reference/more-like-this) responses.
 
 <ResponseField name="uuid" type="string" required>
   Stable unique identifier for this product record. Use this to deduplicate items across pages.
+</ResponseField>
+
+<ResponseField name="catalogKey" type="string | null">
+  Catalog that supplied this product. Present for search and More Like This results so cross-catalog responses can link back to the correct catalog.
 </ResponseField>
 
 <ResponseField name="productUrl" type="string" required>
@@ -70,6 +74,14 @@ Returned as elements of the `items` array in [`POST /products/search`](/api-refe
   </Expandable>
 </ResponseField>
 
+<ResponseField name="isActive" type="boolean">
+  Whether the product is active in the current index.
+</ResponseField>
+
+<ResponseField name="displayMatchScore" type="integer | null">
+  Optional user-facing match score from 0 to 100, when the search strategy returns one. It is intended for display only.
+</ResponseField>
+
 <ResponseField name="updatedAt" type="datetime | null">
   ISO 8601 UTC timestamp of the last update to this product record in the index.
 </ResponseField>
@@ -79,6 +91,7 @@ Returned as elements of the `items` array in [`POST /products/search`](/api-refe
 ```json
 {
   "uuid": "prod_01HX...",
+  "catalogKey": "warrenlotas",
   "productUrl": "https://warrenlotas.com/products/black-hoodie",
   "title": "Black Hoodie",
   "brand": {
@@ -92,6 +105,7 @@ Returned as elements of the `items` array in [`POST /products/search`](/api-refe
   "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
   "images": ["https://cdn.example.com/black-hoodie.jpg"],
   "rating": null,
+  "isActive": true,
   "updatedAt": "2026-05-19T18:04:10Z"
 }
 ```

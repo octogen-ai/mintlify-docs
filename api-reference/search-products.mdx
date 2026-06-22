@@ -6,6 +6,8 @@ sidebarTitle: "Search Products"
 
 `POST /products/search` lets you search and browse products across all catalogs your organization has been granted access to. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
 
+If you already have a source product and want similar products, use [`POST /products/more-like-this`](/api-reference/more-like-this).
+
 ## Request
 
 ```http
@@ -81,6 +83,10 @@ curl -sS https://api.octogen.ai/v1/products/search \
       Stable unique identifier for this product record.
     </ResponseField>
 
+    <ResponseField name="catalogKey" type="string | null">
+      Catalog that supplied this product.
+    </ResponseField>
+
     <ResponseField name="productUrl" type="string" required>
       Canonical product page URL on the merchant's site.
     </ResponseField>
@@ -113,6 +119,10 @@ curl -sS https://api.octogen.ai/v1/products/search \
       Aggregate rating with `average` (number | null) and `count` (integer | null).
     </ResponseField>
 
+    <ResponseField name="isActive" type="boolean">
+      Whether the product is active in the current index.
+    </ResponseField>
+
     <ResponseField name="updatedAt" type="datetime | null">
       ISO 8601 UTC timestamp of the last update to this product record.
     </ResponseField>
@@ -130,6 +140,7 @@ curl -sS https://api.octogen.ai/v1/products/search \
   "items": [
     {
       "uuid": "prod_01HX...",
+      "catalogKey": "warrenlotas",
       "title": "Black Hoodie",
       "productUrl": "https://warrenlotas.com/products/black-hoodie",
       "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
@@ -138,6 +149,7 @@ curl -sS https://api.octogen.ai/v1/products/search \
       "currentPrice": 180,
       "originalPrice": null,
       "rating": null,
+      "isActive": true,
       "updatedAt": "2026-05-19T18:04:10Z"
     }
   ],

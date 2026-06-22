@@ -52,6 +52,7 @@
             "pages": [
               "guides/catalog-search",
               "guides/product-lookup",
+              "guides/more-like-this",
               "guides/product-refresh",
               "guides/bigquery-subscribe",
               "guides/pagination",
@@ -70,6 +71,7 @@
               "api-reference/overview",
               "api-reference/list-catalogs",
               "api-reference/lookup-product",
+              "api-reference/more-like-this",
               "api-reference/refresh-products",
               "api-reference/search-products"
             ]

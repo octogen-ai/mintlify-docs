@@ -4,7 +4,7 @@ description: "Install the async Python SDK for Octogen, set your API key, and se
 sidebarTitle: "Python SDK"
 ---
 
-The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
+The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
 
 ## Installation
 
@@ -167,7 +167,58 @@ Searches products across all authorized catalogs by default. Pass `catalog` only
 | `items`       | `list[MerchantProductListItem]` | Products on this page.                              |
 | `next_cursor` | `str \| None`                 | Pass as `cursor` in your next call to get the next page. `None` means no more results. |
 
-Each `MerchantProductListItem` includes `uuid`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `image_url`, `images`, `rating`, and `updated_at`.
+Each `MerchantProductListItem` includes `uuid`, `catalog_key`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `image_url`, `images`, `rating`, `is_active`, optional match scores, and `updated_at`.
+
+---
+
+### `more_like_this_products`
+
+```python
+async def more_like_this_products(
+    *,
+    source_url: str | None = None,
+    source_uuid: str | None = None,
+    catalog: str | None = None,
+    include_facets: Sequence[Facet | dict] | None = None,
+    exclude_facets: Sequence[Facet | dict] | None = None,
+    price_preference: PricePreference | str = PricePreference.ANY,
+    cursor: str | None = None,
+    limit: int = 12,
+    debug: bool = False,
+) -> ProgrammaticMoreLikeThisResponse
+```
+
+Finds products similar to a source product URL or UUID. Provide exactly one of `source_url` or `source_uuid`. Omit `catalog` to search all granted catalogs, or pass a catalog key to keep the results within one catalog.
+
+```python
+page = await client.more_like_this_products(
+    source_url="https://warrenlotas.com/products/black-hoodie",
+    catalog="warrenlotas",
+    price_preference="any",
+    limit=12,
+)
+```
+
+| Parameter          | Type                               | Default | Description |
+| ------------------ | ---------------------------------- | ------- | ----------- |
+| `source_url`       | `str \| None`                      | `None`  | Canonical product URL to use as the source. |
+| `source_uuid`      | `str \| None`                      | `None`  | Indexed product UUID to use as the source. |
+| `catalog`          | `str \| None`                      | `None`  | Optional catalog identifier from `list_catalogs()`. Omit to search all granted catalogs. |
+| `include_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Extra include facets appended after server-generated audience facets. |
+| `exclude_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Facets to exclude from similar-product results. |
+| `price_preference` | `PricePreference \| str`           | `any`   | `lower`, `any`, or `higher` relative to the source product. |
+| `cursor`           | `str \| None`                      | `None`  | Pagination cursor from a previous response's `next_cursor`. |
+| `limit`            | `int`                              | `12`    | Number of results per page. Must be between 1 and 100. |
+| `debug`            | `bool`                             | `False` | Include the public `effective_query` used for retrieval. |
+
+**Returns:** `ProgrammaticMoreLikeThisResponse`
+
+| Field             | Type                                      | Description |
+| ----------------- | ----------------------------------------- | ----------- |
+| `source`          | `ProgrammaticMoreLikeThisSourceResponse`  | Source product identity. |
+| `items`           | `list[MerchantProductListItem]`           | Similar products on this page. |
+| `next_cursor`     | `str \| None`                             | Pass as `cursor` in your next call to get the next page. |
+| `effective_query` | `ProgrammaticMoreLikeThisEffectiveQuery \| None` | Present only when `debug` is `True`. |
 
 ## Complete example
 

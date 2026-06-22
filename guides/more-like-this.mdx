@@ -1,0 +1,160 @@
+---
+title: "Find products similar to a source product"
+description: "Use Octogen's More Like This endpoint to build related-product rails, substitutions, and similar-item recommendations from a product URL or UUID."
+sidebarTitle: "More Like This"
+---
+
+The More Like This endpoint finds products similar to a known source product. It is product-anchored: pass a product URL or indexed UUID, and Octogen derives the query from product enrichment, style, tags, audience, and optional facet constraints.
+
+Use `POST /v1/products/more-like-this` when you already have a product and want related items. Use [`POST /v1/products/search`](/guides/catalog-search) when the user starts from a keyword, facets, or an arbitrary price range.
+
+## Basic similar-products request
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/more-like-this \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": {
+      "url": "https://warrenlotas.com/products/black-hoodie"
+    },
+    "limit": 12
+  }'
+```
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        page = await client.more_like_this_products(
+            source_url="https://warrenlotas.com/products/black-hoodie",
+            limit=12,
+        )
+        for product in page.items:
+            print(product.title, product.product_url)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const page = await client.moreLikeThisProducts({
+  source: { url: "https://warrenlotas.com/products/black-hoodie" },
+  limit: 12,
+});
+
+for (const product of page.items) {
+  console.log(product.title, product.productUrl);
+}
+```
+
+</CodeGroup>
+
+## Scope to one catalog
+
+Omit `catalog` to search across all granted catalogs. Pass `catalog` when a related-products rail should stay within the same merchant:
+
+```json
+{
+  "source": {
+    "url": "https://warrenlotas.com/products/black-hoodie"
+  },
+  "catalog": "warrenlotas",
+  "limit": 12
+}
+```
+
+## Choose relative price behavior
+
+`price_preference` is relative to the source product's `currentPrice`:
+
+| Value | Behavior |
+| --- | --- |
+| `any` | No relative price filter. This is the default. |
+| `lower` | Prefer less expensive alternatives. |
+| `higher` | Prefer premium alternatives. |
+
+```python
+page = await client.more_like_this_products(
+    source_url="https://warrenlotas.com/products/black-hoodie",
+    price_preference="higher",
+    limit=8,
+)
+```
+
+## Add include or exclude facets
+
+Use `include_facets` to pin extra requirements and `exclude_facets` to remove unwanted matches. These filters use the same facet shape as catalog search.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/products/more-like-this \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": {
+      "url": "https://warrenlotas.com/products/black-hoodie"
+    },
+    "include_facets": [
+      {"name": "gender", "values": ["unisex"]}
+    ],
+    "exclude_facets": [
+      {"name": "color_family", "values": ["White"]}
+    ],
+    "limit": 12
+  }'
+```
+
+```typescript TypeScript
+import { FacetName, OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const page = await client.moreLikeThisProducts({
+  source: { url: "https://warrenlotas.com/products/black-hoodie" },
+  includeFacets: [{ name: FacetName.GENDER, values: ["unisex"] }],
+  excludeFacets: [{ name: FacetName.COLOR_FAMILY, values: ["White"] }],
+  limit: 12,
+});
+```
+
+</CodeGroup>
+
+## Debug the derived query
+
+Set `debug: true` to inspect the public, server-derived query fields used for retrieval:
+
+```json
+{
+  "source": {
+    "uuid": "prod_01HX..."
+  },
+  "debug": true,
+  "limit": 6
+}
+```
+
+The response adds `effectiveQuery` with fields such as `text`, `retrievalEmbeddingColumns`, `facets`, `priceMin`, `priceMax`, and `limit`. Use this for diagnostics and logging, not as a stable replacement for the endpoint itself.
+
+## Paginate similar products
+
+More Like This uses the same cursor model as search. When a response contains `nextCursor`, pass it back as `cursor` with the same source and filters:
+
+```typescript
+let cursor: string | undefined;
+
+do {
+  const page = await client.moreLikeThisProducts({
+    source: { url: "https://warrenlotas.com/products/black-hoodie" },
+    cursor,
+    limit: 12,
+  });
+  cursor = page.nextCursor ?? undefined;
+} while (cursor != null);
+```

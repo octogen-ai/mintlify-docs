@@ -1,0 +1,185 @@
+---
+title: "POST /products/more-like-this — find similar products"
+description: "Find products similar to a source product across all granted catalogs, or within one catalog, using product enrichment and relative price preferences."
+sidebarTitle: "More Like This"
+---
+
+`POST /products/more-like-this` returns products similar to a source product. The API resolves the source by URL or UUID within your catalog grants, builds the similarity query from indexed product enrichment, excludes the source product from results, and returns a standard product list page.
+
+Use this endpoint for related product rails, substitutions, recommendation modules, and agent workflows that start from a known product.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/products/more-like-this
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="source" type="object" required>
+  Source product identifier. Provide exactly one of `source.url` or `source.uuid`.
+</ParamField>
+
+<ParamField body="source.url" type="string">
+  Canonical product URL to use as the source product.
+</ParamField>
+
+<ParamField body="source.uuid" type="string">
+  Indexed product UUID to use as the source product.
+</ParamField>
+
+<ParamField body="catalog" type="string">
+  Optional catalog key. When omitted, source resolution and search run across all active catalogs granted to your organization. When provided, it must be a catalog key from [`GET /catalogs`](/api-reference/list-catalogs).
+</ParamField>
+
+<ParamField body="include_facets" type="Facet[]">
+  Additional include facets appended after Octogen's server-generated audience facets.
+</ParamField>
+
+<ParamField body="exclude_facets" type="Facet[]">
+  Facets to exclude from the similar-products search.
+</ParamField>
+
+<ParamField body="price_preference" type='"lower" | "any" | "higher"' default="any">
+  Relative price preference compared with the source product's `currentPrice`. Use `lower` for less expensive alternatives, `higher` for premium alternatives, or `any` for no relative price filter.
+</ParamField>
+
+<ParamField body="cursor" type="string">
+  Opaque pagination cursor from a previous response's `nextCursor` field. Pass it unmodified with the same request fields to retrieve the next page.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="12">
+  Number of products to return per page. Accepted range: 1–100.
+</ParamField>
+
+<ParamField body="debug" type="boolean" default="false">
+  When `true`, the response includes a curated camelCase `effectiveQuery` object showing the server-derived retrieval query.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/more-like-this \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": {
+      "url": "https://warrenlotas.com/products/black-hoodie"
+    },
+    "catalog": "warrenlotas",
+    "price_preference": "any",
+    "limit": 12
+  }'
+```
+
+## Response
+
+<ResponseField name="source" type="object" required>
+  Public identity of the source product that powered the similarity query.
+
+  <Expandable title="Source properties">
+    <ResponseField name="catalogKey" type="string" required>
+      Catalog that supplied the source product.
+    </ResponseField>
+    <ResponseField name="uuid" type="string" required>
+      Source product UUID.
+    </ResponseField>
+    <ResponseField name="productUrl" type="string" required>
+      Canonical product URL for the source.
+    </ResponseField>
+    <ResponseField name="title" type="string | null">
+      Source product title.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="items" type="MerchantProductListItem[]" required>
+  Similar products for the current page. See the [Product model](/api-reference/models/product) for the full field reference.
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Cursor for the next page of similar products. `null` means no more results are available.
+</ResponseField>
+
+<ResponseField name="effectiveQuery" type="object | null">
+  Present only when `debug` is `true`. Contains the public server-derived query fields: `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `priceMin`, `priceMax`, and `limit`.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "source": {
+    "catalogKey": "warrenlotas",
+    "uuid": "prod_01HX...",
+    "productUrl": "https://warrenlotas.com/products/black-hoodie",
+    "title": "Black Hoodie"
+  },
+  "items": [
+    {
+      "uuid": "prod_01HY...",
+      "catalogKey": "warrenlotas",
+      "title": "Washed Black Hoodie",
+      "productUrl": "https://warrenlotas.com/products/washed-black-hoodie",
+      "imageUrl": "https://cdn.example.com/washed-black-hoodie.jpg",
+      "currentPrice": 190,
+      "isActive": true,
+      "updatedAt": "2026-05-11T18:04:10Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        page = await client.more_like_this_products(
+            source_url="https://warrenlotas.com/products/black-hoodie",
+            catalog="warrenlotas",
+            price_preference="any",
+            limit=12,
+        )
+        for product in page.items:
+            print(product.title, product.current_price)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const page = await client.moreLikeThisProducts({
+  source: { url: "https://warrenlotas.com/products/black-hoodie" },
+  catalog: "warrenlotas",
+  pricePreference: "any",
+  limit: 12,
+});
+
+for (const product of page.items) {
+  console.log(product.title, product.currentPrice);
+}
+```
+
+</CodeGroup>
+
+## Errors
+
+The endpoint uses the standard Catalog API error model:
+
+| Status | Meaning |
+| --- | --- |
+| `401` | Missing, malformed, or invalid Bearer API key. |
+| `403` | API key is valid but not allowed to access this resource. |
+| `404` | The requested catalog or source product is not visible for this API key. |
+| `422` | Request validation failed, including missing source identifiers, both source identifiers being present, an invalid limit, or an invalid `price_preference`. |
