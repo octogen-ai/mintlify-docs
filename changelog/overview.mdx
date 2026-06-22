@@ -3,6 +3,16 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="June 22, 2026" description="More Like This product search">
+
+## New features
+
+**Find products similar to a source product.** `POST /v1/products/more-like-this` accepts a product URL or UUID, derives a similarity query from Octogen product enrichment, excludes the source product, and returns the same paginated product list shape as search. Use it for related-product rails, substitutions, recommendations, and agent workflows that start from a known item.
+
+The TypeScript SDK exposes `moreLikeThisProducts(...)`, and the Python SDK exposes `more_like_this_products(...)`. See the [More Like This guide](/guides/more-like-this) and [API reference](/api-reference/more-like-this).
+
+</Update>
+
 <Update label="June 11, 2026" description="BigQuery catalog subscriptions">
 
 ## New features

@@ -4,7 +4,7 @@ description: "Install the TypeScript SDK for Octogen, set your API key, and sear
 sidebarTitle: "TypeScript SDK"
 ---
 
-The Octogen TypeScript SDK gives you a fully typed, async client for the Octogen commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
+The Octogen TypeScript SDK gives you a fully typed, async client for the Octogen commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
 
 ## Installation
 
@@ -148,7 +148,48 @@ Searches products across all authorized catalogs by default. Pass `catalog` only
 | `items`      | `MerchantProductListItem[]`    | Products on this page.                                 |
 | `nextCursor` | `string \| null`               | Pass as `cursor` in your next call to get the next page. `null` means no more results. |
 
-Each `MerchantProductListItem` includes `uuid`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `imageUrl`, `images`, `rating`, and `updatedAt`.
+Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `imageUrl`, `images`, `rating`, `isActive`, optional match scores, and `updatedAt`.
+
+---
+
+### `moreLikeThisProducts`
+
+```typescript
+async moreLikeThisProducts(params: MoreLikeThisProductsParams): Promise<MoreLikeThisProductsResponse>
+```
+
+Finds products similar to a source product URL or UUID. Omit `catalog` to search all granted catalogs, or pass a catalog key to keep the results within one catalog.
+
+```typescript
+const page = await client.moreLikeThisProducts({
+  source: { url: "https://warrenlotas.com/products/black-hoodie" },
+  catalog: "warrenlotas",
+  pricePreference: "any",
+  limit: 12,
+});
+```
+
+**`MoreLikeThisProductsParams` fields:**
+
+| Field             | Type                         | Default | Description |
+| ----------------- | ---------------------------- | ------- | ----------- |
+| `source`          | `{ url?: string; uuid?: string }` | —   | Source product identifier. Exactly one of `url` or `uuid` is required. |
+| `catalog`         | `string`                     | —       | Optional catalog identifier from `listCatalogs()`. Omit to search all granted catalogs. |
+| `includeFacets`   | `Facet[]`                    | —       | Extra include facets appended after server-generated audience facets. |
+| `excludeFacets`   | `Facet[]`                    | —       | Facets to exclude from similar-product results. |
+| `pricePreference` | `"lower" \| "any" \| "higher"` | `"any"` | Relative price behavior compared with the source product. |
+| `cursor`          | `string`                     | —       | Pagination cursor from a previous response's `nextCursor`. |
+| `limit`           | `number`                     | `12`    | Number of results per page. Must be an integer between 1 and 100. |
+| `debug`           | `boolean`                    | `false` | Include the public `effectiveQuery` used for retrieval. |
+
+**Returns:** `Promise<MoreLikeThisProductsResponse>`
+
+| Field            | Type                         | Description |
+| ---------------- | ---------------------------- | ----------- |
+| `source`         | `MoreLikeThisSourceResponse` | Source product identity. |
+| `items`          | `MerchantProductListItem[]`  | Similar products on this page. |
+| `nextCursor`     | `string \| null`             | Pass as `cursor` in your next call to get the next page. |
+| `effectiveQuery` | `object \| null`             | Present only when `debug` is `true`. |
 
 ## Complete example
 

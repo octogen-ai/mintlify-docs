@@ -10,6 +10,8 @@ The Octogen search endpoint lets you find products across your granted catalogs 
 
 When you call `POST /v1/products/search`, Octogen runs the query against all granted catalogs by default, or one granted catalog when `catalog` is provided. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
 
+If you already have a source product and want similar items, use [More Like This](/guides/more-like-this) instead of inventing a keyword query.
+
 ## Basic keyword search
 
 Pass a free-text string as `q` to search by keyword. Omit `q` entirely to browse without any keyword filter.
@@ -272,6 +274,7 @@ Each item in `items` contains the following fields:
 | Field | Type | Description |
 | --- | --- | --- |
 | `uuid` | string | Stable unique identifier for the product. |
+| `catalogKey` | string \| null | Catalog that supplied the product. |
 | `productUrl` | string | Canonical URL on the retailer's site. |
 | `title` | string \| null | Product display name. |
 | `brand` | object \| null | Brand with `name` and optional `slug`, `url`, `description`. |
@@ -280,6 +283,7 @@ Each item in `items` contains the following fields:
 | `imageUrl` | string \| null | Primary product image URL. |
 | `images` | string[] | All product image URLs. |
 | `rating` | object \| null | Average rating and review count, if available. |
+| `isActive` | boolean | Whether the product is active in the current index. |
 | `updatedAt` | string \| null | ISO 8601 timestamp of the last catalog update. |
 
 <Tip>

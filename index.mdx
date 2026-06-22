@@ -1,9 +1,9 @@
 ---
 title: "Octogen: AI Commerce Platform for Catalog Partners"
-description: "Search and look up products across granted catalogs using the Octogen REST API, Python SDK, TypeScript SDK, or MCP integration for AI agents."
+description: "Search, find similar products, and look up products across granted catalogs using the Octogen REST API, Python SDK, TypeScript SDK, or MCP integration for AI agents."
 ---
 
-Octogen gives Catalog Partners programmatic access to curated product catalogs — enabling product search, URL-based product lookup, and seamless AI agent integrations. Whether you're building a backend service, a shopping assistant, or integrating with Claude or Codex, Octogen provides the tools you need.
+Octogen gives Catalog Partners programmatic access to curated product catalogs — enabling product search, similar-product recommendations, URL-based product lookup, and seamless AI agent integrations. Whether you're building a backend service, a shopping assistant, or integrating with Claude or Codex, Octogen provides the tools you need.
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/quickstart">
@@ -38,8 +38,8 @@ Octogen gives Catalog Partners programmatic access to curated product catalogs �
   <Step title="List your catalogs">
     Call `GET /v1/catalogs` (or `client.list_catalogs()`) to see which product catalogs your key can access.
   </Step>
-  <Step title="Search and look up products">
-    Use `POST /v1/products/search` to find products by keyword or facet, or `POST /v1/products/lookup` to resolve a product page URL to its full canonical record.
+  <Step title="Search, compare, and look up products">
+    Use `POST /v1/products/search` to find products by keyword or facet, `POST /v1/products/more-like-this` to find products similar to a source item, or `POST /v1/products/lookup` to resolve a product page URL to its full canonical record.
   </Step>
 </Steps>
 
