@@ -17,9 +17,9 @@ Use the identifier you already have:
 | An indexed Octogen product | `uuid` |
 | A canonical product page URL | `url` |
 | A product page URL that may not be indexed yet | `catalog` and `url` |
-| A URL that could appear in more than one granted catalog | `catalog` and `url` |
+| A URL that could appear in more than one active crawled catalog | `catalog` and `url` |
 
-Every target must contain exactly one of `url` or `uuid`. Add `catalog` when you want to pin the request to one granted catalog.
+Every target must contain exactly one of `url` or `uuid`. Add `catalog` when you want to pin the request to one active crawled catalog.
 
 ## Make a request
 
@@ -60,7 +60,7 @@ The endpoint accepts valid targets and rejects invalid targets in the same respo
     {
       "target": {"url": "https://shared.example/products/1"},
       "code": "ambiguous_url",
-      "message": "URL matched more than one granted catalog; include catalog."
+      "message": "URL matched more than one active crawled catalog; include catalog."
     }
   ]
 }

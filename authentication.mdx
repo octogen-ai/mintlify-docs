@@ -3,7 +3,7 @@ title: "Authenticate with the Octogen Platform API"
 description: "Learn how to create a Platform API key, configure OCTO_API_KEY in your environment, and send it as a Bearer token on every request."
 ---
 
-Every request to the Octogen Platform Catalog API must include a valid API key. Keys are issued per organization through the partner portal and grant access only to the catalogs assigned to that organization. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+Every request to the Octogen Platform Catalog API must include a valid API key. Keys are issued per organization through the partner portal. Catalog-partner keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
 
 ## API key format
 
@@ -31,14 +31,16 @@ Keep your key private. Do not commit it to source control or expose it in client
     For long-lived deployments, set this in your server's secrets manager or environment configuration rather than in shell profiles.
   </Step>
   <Step title="Verify the setup">
-    Confirm the key works by listing your catalogs:
+    Confirm the key works with a small product search:
 
     ```bash
-    curl -sS https://api.octogen.ai/v1/catalogs \
-      -H "Authorization: Bearer $OCTO_API_KEY"
+    curl -sS https://api.octogen.ai/v1/products/search \
+      -H "Authorization: Bearer $OCTO_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"q":"shirt","limit":1}'
     ```
 
-    A successful response returns a JSON array of catalogs. An empty array means your organization has no active catalog grants — not an authentication failure.
+    A successful response returns an `items` array. Catalog enumeration is not required to search across the policy-wide crawled catalog set.
   </Step>
 </Steps>
 
@@ -88,8 +90,8 @@ Rotate keys from the **API Keys** section of the partner portal. When you deacti
 | Status | Meaning | What to do |
 | --- | --- | --- |
 | `401` | The key is missing, malformed, or has been revoked. | Check that `OCTO_API_KEY` is set correctly and that the key has not been deactivated in the portal. |
-| `403` | The key is valid, but your organization is not authorized for this resource. | Confirm that your organization is provisioned as a Catalog Partner and that the catalog has been granted to your account. |
+| `403` | The key is valid, but your organization is not authorized for this resource. | Inspect `detail` and confirm the key belongs to a Catalog Partner organization. |
 
 <Note>
-  API keys are organization-scoped. A key can only access catalogs explicitly granted to the organization that owns it. If you believe a catalog should be available but you receive a `403`, contact Octogen to verify the grant.
+  API keys are organization-scoped. Search/browse access for Catalog Partners covers active crawled catalogs only. BigQuery listing access remains separately granted.
 </Note>

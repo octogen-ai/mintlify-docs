@@ -49,7 +49,7 @@ Octogen API errors fall into two categories:
     - The API key belongs to the wrong organization
     - The key's org type does not have permission for the endpoint
 
-    **Recovery:** Check your organization's access in the partner portal. Contact Octogen if you believe the grant is missing.
+    **Recovery:** Check your organization's access in the partner portal.
   </Accordion>
 
   <Accordion title="404 — Not found">
@@ -57,10 +57,10 @@ Octogen API errors fall into two categories:
 
     The requested catalog or product is not visible to your API key. Common `detail` values:
 
-    - `"catalog_not_found"` — The catalog key you passed in `catalog` is not granted to your organization. Use `GET /v1/catalogs` to see available keys.
-    - `"product_not_found"` — No active product in your granted catalogs matches the URL you passed to `/products/lookup`.
+    - `"catalog_not_found"` — The catalog key you passed does not identify an active crawled catalog available to this organization.
+    - `"product_not_found"` — No active product in an active crawled catalog matches the URL you passed to `/products/lookup`.
 
-    **Recovery:** Verify the catalog key using `GET /v1/catalogs`. For product lookup, confirm the URL is a canonical product page URL and that the catalog covering that domain is granted to your organization.
+    **Recovery:** Retry with a known active crawled catalog key, or omit the optional `catalog` field for policy-wide search. For product lookup, confirm the URL is a canonical product page URL.
   </Accordion>
 
   <Accordion title="422 — Validation error">

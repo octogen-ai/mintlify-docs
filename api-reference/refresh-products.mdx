@@ -1,6 +1,6 @@
 ---
 title: "POST /products/refresh - refresh products"
-description: "POST /products/refresh requests a fresh update for one or more product URLs or UUIDs across your granted catalogs."
+description: "POST /products/refresh requests a fresh update for one or more product URLs or UUIDs across active crawled catalogs."
 sidebarTitle: "Refresh Products"
 ---
 
@@ -29,7 +29,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="targets[].catalog" type="string">
-  Optional catalog key. Include this when the URL is not already indexed, or when the same URL could belong to more than one granted catalog.
+  Optional active crawled catalog key. Include this when the URL is not already indexed, or when the same URL could belong to more than one active crawled catalog.
 </ParamField>
 
 ### Example
@@ -98,7 +98,7 @@ The endpoint returns `202 Accepted` when at least one target was accepted for re
         "url": "https://unknown.example/products/1"
       },
       "code": "product_not_found",
-      "message": "No active product matched that URL in granted catalogs."
+      "message": "No active product matched that URL in active crawled catalogs."
     }
   ]
 }
@@ -108,10 +108,10 @@ The endpoint returns `202 Accepted` when at least one target was accepted for re
 
 | Target | Behavior |
 | --- | --- |
-| `{"uuid": "..."}` | Finds the product UUID within your granted catalogs and refreshes its canonical `productUrl`. |
-| `{"catalog": "...", "uuid": "..."}` | Finds the UUID only in the requested granted catalog. |
-| `{"url": "..."}` | Finds the URL in your granted catalogs. If multiple catalogs match, the target is rejected with `ambiguous_url`. |
-| `{"catalog": "...", "url": "..."}` | Refreshes the URL for that granted catalog, even if the product is not indexed yet. |
+| `{"uuid": "..."}` | Finds the product UUID within active crawled catalogs and refreshes its canonical `productUrl`. |
+| `{"catalog": "...", "uuid": "..."}` | Finds the UUID only in the requested active crawled catalog. |
+| `{"url": "..."}` | Finds the URL in active crawled catalogs. If multiple catalogs match, the target is rejected with `ambiguous_url`. |
+| `{"catalog": "...", "url": "..."}` | Refreshes the URL for that active crawled catalog, even if the product is not indexed yet. |
 
 ## Errors
 

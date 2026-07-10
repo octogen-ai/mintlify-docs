@@ -1,14 +1,14 @@
 ---
 title: "Search products across Octogen catalogs"
-description: "Learn how to search products across your granted catalogs, filter by facets like color and category, and apply price ranges using the Octogen Catalog API."
+description: "Learn how to search products across active crawled catalogs, filter by facets like color and category, and apply price ranges using the Octogen Catalog API."
 sidebarTitle: "Catalog Search"
 ---
 
-The Octogen search endpoint lets you find products across your granted catalogs using free-text queries, structured facet filters, and price range constraints — in any combination. Omit `catalog` to search every catalog your API key can access. Include `catalog` only when you want to restrict search to one granted catalog.
+The Octogen search endpoint lets you find products across all active crawled catalogs using free-text queries, structured facet filters, and price range constraints — in any combination. Omit `catalog` to search every active crawled catalog. Include `catalog` only when you want to restrict search to one known active crawled catalog.
 
 ## How search works
 
-When you call `POST /v1/products/search`, Octogen runs the query against all granted catalogs by default, or one granted catalog when `catalog` is provided. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
+When you call `POST /v1/products/search`, Octogen runs the query against all active crawled catalogs by default, or one active crawled catalog when `catalog` is provided. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
 
 If you already have a source product and want similar items, use [More Like This](/guides/more-like-this) instead of inventing a keyword query.
 

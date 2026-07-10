@@ -1,6 +1,6 @@
 ---
 title: "Use Octogen with Codex CLI via MCP"
-description: "Connect Codex CLI to Octogen using its dedicated compatibility endpoint, then sign in once to give your agent access to your granted catalogs."
+description: "Connect Codex CLI to Octogen using its dedicated compatibility endpoint, then sign in once to give your agent access to active crawled catalogs."
 sidebarTitle: "Codex CLI"
 ---
 
@@ -68,8 +68,7 @@ The Codex CLI uses a different OAuth discovery path than other MCP clients. The 
 
 Once connected, your agent can use the catalog read tools and, when BigQuery access is enabled, the BigQuery subscription tools:
 
-- **`list_catalogs()`** — discover which catalogs your organization has access to.
 - **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
-- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword inside one granted catalog.
+- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword inside one active crawled catalog.
 
 For a full description of each tool, including BigQuery listing and subscriber helpers, see the [MCP overview](/mcp/overview).
