@@ -46,6 +46,14 @@ Content-Type: application/json
   Relative price preference compared with the source product's `currentPrice`. Use `lower` for less expensive alternatives, `higher` for premium alternatives, or `any` for no relative price filter.
 </ParamField>
 
+<ParamField body="retrieval_embedding_columns" type="EmbeddingColumn[]">
+  Embedding columns used to retrieve candidate products. Overrides the server-selected default: `["style_embedding", "tags_embedding"]` when the source product has styles or tags, otherwise `["embedding"]`. Accepted values: `embedding`, `style_embedding`, `tags_embedding`, `attributes_embedding`. Must contain at least one value.
+</ParamField>
+
+<ParamField body="ranking_embedding_columns" type="EmbeddingColumn[]">
+  Embedding columns used to re-score and rank the retrieved candidates. When omitted, ranking uses the base `embedding`. Accepts the same values as `retrieval_embedding_columns`; must contain at least one value. Combine the two to retrieve one way and rank another — see [Strategy recipes](#strategy-recipes).
+</ParamField>
+
 <ParamField body="cursor" type="string">
   Opaque pagination cursor from a previous response's `nextCursor` field. Pass it unmodified with the same request fields to retrieve the next page.
 </ParamField>
@@ -73,6 +81,29 @@ curl -sS https://api.octogen.ai/v1/products/more-like-this \
     "limit": 12
   }'
 ```
+
+### Embedding columns
+
+Every indexed product carries several embeddings. Retrieval columns decide which products come back as candidates; ranking columns decide how those candidates are ordered.
+
+| Column | Captures | Use it for |
+| --- | --- | --- |
+| `style_embedding` | Aesthetic and styling signals | "Same look" — the default retrieval when the source has styles/tags |
+| `tags_embedding` | Descriptive tags (details, materials, features) | Pairs with `style_embedding` in the default strategy |
+| `attributes_embedding` | Structured attributes (closure, hardware, fit, …) | Maximum concrete attribute overlap |
+| `embedding` | General-purpose product representation | Broad semantic discovery; the default ranking signal |
+
+### Strategy recipes
+
+| Goal | Request |
+| --- | --- |
+| Same look (default) | Omit both parameters |
+| Closest attribute matches | `"retrieval_embedding_columns": ["attributes_embedding"]` |
+| Broad semantic discovery | `"retrieval_embedding_columns": ["embedding"]` |
+| Max attribute matches, ordered by look | `"retrieval_embedding_columns": ["attributes_embedding"], "ranking_embedding_columns": ["style_embedding"]` |
+| Same look, cheaper | `"price_preference": "lower"` |
+
+Send `debug: true` with any combination and the response's `effectiveQuery` shows the exact query the server executed.
 
 ## Response
 
@@ -182,4 +213,4 @@ The endpoint uses the standard Catalog API error model:
 | `401` | Missing, malformed, or invalid Bearer API key. |
 | `403` | API key is valid but not allowed to access this resource. |
 | `404` | The requested catalog or source product is not visible for this API key. |
-| `422` | Request validation failed, including missing source identifiers, both source identifiers being present, an invalid limit, or an invalid `price_preference`. |
+| `422` | Request validation failed, including missing source identifiers, both source identifiers being present, an invalid limit, an invalid `price_preference`, or an unknown embedding column. |
