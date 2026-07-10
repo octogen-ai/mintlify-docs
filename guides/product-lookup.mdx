@@ -8,7 +8,7 @@ Product lookup resolves a product page URL to the full canonical record Octogen 
 
 ## What lookup does
 
-When you call `POST /v1/products/lookup` with a product page URL, Octogen matches the URL against active product records across your granted catalogs and returns the canonical record from the first matching catalog. The response tells you which catalog matched (`catalogKey`, `catalogDisplayName`) alongside the full product object.
+When you call `POST /v1/products/lookup` with a product page URL, Octogen matches the URL against active product records across active crawled catalogs and returns the canonical record from the first matching catalog. The response tells you which catalog matched (`catalogKey`, `catalogDisplayName`) alongside the full product object.
 
 ## When to use lookup vs search
 
@@ -153,7 +153,7 @@ The `product` object extends the search item with additional detail fields:
 ## Handling the not-found case
 
 <Note>
-  If no active product in your granted catalogs matches the URL, the API returns HTTP `404` with `"product_not_found"` in the error detail. The SDK raises `OctogenNotFoundError`. This is not a retryable error — it means the URL is not indexed in any catalog you have access to.
+  If no active product in an active crawled catalog matches the URL, the API returns HTTP `404` with `"product_not_found"` in the error detail. The SDK raises `OctogenNotFoundError`. This is not a retryable error — it means the URL is not indexed in any catalog available to Catalog Partners.
 </Note>
 
-Check that the URL is a canonical product page URL (not a search results page or category page), and that your organization has an active grant for the catalog that sells the product. Use `GET /v1/catalogs` to confirm your grants.
+Check that the URL is a canonical product page URL (not a search results page or category page) from an active crawled catalog.

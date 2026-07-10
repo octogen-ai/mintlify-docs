@@ -4,7 +4,7 @@ description: "POST /products/lookup resolves any product page URL to a full cano
 sidebarTitle: "Lookup Product"
 ---
 
-`POST /products/lookup` takes a product page URL and returns the full canonical product record for that URL from within your granted catalogs. The response includes catalog metadata alongside a `MerchantProductView` — the richest product shape the API offers, with optional fields like `variants`, `colors`, `reviews`, `breadcrumbs`, and `enrichment` populated whenever the underlying record has them.
+`POST /products/lookup` takes a product page URL and returns the full canonical product record for that URL from an active crawled catalog. The response includes catalog metadata alongside a `MerchantProductView` — the richest product shape the API offers, with optional fields like `variants`, `colors`, `reviews`, `breadcrumbs`, and `enrichment` populated whenever the underlying record has them.
 
 ## Request
 
@@ -34,7 +34,7 @@ curl -sS https://api.octogen.ai/v1/products/lookup \
 The response is a `MerchantProductUrlLookupResponse` object.
 
 <ResponseField name="catalogKey" type="string" required>
-  The catalog key the product was found in. Matches the `catalog` field on a `MerchantCatalogSummary`.
+  The active crawled catalog key where the product was found.
 </ResponseField>
 
 <ResponseField name="catalogDisplayName" type="string" required>
@@ -223,10 +223,9 @@ The response is a `MerchantProductUrlLookupResponse` object.
 | `404` | `"product_not_found"` | No product matching the URL was found in any catalog granted to your key. |
 
 <Note>
-  A `404` means the URL is either not indexed in any of your granted catalogs or
-  does not belong to a catalog your organization has access to. Confirm the URL
-  is a valid product page for a granted catalog and that the catalog key is
-  active via `GET /catalogs`.
+  A `404` means the URL is not indexed in any active crawled catalog available
+  to Catalog Partners. Confirm the URL is a valid product page from an active
+  crawled catalog.
 </Note>
 
 ## SDK equivalents
@@ -245,7 +244,7 @@ async def main() -> None:
             )
             print(result.catalog_key, result.product.title, result.product.current_price)
         except OctogenNotFoundError:
-            print("Product not found in any granted catalog.")
+            print("Product not found in any active crawled catalog.")
 
 asyncio.run(main())
 ```
@@ -261,7 +260,7 @@ try {
   console.log(result.catalogKey, result.product.title, result.product.currentPrice);
 } catch (error) {
   if (error instanceof OctogenNotFoundError) {
-    console.log("Product not found in any granted catalog.");
+    console.log("Product not found in any active crawled catalog.");
   } else {
     throw error;
   }

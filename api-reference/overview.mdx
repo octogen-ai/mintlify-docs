@@ -4,7 +4,7 @@ description: "REST API reference for the Octogen Platform Catalog API v1 - base 
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products across your granted catalogs, find products similar to a source product, look up a product by its page URL, request a product refresh, and list the catalogs your organization has been granted access to. Choose the REST API for API-key server workloads, or use the [Catalog Partner MCP server](/mcp/overview) for OAuth-based agent workflows.
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, and request a product refresh. Choose the REST API for API-key server workloads, or use the [Catalog Partner MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -25,7 +25,7 @@ Authorization: Bearer octo_live_<32-hex-id>_<base64url-secret>
 Content-Type: application/json
 ```
 
-API keys are organization-scoped and currently usable only by Catalog Partner organizations. A key can access only the catalogs granted to the organization that owns it. Rotate or deactivate keys via the partner portal; deactivation takes effect on the next request.
+API keys are organization-scoped and currently usable only by Catalog Partner organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys via the partner portal; deactivation takes effect on the next request.
 
 <Warning>
   Never expose your Platform API key in client-side code or public repositories.
@@ -40,7 +40,7 @@ The machine-readable contract is published at every platform deploy:
 https://cdn.octogen.ai/openapi/platform/v1/openapi.json
 ```
 
-The document includes server URLs, operation IDs (`listCatalogs`, `searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `refreshProducts`), full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
+The document includes server URLs, operation IDs (`searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `refreshProducts`), full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
 
 ## Endpoints
 
@@ -48,11 +48,10 @@ The API exposes these endpoints.
 
 | Method | Path | Operation | Description |
 | --- | --- | --- | --- |
-| `GET` | `/catalogs` | `listCatalogs` | Returns the catalogs granted to your organization. |
 | `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a canonical product record. |
 | `POST` | `/products/more-like-this` | `moreLikeThisProducts` | Finds products similar to a source product URL or UUID. |
 | `POST` | `/products/refresh` | `refreshProducts` | Requests fresh updates for product URLs or UUIDs. |
-| `POST` | `/products/search` | `searchProducts` | Searches products across all granted catalogs, or within one catalog when `catalog` is provided. |
+| `POST` | `/products/search` | `searchProducts` | Searches products across all active crawled catalogs, or within one catalog when `catalog` is provided. |
 
 ## Error model
 
@@ -84,7 +83,7 @@ All error responses carry a top-level `detail` field.
 | --- | --- | --- |
 | `401` | Missing, malformed, or invalid Bearer token. | Rotate or replace the API key. |
 | `403` | Key is valid but not authorized for this resource. | Confirm the organization has access to the requested catalog. |
-| `404` | Catalog or product is not visible for this key. | Verify the catalog key and that the product URL belongs to a granted catalog. |
+| `404` | Catalog or product is not visible for this key. | Verify the catalog key identifies an active crawled catalog and the product URL belongs to it. |
 | `422` | Request body or field validation failed. | Surface the field-level `loc` and `msg` to identify the invalid field. |
 | `429` | Per-organization rate limit exceeded. | Wait the `Retry-After` interval, then retry — see [Rate limits](#rate-limits). |
 

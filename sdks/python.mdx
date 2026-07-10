@@ -1,10 +1,10 @@
 ---
 title: "Octogen Python SDK — async HTTP client API reference"
-description: "Install the async Python SDK for Octogen, set your API key, and search or look up products from your granted catalogs with typed Pydantic models."
+description: "Install the async Python SDK for Octogen, set your API key, and search or look up products across active crawled catalogs with typed Pydantic models."
 sidebarTitle: "Python SDK"
 ---
 
-The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
+The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
 
 ## Installation
 
@@ -71,8 +71,8 @@ from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
     async with OctogenClient() as client:
-        catalogs = await client.list_catalogs()
-        print(catalogs)
+        results = await client.search_products(q="shirt", limit=1)
+        print(results.items)
 
 asyncio.run(main())
 ```
@@ -80,34 +80,6 @@ asyncio.run(main())
 If you manage the client's lifetime yourself, call `await client.aclose()` when finished.
 
 ## Methods
-
-### `list_catalogs`
-
-```python
-async def list_catalogs() -> list[MerchantCatalogSummary]
-```
-
-Returns all active catalogs granted to your API key's organization. You can omit `catalog` from `search_products` to search all of them, or pass a `catalog` value to restrict search to one catalog.
-
-```python
-catalogs = await client.list_catalogs()
-for c in catalogs:
-    print(c.catalog, c.display_name, c.product_count)
-```
-
-**Returns:** `list[MerchantCatalogSummary]`
-
-Each `MerchantCatalogSummary` has:
-
-| Field            | Type               | Description                                    |
-| ---------------- | ------------------ | ---------------------------------------------- |
-| `catalog`        | `str`              | Catalog identifier — pass this to `search_products` when you want to search only this catalog. |
-| `display_name`   | `str`              | Human-readable catalog name.                   |
-| `product_count`  | `int`              | Number of indexed products.                    |
-| `source_base_url`| `str \| None`      | Base URL of the catalog source.                |
-| `last_indexed_at`| `datetime \| None` | When the catalog was last indexed.             |
-
----
 
 ### `lookup_product`
 
@@ -152,7 +124,7 @@ Searches products across all authorized catalogs by default. Pass `catalog` only
 
 | Parameter   | Type                             | Default | Description                                                          |
 | ----------- | -------------------------------- | ------- | -------------------------------------------------------------------- |
-| `catalog`   | `str \| None`                    | `None`  | Optional catalog identifier from `list_catalogs()`. Omit to search all granted catalogs. |
+| `catalog`   | `str \| None`                    | `None`  | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
 | `q`         | `str \| None`                    | `None`  | Keyword search query.                                                |
 | `facets`    | `Sequence[Facet \| dict] \| None`| `None`  | List of facet filters to apply. See [Faceted search](#faceted-search). |
 | `price_min` | `float \| None`                  | `None`  | Minimum price filter (inclusive).                                    |
@@ -188,7 +160,7 @@ async def more_like_this_products(
 ) -> ProgrammaticMoreLikeThisResponse
 ```
 
-Finds products similar to a source product URL or UUID. Provide exactly one of `source_url` or `source_uuid`. Omit `catalog` to search all granted catalogs, or pass a catalog key to keep the results within one catalog.
+Finds products similar to a source product URL or UUID. Provide exactly one of `source_url` or `source_uuid`. Omit `catalog` to search all active crawled catalogs, or pass a catalog key to keep the results within one catalog.
 
 ```python
 page = await client.more_like_this_products(
@@ -203,7 +175,7 @@ page = await client.more_like_this_products(
 | ------------------ | ---------------------------------- | ------- | ----------- |
 | `source_url`       | `str \| None`                      | `None`  | Canonical product URL to use as the source. |
 | `source_uuid`      | `str \| None`                      | `None`  | Indexed product UUID to use as the source. |
-| `catalog`          | `str \| None`                      | `None`  | Optional catalog identifier from `list_catalogs()`. Omit to search all granted catalogs. |
+| `catalog`          | `str \| None`                      | `None`  | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
 | `include_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Extra include facets appended after server-generated audience facets. |
 | `exclude_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Facets to exclude from similar-product results. |
 | `price_preference` | `PricePreference \| str`           | `any`   | `lower`, `any`, or `higher` relative to the source product. |
@@ -222,7 +194,7 @@ page = await client.more_like_this_products(
 
 ## Complete example
 
-The following example confirms that catalogs are available, searches all granted catalogs for women's linen dresses, and prints each result with its brand and price:
+The following example searches all active crawled catalogs for women's linen dresses and prints each result with its brand and price:
 
 ```python
 import asyncio
@@ -234,17 +206,12 @@ from octogen_ai_sdk import OctogenAPIError, OctogenClient
 async def main() -> None:
     try:
         async with OctogenClient() as client:
-            catalogs = await client.list_catalogs()
-            if not catalogs:
-                print("No catalogs are available for this API key.")
-                return
-
             results = await client.search_products(
                 q="women's linen summer dresses",
                 limit=5,
             )
 
-            print("Catalog scope: all granted catalogs")
+            print("Catalog scope: all active crawled catalogs")
             for product in results.items:
                 brand = product.brand.name if product.brand else "Unknown brand"
                 price = (

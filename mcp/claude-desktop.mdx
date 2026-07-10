@@ -81,8 +81,7 @@ Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to t
 
 Once connected, Claude Desktop can use the catalog read tools and, when BigQuery access is enabled, the BigQuery subscription tools:
 
-- **`list_catalogs()`** — discover which catalogs your organization has access to.
 - **`lookup_product(canonical_url, catalogs?)`** — resolve a product page URL to a full product record.
-- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword inside one granted catalog.
+- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword inside one active crawled catalog.
 
 For a full description of each tool, including BigQuery listing and subscriber helpers, see the [MCP overview](/mcp/overview).

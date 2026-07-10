@@ -1,6 +1,6 @@
 ---
 title: "POST /products/more-like-this — find similar products"
-description: "Find products similar to a source product across all granted catalogs, or within one catalog, using product enrichment and relative price preferences."
+description: "Find products similar to a source product across all active crawled catalogs, or within one catalog, using product enrichment and relative price preferences."
 sidebarTitle: "More Like This"
 ---
 
@@ -31,7 +31,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="catalog" type="string">
-  Optional catalog key. When omitted, source resolution and search run across all active catalogs granted to your organization. When provided, it must be a catalog key from [`GET /catalogs`](/api-reference/list-catalogs).
+  Optional active crawled catalog key. When omitted, source resolution and search run across all active crawled catalogs. When provided, use a known active crawled catalog key.
 </ParamField>
 
 <ParamField body="include_facets" type="Facet[]">

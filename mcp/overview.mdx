@@ -32,16 +32,12 @@ Access tokens are valid for approximately five minutes. Refresh happens transpar
 Both conditions must be true before your first tool call.
 </Info>
 
-- Your organization is provisioned as a Catalog Partner and has been granted at least one catalog. If you do not yet have a Catalog Partner organization, contact Octogen support.
+- Your organization is provisioned as a Catalog Partner. If you do not yet have a Catalog Partner organization, contact Octogen support.
 - You can sign in to the Octogen Platform with the email that belongs to that organization.
 
 ## Available tools
 
-The product tools use the same catalog grants as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
-
-### `list_catalogs()`
-
-Returns all catalogs currently granted to your organization. Call this first when you or your agent does not know which catalog keys are available. An organization with no active grants receives an empty list, not an error.
+The product tools use the same catalog access policy as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
 
 ### `lookup_product(canonical_url, catalogs?)`
 
@@ -49,7 +45,7 @@ Resolves a product page URL to a full canonical product record, including title,
 
 ### `search_products(catalog, query?, limit?, cursor?)`
 
-Searches products inside one granted catalog by free-text keyword. Use a catalog key returned by `list_catalogs`. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
+Searches products inside one active crawled catalog by free-text keyword. Use a known catalog key. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
 
 ## BigQuery subscription tools
 
@@ -67,7 +63,7 @@ For most scheduled jobs, use the Python SDK's `octogen-bq-autosubscribe` command
 
 ## MCP vs REST API
 
-Both surfaces are equally supported and enforce the same per-organization catalog grants. A grant change on one path takes effect immediately on the other.
+Both surfaces are equally supported and enforce the same catalog policy. Catalog Partners can search and browse active crawled catalogs and cannot access merchant catalogs. BigQuery listings remain explicitly granted.
 
 | | Platform Catalog API v1 (API keys) | MCP (OAuth) |
 | --- | --- | --- |

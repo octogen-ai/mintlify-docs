@@ -1,10 +1,10 @@
 ---
 title: "POST /products/search — search catalog products"
-description: "Searches products across all granted catalogs, or within one catalog when scoped, using free-text queries, structured facet filters, price ranges, and cursor-based pagination."
+description: "Searches products across all active crawled catalogs, or within one catalog when scoped, using free-text queries, structured facet filters, price ranges, and cursor-based pagination."
 sidebarTitle: "Search Products"
 ---
 
-`POST /products/search` lets you search and browse products across all catalogs your organization has been granted access to. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
+`POST /products/search` lets Catalog Partners search and browse products across all active crawled catalogs. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
 
 If you already have a source product and want similar products, use [`POST /products/more-like-this`](/api-reference/more-like-this).
 
@@ -19,7 +19,7 @@ Content-Type: application/json
 ### Body parameters
 
 <ParamField body="catalog" type="string">
-  Optional key of the catalog to search. When omitted, search runs across all active catalogs currently granted to your organization. When provided, it must be a catalog key from [`GET /catalogs`](/api-reference/list-catalogs).
+  Optional key of an active crawled catalog to search. When omitted, search runs across all active crawled catalogs. When provided, use a known active crawled catalog key.
 </ParamField>
 
 <ParamField body="q" type="string">

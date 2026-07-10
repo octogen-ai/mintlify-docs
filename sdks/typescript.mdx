@@ -1,10 +1,10 @@
 ---
 title: "Octogen TypeScript SDK — async client API reference"
-description: "Install the TypeScript SDK for Octogen, set your API key, and search or look up products from your granted catalogs with full ESM type safety in Node.js."
+description: "Install the TypeScript SDK for Octogen, set your API key, and search or look up products across active crawled catalogs with full ESM type safety in Node.js."
 sidebarTitle: "TypeScript SDK"
 ---
 
-The Octogen TypeScript SDK gives you a fully typed, async client for the Octogen commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can list catalogs, search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
+The Octogen TypeScript SDK gives you a fully typed, async client for the Octogen commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
 
 ## Installation
 
@@ -66,35 +66,6 @@ const client = new OctogenClient({
 
 ## Methods
 
-### `listCatalogs`
-
-```typescript
-async listCatalogs(): Promise<MerchantCatalogSummary[]>
-```
-
-Returns all active catalogs granted to your API key's organization. You can omit `catalog` from `searchProducts` to search all of them, or pass a `catalog` value to restrict search to one catalog.
-
-```typescript
-const catalogs = await client.listCatalogs();
-for (const c of catalogs) {
-  console.log(c.catalog, c.displayName, c.productCount);
-}
-```
-
-**Returns:** `Promise<MerchantCatalogSummary[]>`
-
-Each `MerchantCatalogSummary` has:
-
-| Field           | Type              | Description                                        |
-| --------------- | ----------------- | -------------------------------------------------- |
-| `catalog`       | `string`          | Catalog identifier — pass this to `searchProducts` when you want to search only this catalog. |
-| `displayName`   | `string`          | Human-readable catalog name.                       |
-| `productCount`  | `number`          | Number of indexed products.                        |
-| `sourceBaseUrl` | `string \| null`  | Base URL of the catalog source.                    |
-| `lastIndexedAt` | `string \| null`  | ISO 8601 timestamp of the last index run.          |
-
----
-
 ### `lookupProduct`
 
 ```typescript
@@ -133,7 +104,7 @@ Searches products across all authorized catalogs by default. Pass `catalog` only
 
 | Field       | Type              | Default | Description                                                             |
 | ----------- | ----------------- | ------- | ----------------------------------------------------------------------- |
-| `catalog`   | `string`          | —       | Optional catalog identifier from `listCatalogs()`. Omit to search all granted catalogs. |
+| `catalog`   | `string`          | —       | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
 | `q`         | `string`          | —       | Keyword search query.                                                   |
 | `facets`    | `Facet[]`         | —       | List of facet filters to apply. See [Faceted search](#faceted-search).  |
 | `priceMin`  | `number`          | —       | Minimum price filter (inclusive).                                       |
@@ -158,7 +129,7 @@ Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `tit
 async moreLikeThisProducts(params: MoreLikeThisProductsParams): Promise<MoreLikeThisProductsResponse>
 ```
 
-Finds products similar to a source product URL or UUID. Omit `catalog` to search all granted catalogs, or pass a catalog key to keep the results within one catalog.
+Finds products similar to a source product URL or UUID. Omit `catalog` to search all active crawled catalogs, or pass a catalog key to keep the results within one catalog.
 
 ```typescript
 const page = await client.moreLikeThisProducts({
@@ -174,7 +145,7 @@ const page = await client.moreLikeThisProducts({
 | Field             | Type                         | Default | Description |
 | ----------------- | ---------------------------- | ------- | ----------- |
 | `source`          | `{ url?: string; uuid?: string }` | —   | Source product identifier. Exactly one of `url` or `uuid` is required. |
-| `catalog`         | `string`                     | —       | Optional catalog identifier from `listCatalogs()`. Omit to search all granted catalogs. |
+| `catalog`         | `string`                     | —       | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
 | `includeFacets`   | `Facet[]`                    | —       | Extra include facets appended after server-generated audience facets. |
 | `excludeFacets`   | `Facet[]`                    | —       | Facets to exclude from similar-product results. |
 | `pricePreference` | `"lower" \| "any" \| "higher"` | `"any"` | Relative price behavior compared with the source product. |
@@ -193,7 +164,7 @@ const page = await client.moreLikeThisProducts({
 
 ## Complete example
 
-The following example confirms that catalogs are available, searches all granted catalogs for women's linen dresses, and prints each result with its brand and price:
+The following example searches all active crawled catalogs for women's linen dresses and prints each result with its brand and price:
 
 ```typescript
 import { inspect } from "node:util";
@@ -202,18 +173,12 @@ import { OctogenAPIError, OctogenClient } from "@octogen-ai/sdk";
 async function main(): Promise<void> {
   try {
     const client = new OctogenClient();
-    const catalogs = await client.listCatalogs();
-    if (catalogs.length === 0) {
-      console.log("No catalogs are available for this API key.");
-      return;
-    }
-
     const results = await client.searchProducts({
       limit: 5,
       q: "women's linen summer dresses",
     });
 
-    console.log("Catalog scope: all granted catalogs");
+    console.log("Catalog scope: all active crawled catalogs");
     for (const product of results.items) {
       const brand = product.brand?.name ?? "Unknown brand";
       const price =

@@ -3,6 +3,16 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="July 9, 2026" description="Catalog access policy and product-only discovery APIs">
+
+## Updates
+
+**Catalog Partners can search and browse every active crawled catalog.** This policy automatically includes catalogs activated later and always excludes merchant catalogs. Catalog-specific BigQuery listing access remains separately managed by Octogen.
+
+**Catalog enumeration has been retired for Catalog Partners.** The REST `GET /v1/catalogs` endpoint, MCP `list_catalogs` tool, SDK listing methods, and catalog summary response model are no longer available. Omit the optional `catalog` field to search all active crawled catalogs, or pass a known active crawled catalog key to scope a request.
+
+</Update>
+
 <Update label="June 22, 2026" description="More Like This product search">
 
 ## New features

@@ -1,13 +1,13 @@
 ---
 title: "Octogen: AI Commerce Platform for Catalog Partners"
-description: "Search, find similar products, and look up products across granted catalogs using the Octogen REST API, Python SDK, TypeScript SDK, or MCP integration for AI agents."
+description: "Search, find similar products, and look up products across active crawled catalogs using the Octogen REST API, Python SDK, TypeScript SDK, or MCP integration for AI agents."
 ---
 
 Octogen gives Catalog Partners programmatic access to curated product catalogs â€” enabling product search, similar-product recommendations, URL-based product lookup, and seamless AI agent integrations. Whether you're building a backend service, a shopping assistant, or integrating with Claude or Codex, Octogen provides the tools you need.
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/quickstart">
-    Make your first API call in minutes. List catalogs, search products, and look up items by URL.
+    Make your first API call in minutes. Search products and look up items by URL.
   </Card>
   <Card title="Authentication" icon="key" href="/authentication">
     Get your API key and learn how to authenticate every request to the Octogen platform.
@@ -30,19 +30,16 @@ Octogen gives Catalog Partners programmatic access to curated product catalogs â
 
 <Steps>
   <Step title="Get access">
-    Contact Octogen to provision your organization as a Catalog Partner and have catalogs granted to your account.
+    Contact Octogen to provision your organization as a Catalog Partner.
   </Step>
   <Step title="Authenticate">
     Create a Platform API key from the partner portal. Set it as `OCTO_API_KEY` in your environment or pass it directly to the SDK client.
   </Step>
-  <Step title="List your catalogs">
-    Call `GET /v1/catalogs` (or `client.list_catalogs()`) to see which product catalogs your key can access.
-  </Step>
   <Step title="Search, compare, and look up products">
-    Use `POST /v1/products/search` to find products by keyword or facet, `POST /v1/products/more-like-this` to find products similar to a source item, or `POST /v1/products/lookup` to resolve a product page URL to its full canonical record.
+    Use `POST /v1/products/search` to search every active crawled catalog by keyword or facet, `POST /v1/products/more-like-this` to find products similar to a source item, or `POST /v1/products/lookup` to resolve a product page URL to its full canonical record.
   </Step>
 </Steps>
 
 <Note>
-  Both the REST API and MCP server enforce the same per-organization catalog grants. A catalog grant revoked in the partner portal takes effect immediately on all access paths.
+  Both the REST API and MCP server enforce the same policy: Catalog Partners can search and browse active crawled catalogs, never merchant catalogs. BigQuery listing access remains explicit.
 </Note>
