@@ -1,0 +1,254 @@
+---
+title: "More Like This strategy recipes"
+description: "Five ready-to-use recommendation strategies for the More Like This endpoint, with real requests and live results: same-look, attribute matching, broad discovery, hybrid retrieval/ranking, and price-bounded similarity."
+sidebarTitle: "MLT strategy recipes"
+---
+
+The same `POST /v1/products/more-like-this` endpoint powers distinct recommendation surfaces depending on which embedding columns drive retrieval and ranking. This guide shows five strategies with real requests and live results from indexed catalogs. Parameter reference: [More Like This API](/api-reference/more-like-this).
+
+The examples below use two source products:
+
+- **Kumi Cropped Jacket** — apparel, catalog `lagence_merchant`, referenced by UUID (`source.uuid`). Enriched styles: classic, sophisticated, military-inspired, polished, preppy. Tags: cropped, 3/4 sleeves, gold buttons, embossed buttons, shoulder pads, flap pockets.
+- **Epi Mabillon Backpack Tassil** — luxury resale, catalog `fashionphile`, referenced by URL (`source.url`). Enriched styles: luxury, minimalist. Tags: textured leather, silver-tone hardware, adjustable straps, zip closure.
+
+Every request works with either source form. `debug: true` is included throughout so the response's `effectiveQuery` shows the exact query the server executed — remove it in production.
+
+## Choosing a strategy
+
+| You want | Strategy | Key parameters |
+| --- | --- | --- |
+| "Same look" recommendations | Same look (default) | none |
+| Products sharing concrete attributes | Closest attribute matches | `retrieval_embedding_columns: ["attributes_embedding"]` |
+| Wider discovery | Broad semantic matches | `retrieval_embedding_columns: ["embedding"]` |
+| Max attribute matches + closeness of look | Attribute retrieval, style-ranked | retrieval `attributes_embedding`, ranking `style_embedding` |
+| Cheaper (or premium) alternatives | Price-bounded same look | `price_preference: "lower"` / `"higher"` |
+
+Facet matching is automatic in every strategy: when you don't pass `include_facets` or `exclude_facets`, the server derives audience facets from the source product's enrichment. Pass your own facets (for example `color_family`) on top of any strategy when you want explicit control.
+
+## Same look (default)
+
+Omit the embedding-column parameters and the server picks the strategy: query text from the source product's enriched styles and tags, retrieval over the style and tags embeddings, plus automatic audience facets (product type, gender, age group).
+
+```json Request
+{
+  "source": {
+    "uuid": "19daa0d1-8d4a-4cb8-aaa6-11a98b005e10"
+  },
+  "catalog": "lagence_merchant",
+  "limit": 6,
+  "debug": true
+}
+```
+
+Top results (live data):
+
+```json
+[
+  {
+    "title": "Kumi Cropped Jacket",
+    "currentPrice": 575.0
+  },
+  {
+    "title": "Kumi Cropped Jacket",
+    "currentPrice": 525.0
+  },
+  {
+    "title": "Jia Cropped Tweed Jacket",
+    "currentPrice": 397.5
+  }
+]
+```
+
+`effectiveQuery` echoes `retrievalEmbeddingColumns: ["style_embedding", "tags_embedding"]`.
+
+## Closest attribute matches
+
+Retrieve via the attributes embedding so candidates share concrete product attributes — construction, hardware, closures, silhouette — rather than overall styling.
+
+```json Request
+{
+  "source": {
+    "url": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-tassil-64262"
+  },
+  "catalog": "fashionphile",
+  "limit": 6,
+  "retrieval_embedding_columns": [
+    "attributes_embedding"
+  ],
+  "debug": true
+}
+```
+
+Top results (live data):
+
+```json
+[
+  {
+    "title": "Epi Mabillon Backpack",
+    "currentPrice": 675.0,
+    "productUrl": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-moka-303843"
+  },
+  {
+    "title": "Metallic Calfskin Marti Backpack Bag Light Blue Rhodium Hardware",
+    "currentPrice": 265.0,
+    "productUrl": "https://www.fashionphile.com/products/alexander-wang-metallic-calfskin-marti-backpack-bag-light-blue-rhodium-hardware-1708668"
+  },
+  {
+    "title": "Calfskin Goya Backpack",
+    "currentPrice": 995.0,
+    "productUrl": "https://www.fashionphile.com/products/loewe-calfskin-goya-backpack-scarlet-1847819"
+  }
+]
+```
+
+`effectiveQuery` echoes `retrievalEmbeddingColumns: ["attributes_embedding"]`.
+
+## Broad semantic matches
+
+Retrieve via the general-purpose base embedding for wider, discovery-style results.
+
+```json Request
+{
+  "source": {
+    "uuid": "19daa0d1-8d4a-4cb8-aaa6-11a98b005e10"
+  },
+  "catalog": "lagence_merchant",
+  "limit": 6,
+  "retrieval_embedding_columns": [
+    "embedding"
+  ],
+  "debug": true
+}
+```
+
+Top results (live data):
+
+```json
+[
+  {
+    "title": "Kumi Cropped Jacket",
+    "currentPrice": 575.0
+  },
+  {
+    "title": "Kumi Cropped Jacket",
+    "currentPrice": 525.0
+  },
+  {
+    "title": "Jia Tweed Jacket",
+    "currentPrice": 437.5
+  }
+]
+```
+
+`effectiveQuery` echoes `retrievalEmbeddingColumns: ["embedding"]`.
+
+## Max attribute matches, ordered by look
+
+Two stages working together: retrieve candidates by attribute closeness, then re-score them by style-embedding similarity.
+
+This is the combination for related-products rails that should respect concrete attributes but present the closest looks first.
+
+```json Request
+{
+  "source": {
+    "url": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-tassil-64262"
+  },
+  "catalog": "fashionphile",
+  "limit": 6,
+  "retrieval_embedding_columns": [
+    "attributes_embedding"
+  ],
+  "ranking_embedding_columns": [
+    "style_embedding"
+  ],
+  "debug": true
+}
+```
+
+Top results (live data):
+
+```json
+[
+  {
+    "title": "Epi Mabillon Backpack",
+    "currentPrice": 675.0,
+    "productUrl": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-moka-303843"
+  },
+  {
+    "title": "Calfskin Goya Backpack",
+    "currentPrice": 995.0,
+    "productUrl": "https://www.fashionphile.com/products/loewe-calfskin-goya-backpack-scarlet-1847819"
+  },
+  {
+    "title": "Epi Mabillon Backpack Black",
+    "currentPrice": 850.0,
+    "productUrl": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-black-254229"
+  }
+]
+```
+
+`effectiveQuery` echoes `retrievalEmbeddingColumns: ["attributes_embedding"]` and `rankingEmbeddingColumns: ["style_embedding"]`.
+
+## Same look, lower price
+
+The default strategy constrained to products priced below the source. `"higher"` works the same way in the other direction.
+
+```json Request
+{
+  "source": {
+    "uuid": "19daa0d1-8d4a-4cb8-aaa6-11a98b005e10"
+  },
+  "catalog": "lagence_merchant",
+  "limit": 6,
+  "price_preference": "lower",
+  "debug": true
+}
+```
+
+Top results (live data):
+
+```json
+[
+  {
+    "title": "Janu Cropped Knit Jacket",
+    "currentPrice": 297.5
+  },
+  {
+    "title": "Jia Cropped Tweed Jacket",
+    "currentPrice": 287.5
+  },
+  {
+    "title": "Jia Tweed Jacket",
+    "currentPrice": 172.5
+  }
+]
+```
+
+`effectiveQuery` echoes `retrievalEmbeddingColumns: ["style_embedding", "tags_embedding"]`.
+
+## Combining with facets
+
+Any strategy accepts explicit facets. For example, attribute-focused retrieval pinned to the source's color family:
+
+```json Request
+{
+  "source": {
+    "url": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-tassil-64262"
+  },
+  "catalog": "fashionphile",
+  "retrieval_embedding_columns": [
+    "attributes_embedding"
+  ],
+  "include_facets": [
+    {
+      "name": "color_family",
+      "values": [
+        "black"
+      ]
+    }
+  ],
+  "limit": 12
+}
+```
+
+See the [More Like This API reference](/api-reference/more-like-this) for all parameters, accepted embedding-column values, and error semantics.
