@@ -123,6 +123,9 @@ The endpoint returns `202 Accepted` when at least one target was accepted for re
 | `503` | `"product_refresh_unavailable"` | Octogen could not start product refresh processing. Retry later. |
 
 <Note>
-  Product refresh is asynchronous. Search and lookup results update after
-  downstream processing and indexing complete.
+  Product refresh is asynchronous, and the accepted request starts a
+  multi-stage chain: recrawl, extraction, and re-indexing. Expect search and
+  lookup results (including a product's active status) to update within a few
+  **hours** of acceptance, not minutes. The 202 response confirms scheduling
+  only.
 </Note>

@@ -6,7 +6,7 @@ sidebarTitle: "Product Refresh"
 
 Product refresh lets you update a known set of product pages without waiting for the standard catalog update cadence. Use it when your system already knows which products changed, such as a new drop, a merchandiser correction, or a small set of products that should be updated quickly.
 
-Refresh starts an asynchronous Octogen workflow. The API returns after the request is accepted, and product data becomes visible after refresh processing and indexing complete.
+Refresh starts an asynchronous Octogen workflow: the product pages are recrawled, re-extracted, and re-indexed in sequence. The API returns as soon as the request is accepted; refreshed data — including a product's active status on lookup — typically becomes visible within a few **hours**, not minutes.
 
 ## Choose identifiers
 
