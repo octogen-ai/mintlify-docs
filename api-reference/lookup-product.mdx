@@ -1,10 +1,10 @@
 ---
 title: "POST /products/lookup — resolve a product URL"
-description: "POST /products/lookup resolves any product page URL to a full canonical product record, including pricing, images, sizes, variants, and enrichment."
+description: "POST /products/lookup resolves a product URL from Octogen's index or with bounded on-demand product resolution."
 sidebarTitle: "Lookup Product"
 ---
 
-`POST /products/lookup` takes a product page URL and returns the full canonical product record for that URL from an active crawled catalog. The response includes catalog metadata alongside a `MerchantProductView` — the richest product shape the API offers, with optional fields like `variants`, `colors`, `reviews`, `breadcrumbs`, and `enrichment` populated whenever the underlying record has them.
+`POST /v1/products/lookup` resolves one product page URL and returns a source-aware `MerchantProductUrlLookupResponse`. The default `auto` mode checks Octogen's product index first, then uses on-demand product resolution if the URL is not indexed and that capability is available.
 
 ## Request
 
@@ -17,202 +17,203 @@ Content-Type: application/json
 ### Body parameters
 
 <ParamField body="url" type="string" required>
-  The canonical product page URL to resolve. Must be a URL belonging to a catalog granted to your organization.
+  Product page URL to resolve. The URL does not need to belong to an Octogen catalog unless `resolutionMode` is `index_only`.
+</ParamField>
+
+<ParamField body="resolutionMode" type="string" default="auto">
+  Source selection policy. `auto` checks the index and then resolves on demand after a miss. `index_only` never performs outbound work. `on_demand_only` skips the index. Allowed values: `auto`, `index_only`, `on_demand_only`.
+</ParamField>
+
+<ParamField body="onDemandCachePolicy" type="string" default="prefer_cache">
+  Cache behavior when the request can enter the on-demand path. `prefer_cache` reuses a recent result when available. `refresh` requests a fresh resolution but does not bypass safety checks or rate limits. Allowed values: `prefer_cache`, `refresh`. This field does not apply to `index_only`.
 </ParamField>
 
 ### Example
 
 ```bash
 curl -sS https://api.octogen.ai/v1/products/lookup \
-  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://warrenlotas.com/products/black-hoodie"}'
+  -d '{
+    "url": "https://example.com/products/blue-linen-dress",
+    "resolutionMode": "auto",
+    "onDemandCachePolicy": "prefer_cache"
+  }'
 ```
 
 ## Response
 
-The response is a `MerchantProductUrlLookupResponse` object.
-
-<ResponseField name="catalogKey" type="string" required>
-  The active crawled catalog key where the product was found.
+<ResponseField name="requestId" type="string | null">
+  Request identifier for tracing an on-demand resolution. It may be `null` for an indexed hit.
 </ResponseField>
 
-<ResponseField name="catalogDisplayName" type="string" required>
-  Human-readable name of the catalog containing this product.
+<ResponseField name="source" type='"indexed" | "on_demand"' required>
+  Source that produced the successful result.
+</ResponseField>
+
+<ResponseField name="catalogKey" type="string | null">
+  Catalog key for an indexed result. `null` for an on-demand result.
+</ResponseField>
+
+<ResponseField name="catalogDisplayName" type="string | null">
+  Human-readable catalog name for an indexed result. `null` for an on-demand result.
 </ResponseField>
 
 <ResponseField name="sourceBaseUrl" type="string | null">
-  Base URL of the merchant's product site. May be `null` if not configured on the catalog.
+  Catalog source base URL for an indexed result. `null` for an on-demand result or when not configured.
 </ResponseField>
 
 <ResponseField name="product" type="MerchantProductView" required>
-  Full product record. Extends the search list item shape with additional detail fields.
+  Product detail view. `productUrl` is always present. For on-demand results, `uuid`, `catalogKey`, and `isActive` are `null`; unsupported fields are `null`, omitted, or empty according to their existing schema defaults.
 
-  <Expandable title="Core fields (shared with search results)">
-    <ResponseField name="uuid" type="string" required>
-      Stable unique identifier for this product record.
+  <Expandable title="Identity and core fields">
+    <ResponseField name="uuid" type="string | null" required>
+      Stable indexed identifier. `null` for an on-demand result.
     </ResponseField>
-
+    <ResponseField name="catalogKey" type="string | null">
+      Supplying catalog for an indexed product. `null` for an on-demand result.
+    </ResponseField>
     <ResponseField name="productUrl" type="string" required>
-      Canonical product page URL.
+      Product page URL.
     </ResponseField>
-
     <ResponseField name="title" type="string | null">
-      Product title as indexed from the merchant.
+      Product display name.
     </ResponseField>
-
-    <ResponseField name="brand" type="object | null">
-      Brand information.
-      <Expandable title="BrandView properties">
-        <ResponseField name="name" type="string" required>
-          Brand display name.
-        </ResponseField>
-        <ResponseField name="slug" type="string | null">
-          URL-safe brand identifier.
-        </ResponseField>
-        <ResponseField name="url" type="string | null">
-          URL of the brand's page on the merchant site.
-        </ResponseField>
-        <ResponseField name="description" type="string | null">
-          Short brand description.
-        </ResponseField>
-      </Expandable>
+    <ResponseField name="brand" type="BrandView | null">
+      Brand information when available.
     </ResponseField>
-
     <ResponseField name="currentPrice" type="number | null">
-      Current sale or listing price.
+      Current selling price.
     </ResponseField>
-
     <ResponseField name="originalPrice" type="number | null">
-      Pre-discount price. `null` when no discount is present.
+      Pre-discount price.
     </ResponseField>
-
+    <ResponseField name="currency" type="string | null">
+      Currency code when available. This is especially important for results without catalog currency context.
+    </ResponseField>
     <ResponseField name="imageUrl" type="string | null">
       Primary product image URL.
     </ResponseField>
-
     <ResponseField name="images" type="string[]">
-      All product image URLs including the primary image.
+      Product image URLs.
     </ResponseField>
-
-    <ResponseField name="rating" type="object | null">
-      Aggregate customer rating.
-      <Expandable title="RatingView properties">
-        <ResponseField name="average" type="number | null">
-          Average rating value.
-        </ResponseField>
-        <ResponseField name="count" type="integer | null">
-          Total number of ratings.
-        </ResponseField>
-      </Expandable>
+    <ResponseField name="isActive" type="boolean | null">
+      Indexed lifecycle state. `null` for an on-demand result.
     </ResponseField>
-
     <ResponseField name="updatedAt" type="datetime | null">
-      ISO 8601 UTC timestamp of the last update to this product record.
+      Last indexed update timestamp when available.
     </ResponseField>
   </Expandable>
 
-  <Expandable title="Extended fields (lookup only)">
-    <ResponseField name="description" type="string | null">
-      Full product description.
-    </ResponseField>
+  <Expandable title="Extended fields">
+    <ResponseField name="description" type="string | null">Product description.</ResponseField>
+    <ResponseField name="inStock" type="boolean | null">Current stock evidence.</ResponseField>
+    <ResponseField name="categories" type="CategoryView[]">Product categories.</ResponseField>
+    <ResponseField name="sizes" type="string[]">Available size labels.</ResponseField>
+    <ResponseField name="colors" type="ColorView[]">Available colors.</ResponseField>
+    <ResponseField name="tags" type="string[]">Product tags.</ResponseField>
+    <ResponseField name="variants" type="MerchantVariantView[]">SKU-level variants.</ResponseField>
+    <ResponseField name="details" type="ProductDetailsView">Materials, fit, dimensions, and patterns.</ResponseField>
+    <ResponseField name="audience" type="AudienceView | null">Gender and age-group data.</ResponseField>
+    <ResponseField name="identifiers" type="IdentifiersView">Merchant and global identifiers.</ResponseField>
+    <ResponseField name="breadcrumbs" type="BreadcrumbView[]">Merchant navigation path.</ResponseField>
+    <ResponseField name="promotions" type="PromotionView[]">Active promotions.</ResponseField>
+    <ResponseField name="reviews" type="ReviewView[]">Customer reviews.</ResponseField>
+    <ResponseField name="videos" type="VideoView[]">Product videos.</ResponseField>
+    <ResponseField name="enrichment" type="ProductEnrichment | null">Octogen enrichment for indexed products when available.</ResponseField>
+  </Expandable>
+</ResponseField>
 
-    <ResponseField name="inStock" type="boolean | null">
-      Whether any variant is currently in stock.
-    </ResponseField>
+<ResponseField name="requestedUrl" type="string | null">
+  URL supplied by the caller. Populated for on-demand results.
+</ResponseField>
 
-    <ResponseField name="categories" type="CategoryView[]">
-      Categories assigned to the product. Each item has `name` (string) and optional `url` (string).
-    </ResponseField>
+<ResponseField name="resolvedUrl" type="string | null">
+  Final URL after redirects. Populated for on-demand results when available.
+</ResponseField>
 
-    <ResponseField name="sizes" type="string[]">
-      Available size labels, e.g. `["s", "m", "l", "xl"]`.
-    </ResponseField>
+<ResponseField name="canonicalUrl" type="string | null">
+  Canonical product URL found in the page evidence. Populated for on-demand results when available.
+</ResponseField>
 
-    <ResponseField name="colors" type="ColorView[]">
-      Available colors. Each item has `label` (string), optional `hexCode` (string), and optional `swatchUrl` (string).
+<ResponseField name="resolution" type="ProductResolutionMetadata | null">
+  On-demand resolution metadata. `null` for indexed results.
+  <Expandable title="ProductResolutionMetadata properties">
+    <ResponseField name="completeness" type='"complete" | "partial"' required>
+      Whether all expected shallow product fields were available.
     </ResponseField>
-
-    <ResponseField name="tags" type="string[]">
-      Free-form tags associated with the product.
+    <ResponseField name="method" type='"json_ld" | "open_graph" | "html_meta" | "resolved_url"' required>
+      Strongest page evidence used for the result.
     </ResponseField>
-
-    <ResponseField name="variants" type="MerchantVariantView[]">
-      Individual SKU-level variants. Each variant has `sku`, `productUrl`, `color`, `size`, `inStock`, and `imageUrl`.
+    <ResponseField name="rendered" type="boolean">
+      `false` for the current direct-HTML path.
     </ResponseField>
-
-    <ResponseField name="details" type="ProductDetailsView">
-      Structured product attributes: `materials` (string[]), `fit` (string[]), `dimensions` (string | null), `patterns` (string[]).
-    </ResponseField>
-
-    <ResponseField name="audience" type="object | null">
-      Intended audience. Has `genders` (string[]) and `ageGroups` (string[]).
-    </ResponseField>
-
-    <ResponseField name="identifiers" type="IdentifiersView">
-      External product identifiers.
-      <Expandable title="IdentifiersView properties">
-        <ResponseField name="productId" type="string | null">
-          Merchant's internal product ID.
-        </ResponseField>
-        <ResponseField name="gtin" type="string | null">
-          Global Trade Item Number (barcode).
-        </ResponseField>
-        <ResponseField name="productGroupId" type="string | null">
-          ID grouping product variants together.
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-
-    <ResponseField name="breadcrumbs" type="BreadcrumbView[]">
-      Navigation path on the merchant site. Each item has `name` (string) and optional `url` (string).
-    </ResponseField>
-
-    <ResponseField name="promotions" type="PromotionView[]">
-      Active promotions. Each item has optional `description` (string) and `code` (string).
-    </ResponseField>
-
-    <ResponseField name="reviews" type="ReviewView[]">
-      Customer reviews. Each item has optional `author`, `rating`, `body`, and `publishedAt` fields.
-    </ResponseField>
-
-    <ResponseField name="videos" type="VideoView[]">
-      Associated product videos. Each item has optional `url`, `thumbnailUrl`, and `name` fields.
-    </ResponseField>
-
-    <ResponseField name="enrichment" type="ProductEnrichment | null">
-      Octogen-generated enrichment data including `type`, `gender`, `age_groups`, `color`, `color_family`, `category_path`, `attributes`, and `canonical_brand`.
+    <ResponseField name="missingFields" type="string[]">
+      Expected fields that were not available.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-### Example response
+<ResponseField name="cacheStatus" type='"hit" | "miss" | "refresh" | null'>
+  Cache outcome for an on-demand result. `null` for an indexed result.
+</ResponseField>
+
+<ResponseField name="warnings" type="string[]">
+  Non-fatal warnings about the result.
+</ResponseField>
+
+### Indexed example
 
 ```json
 {
+  "source": "indexed",
   "catalogKey": "warrenlotas",
   "catalogDisplayName": "Warren Lotas",
   "sourceBaseUrl": "https://warrenlotas.com",
   "product": {
     "uuid": "prod_01HX...",
-    "title": "Black Hoodie",
-    "description": "Heavyweight cotton hoodie with screen-printed graphics.",
+    "catalogKey": "warrenlotas",
     "productUrl": "https://warrenlotas.com/products/black-hoodie",
-    "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
-    "images": ["https://cdn.example.com/black-hoodie.jpg"],
+    "title": "Black Hoodie",
     "currentPrice": 180,
-    "originalPrice": null,
-    "inStock": true,
-    "sizes": ["s", "m", "l", "xl"],
-    "colors": [{"label": "Black", "hexCode": "#000000", "swatchUrl": null}],
-    "tags": ["hoodie", "black"],
-    "identifiers": {
-      "productId": "WL-BH-001",
-      "gtin": null,
-      "productGroupId": null
-    },
-    "updatedAt": "2026-05-19T18:04:10Z"
-  }
+    "currency": "USD",
+    "isActive": true
+  },
+  "resolution": null,
+  "cacheStatus": null,
+  "warnings": []
+}
+```
+
+### On-demand example
+
+```json
+{
+  "requestId": "req_01J...",
+  "source": "on_demand",
+  "catalogKey": null,
+  "catalogDisplayName": null,
+  "sourceBaseUrl": null,
+  "product": {
+    "uuid": null,
+    "catalogKey": null,
+    "productUrl": "https://example.com/products/blue-linen-dress",
+    "title": "Blue Linen Dress",
+    "currentPrice": 128,
+    "currency": "USD",
+    "isActive": null
+  },
+  "requestedUrl": "https://example.com/products/blue-linen-dress",
+  "resolvedUrl": "https://example.com/products/blue-linen-dress",
+  "canonicalUrl": "https://example.com/products/blue-linen-dress",
+  "resolution": {
+    "completeness": "partial",
+    "method": "json_ld",
+    "rendered": false,
+    "missingFields": ["inStock"]
+  },
+  "cacheStatus": "miss",
+  "warnings": []
 }
 ```
 
@@ -220,51 +221,46 @@ The response is a `MerchantProductUrlLookupResponse` object.
 
 | Status | `detail` | Meaning |
 | --- | --- | --- |
-| `404` | `"product_not_found"` | No product matching the URL was found in any catalog granted to your key. |
+| `404` | `product_not_found` | The selected sources did not return a useful product. |
+| `422` | `invalid_product_url` | The URL is malformed or unsupported. |
+| `422` | `unsafe_url` | The URL failed outbound safety checks. |
+| `429` | `rate_limit_exceeded` or `product_lookup_rate_limited` | A service-wide lookup budget is exhausted. Honor `Retry-After`. |
+| `502` | `product_lookup_upstream_failed` | The merchant page failed upstream. |
+| `503` | `product_lookup_fallback_unavailable` | On-demand resolution is temporarily unavailable. |
+| `504` | `product_lookup_timed_out` | The bounded lookup deadline expired. |
 
-<Note>
-  A `404` means the URL is not indexed in any active crawled catalog available
-  to Catalog Partners. Confirm the URL is a valid product page from an active
-  crawled catalog.
-</Note>
+See [Error Handling](/guides/error-handling) and [Rate Limits](/guides/rate-limits).
 
 ## SDK equivalents
 
 <CodeGroup>
 
 ```python Python
-import asyncio
-from octogen_ai_sdk import OctogenClient, OctogenNotFoundError
+result = await client.lookup_product(
+    "https://example.com/products/blue-linen-dress",
+    resolution_mode="auto",
+    on_demand_cache_policy="prefer_cache",
+)
 
-async def main() -> None:
-    async with OctogenClient() as client:
-        try:
-            result = await client.lookup_product(
-                "https://warrenlotas.com/products/black-hoodie"
-            )
-            print(result.catalog_key, result.product.title, result.product.current_price)
-        except OctogenNotFoundError:
-            print("Product not found in any active crawled catalog.")
-
-asyncio.run(main())
+if result.source == "indexed":
+    print(result.catalog_key, result.product.uuid)
+else:
+    print(result.product.title, result.resolution)
 ```
 
 ```typescript TypeScript
-import { OctogenClient, OctogenNotFoundError } from "@octogen-ai/sdk";
+const result = await client.lookupProduct(
+  "https://example.com/products/blue-linen-dress",
+  { resolutionMode: "auto", onDemandCachePolicy: "prefer_cache" }
+);
 
-const client = new OctogenClient();
-try {
-  const result = await client.lookupProduct(
-    "https://warrenlotas.com/products/black-hoodie"
-  );
-  console.log(result.catalogKey, result.product.title, result.product.currentPrice);
-} catch (error) {
-  if (error instanceof OctogenNotFoundError) {
-    console.log("Product not found in any active crawled catalog.");
-  } else {
-    throw error;
-  }
+if (result.source === "indexed") {
+  console.log(result.catalogKey, result.product.uuid);
+} else {
+  console.log(result.product.title, result.resolution);
 }
 ```
 
 </CodeGroup>
+
+On-demand results are ephemeral and do not create an indexed product UUID. If your integration requires indexed identity and catalog context, set `resolutionMode` to `index_only`.

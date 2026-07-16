@@ -35,6 +35,8 @@ X-RateLimit-Reset: 1749593400
 { "detail": "rate_limit_exceeded" }
 ```
 
+Product Lookup can also return `detail: "product_lookup_rate_limited"` when on-demand resolution capacity is exhausted. Treat it the same way: honor `Retry-After`, then retry with backoff. A `refresh` cache policy never bypasses either budget.
+
 The Python and TypeScript SDKs surface a `429` as an `OctogenAPIError` whose `status_code` (Python) / `statusCode` (TypeScript) equals `429`. Catch it, wait, and retry with backoff:
 
 <CodeGroup>
