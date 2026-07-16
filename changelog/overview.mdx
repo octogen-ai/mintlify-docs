@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="July 16, 2026" description="On-demand Product Lookup">
+
+## New features
+
+**Resolve product URLs beyond Octogen's index.** Product Lookup now checks the product index first and can fall back to bounded on-demand product resolution. Every success identifies `source: "indexed" | "on_demand"`; on-demand results use the same partial-safe product view without fabricating a catalog, UUID, or lifecycle state.
+
+Use `resolutionMode` to keep the default `auto` behavior, require `index_only`, or request `on_demand_only`. Use `onDemandCachePolicy` to prefer a recent result or request a refresh. The Python and TypeScript SDKs expose the same optional controls.
+
+See the [Product Lookup guide](/guides/product-lookup) and [API reference](/api-reference/lookup-product).
+
+</Update>
+
 <Update label="July 9, 2026" description="Catalog access policy and product-only discovery APIs">
 
 ## Updates

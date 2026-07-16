@@ -84,24 +84,36 @@ If you manage the client's lifetime yourself, call `await client.aclose()` when 
 ### `lookup_product`
 
 ```python
-async def lookup_product(url: str) -> MerchantProductUrlLookupResponse
+async def lookup_product(
+    url: str,
+    *,
+    resolution_mode: ProductLookupResolutionMode | str = "auto",
+    on_demand_cache_policy: ProductLookupCachePolicy | str = "prefer_cache",
+) -> MerchantProductUrlLookupResponse
 ```
 
-Resolves a canonical product page URL to its full product record, including pricing, images, variants, sizes, and enrichment data. The URL must belong to a catalog granted to your key.
+Resolves a product page URL from Octogen's index or with on-demand product resolution. Set `resolution_mode="index_only"` when your integration requires indexed identity and catalog context.
 
 ```python
-result = await client.lookup_product("https://example.com/products/blue-linen-dress")
-print(result.product.title)
-print(result.product.current_price)
+result = await client.lookup_product(
+    "https://example.com/products/blue-linen-dress",
+    resolution_mode="auto",
+)
+if result.source == "indexed":
+    print(result.catalog_key, result.product.uuid)
+else:
+    print(result.product.title, result.product.currency)
 ```
 
 **Returns:** `MerchantProductUrlLookupResponse`
 
 | Field                  | Type                  | Description                               |
 | ---------------------- | --------------------- | ----------------------------------------- |
-| `catalog_key`          | `str`                 | Catalog the product belongs to.           |
-| `catalog_display_name` | `str`                 | Human-readable catalog name.              |
-| `product`              | `MerchantProductView` | Full product record with all detail fields. |
+| `source`               | `Literal["indexed", "on_demand"]` | Source that produced the result. |
+| `catalog_key`          | `str \| None`         | Indexed catalog, or `None` on demand. |
+| `catalog_display_name` | `str \| None`         | Indexed catalog name, or `None` on demand. |
+| `product`              | `MerchantProductView` | Full or partial-safe product view. |
+| `resolution`           | `ProductResolutionMetadata \| None` | On-demand completeness and evidence. |
 
 ---
 

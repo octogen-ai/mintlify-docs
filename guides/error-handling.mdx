@@ -58,15 +58,17 @@ Octogen API errors fall into two categories:
     The requested catalog or product is not visible to your API key. Common `detail` values:
 
     - `"catalog_not_found"` — The catalog key you passed does not identify an active crawled catalog available to this organization.
-    - `"product_not_found"` — No active product in an active crawled catalog matches the URL you passed to `/products/lookup`.
+    - `"product_not_found"` — The Product Lookup sources selected by `resolutionMode` did not return a useful product. For `index_only`, no granted active catalog matched the URL.
 
-    **Recovery:** Retry with a known active crawled catalog key, or omit the optional `catalog` field for policy-wide search. For product lookup, confirm the URL is a canonical product page URL.
+    **Recovery:** Retry with a known active crawled catalog key, or omit the optional `catalog` field for policy-wide search. For Product Lookup, confirm the URL is a product page and choose the appropriate [resolution mode](/guides/product-lookup#choose-a-resolution-mode).
   </Accordion>
 
   <Accordion title="422 — Validation error">
     **SDK exception:** `OctogenValidationError`
 
-    The request body failed schema validation. The response body contains a `detail` array where each entry identifies the invalid field:
+    The request body failed schema validation. Product Lookup can also return `detail: "invalid_product_url"` for a malformed or unsupported URL, or `detail: "unsafe_url"` when the target fails outbound safety checks.
+
+    For field validation, the response body contains a `detail` array where each entry identifies the invalid field:
 
     ```json
     {
@@ -87,23 +89,39 @@ Octogen API errors fall into two categories:
     - `msg` — human-readable error message
     - `type` — machine-readable error type
 
-    **Recovery:** Fix the request based on the field-level messages. This is always a client-side bug.
+    **Recovery:** Fix the request based on the detail value or field-level messages. Do not retry an unsafe URL unchanged.
   </Accordion>
 
   <Accordion title="429 — Rate limited">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `429`
 
-    Your organization exceeded its shared per-organization rate limit — one budget across all of your API keys and MCP sessions. The response carries `detail: "rate_limit_exceeded"` and a `Retry-After` header with the number of seconds to wait.
+    Your request exceeded a service-wide budget. The shared API budget returns `detail: "rate_limit_exceeded"`; Product Lookup can return `detail: "product_lookup_rate_limited"` when its on-demand capacity is exhausted. Both responses include a `Retry-After` header with the number of seconds to wait.
 
     **Recovery:** Unlike the other `4xx` errors, `429` is transient. Wait the `Retry-After` interval, then retry with exponential backoff. See [Rate Limits](/guides/rate-limits) for the headers, the MCP equivalent, and bulk-job guidance.
+  </Accordion>
+
+  <Accordion title="502 — Upstream failure">
+    **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `502`
+
+    Product Lookup returns `detail: "product_lookup_upstream_failed"` when the merchant page fails upstream.
+
+    **Recovery:** Retry with exponential backoff. If the error persists, verify the merchant URL in a browser before contacting Octogen support.
   </Accordion>
 
   <Accordion title="503 — Service unavailable">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `503`
 
-    A downstream Octogen service was temporarily unavailable. For `POST /products/refresh`, `detail: "product_refresh_unavailable"` means Octogen could not start product refresh processing.
+    A downstream Octogen service was temporarily unavailable. For Product Lookup, `detail: "product_lookup_fallback_unavailable"` means on-demand resolution is unavailable; use `index_only` if an indexed result is sufficient. For `POST /products/refresh`, `detail: "product_refresh_unavailable"` means Octogen could not start product refresh processing.
 
     **Recovery:** Retry with exponential backoff. If the error persists, contact Octogen support with the timestamp and request body summary.
+  </Accordion>
+
+  <Accordion title="504 — Lookup timed out">
+    **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `504`
+
+    Product Lookup returns `detail: "product_lookup_timed_out"` when its bounded synchronous deadline expires.
+
+    **Recovery:** Retry with exponential backoff. Repeated timeouts can indicate that the merchant page is slow or unavailable.
   </Accordion>
 </AccordionGroup>
 
@@ -240,7 +258,9 @@ try {
 | `OctogenValidationError` (422) | No | Fix the request body |
 | `OctogenAPIError` with 429 | Yes, after delay | Honor `Retry-After`, then retry with backoff |
 | `OctogenConnectionError` | Yes | Retry with exponential backoff |
+| `OctogenAPIError` with 502 | Yes | Retry with exponential backoff |
 | `OctogenAPIError` with 503 | Yes | Retry with exponential backoff |
+| `OctogenAPIError` with 504 | Yes | Retry with exponential backoff |
 | `OctogenAPIError` with 5xx | Yes | Retry with exponential backoff |
 
 For transient errors and `5xx` responses, use an exponential backoff strategy with jitter. Start with a 1-second delay, double on each retry, and cap at 30 seconds. After three to five failed attempts, surface the error to the caller rather than retrying indefinitely.

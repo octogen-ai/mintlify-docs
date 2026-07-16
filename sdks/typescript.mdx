@@ -69,26 +69,35 @@ const client = new OctogenClient({
 ### `lookupProduct`
 
 ```typescript
-async lookupProduct(url: string): Promise<MerchantProductUrlLookupResponse>
+async lookupProduct(
+  url: string,
+  options?: LookupProductOptions
+): Promise<MerchantProductUrlLookupResponse>
 ```
 
-Resolves a canonical product page URL to its full product record, including pricing, images, variants, sizes, and enrichment data. The URL must belong to a catalog granted to your key.
+Resolves a product page URL from Octogen's index or with on-demand product resolution. Set `resolutionMode: "index_only"` when your integration requires indexed identity and catalog context.
 
 ```typescript
 const result = await client.lookupProduct(
-  "https://example.com/products/blue-linen-dress"
+  "https://example.com/products/blue-linen-dress",
+  { resolutionMode: "auto" }
 );
-console.log(result.product.title);
-console.log(result.product.currentPrice);
+if (result.source === "indexed") {
+  console.log(result.catalogKey, result.product.uuid);
+} else {
+  console.log(result.product.title, result.product.currency);
+}
 ```
 
 **Returns:** `Promise<MerchantProductUrlLookupResponse>`
 
 | Field                | Type                  | Description                               |
 | -------------------- | --------------------- | ----------------------------------------- |
-| `catalogKey`         | `string`              | Catalog the product belongs to.           |
-| `catalogDisplayName` | `string`              | Human-readable catalog name.              |
-| `product`            | `MerchantProductView` | Full product record with all detail fields. |
+| `source`             | `"indexed" \| "on_demand"` | Source that produced the result. |
+| `catalogKey`         | `string \| null`      | Indexed catalog, or `null` on demand. |
+| `catalogDisplayName` | `string \| null`      | Indexed catalog name, or `null` on demand. |
+| `product`            | `MerchantProductView` | Full or partial-safe product view. |
+| `resolution`         | `ProductResolutionMetadata \| null` | On-demand completeness and evidence. |
 
 ---
 

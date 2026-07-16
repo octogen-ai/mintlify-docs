@@ -1,26 +1,34 @@
 ---
-title: "Look up a product by URL in Octogen"
-description: "Resolve any product page URL to a full canonical enriched product record, including variants, sizes, colors, and Octogen enrichment data."
+title: "Resolve a product by URL"
+description: "Resolve a product page URL from Octogen's index or, when needed, with bounded on-demand product resolution."
 sidebarTitle: "Product Lookup"
 ---
 
-Product lookup resolves a product page URL to the full canonical record Octogen holds for that product. Instead of a lightweight search item, you get the complete product view — description, sizes, colors, variants, identifiers, enrichment metadata, and more. Lookup searches across all catalogs your API key has access to, so you don't need to know which catalog a URL belongs to before calling it.
+Product Lookup turns one product page URL into a `MerchantProductView`. By default, Octogen checks the product index first. If the URL is not indexed and on-demand product resolution is available, Octogen fetches the page and returns the useful product fields it can verify.
 
-## What lookup does
+The response always identifies its source:
 
-When you call `POST /v1/products/lookup` with a product page URL, Octogen matches the URL against active product records across active crawled catalogs and returns the canonical record from the first matching catalog. The response tells you which catalog matched (`catalogKey`, `catalogDisplayName`) alongside the full product object.
+- `source: "indexed"` returns the full canonical product record and catalog context.
+- `source: "on_demand"` returns a partial-safe product view without inventing an indexed UUID, catalog ownership, or lifecycle state.
 
-## When to use lookup vs search
+## Choose a resolution mode
 
-| Use case | Recommended endpoint |
+| `resolutionMode` | Behavior | Use it when |
+| --- | --- | --- |
+| `auto` | Check the index, then use on-demand resolution on a miss. This is the default. | A user gives you a product URL and either source is acceptable. |
+| `index_only` | Check only the catalogs available to your API key. Never fetch the product page. | You require indexed identity, predictable index latency, or the previous lookup behavior. |
+| `on_demand_only` | Skip the index and resolve the current product page. | You explicitly need fresh page metadata or are testing the on-demand path. |
+
+Requests that can use on-demand resolution also accept `onDemandCachePolicy`:
+
+| `onDemandCachePolicy` | Behavior |
 | --- | --- |
-| User pastes or shares a product URL | `POST /v1/products/lookup` |
-| User types a keyword or browses by category | `POST /v1/products/search` |
-| You want full product detail from a search result | Look up the `productUrl` from the search item |
+| `prefer_cache` | Reuse a recent result when available. This is the default. |
+| `refresh` | Request a fresh resolution. Safety checks and service-wide rate limits still apply. |
 
-## Making a lookup request
+`refresh` does not apply to `index_only` requests.
 
-Send a POST request to `/v1/products/lookup` with a JSON body containing the product page URL.
+## Make a lookup request
 
 <CodeGroup>
 
@@ -28,132 +36,140 @@ Send a POST request to `/v1/products/lookup` with a JSON body containing the pro
 curl -sS https://api.octogen.ai/v1/products/lookup \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://warrenlotas.com/products/black-hoodie"}'
+  -d '{
+    "url": "https://example.com/products/blue-linen-dress",
+    "resolutionMode": "auto",
+    "onDemandCachePolicy": "prefer_cache"
+  }'
 ```
 
 ```python python
 import asyncio
-from octogen_ai_sdk import OctogenClient, OctogenNotFoundError
+
+from octogen_ai_sdk import OctogenClient
+
 
 async def main() -> None:
     async with OctogenClient() as client:
-        try:
-            result = await client.lookup_product(
-                "https://warrenlotas.com/products/black-hoodie"
-            )
-            product = result.product
-            print(f"Catalog: {result.catalog_display_name}")
-            print(f"Title: {product.title}")
-            print(f"Price: ${product.current_price}")
-            print(f"In stock: {product.in_stock}")
-            print(f"Sizes: {product.sizes}")
-        except OctogenNotFoundError:
-            print("No active product found for that URL.")
+        result = await client.lookup_product(
+            "https://example.com/products/blue-linen-dress",
+            resolution_mode="auto",
+            on_demand_cache_policy="prefer_cache",
+        )
+
+    product = result.product
+    if result.source == "indexed":
+        print("Indexed product", product.uuid, result.catalog_display_name)
+    else:
+        print("On-demand product", product.title, product.currency)
+        print("Completeness", result.resolution.completeness if result.resolution else None)
+
 
 asyncio.run(main())
 ```
 
 ```typescript typescript
-import { OctogenClient, OctogenNotFoundError } from "@octogen-ai/sdk";
+import { OctogenClient } from "@octogen-ai/sdk";
 
 const client = new OctogenClient();
-try {
-  const result = await client.lookupProduct(
-    "https://warrenlotas.com/products/black-hoodie"
-  );
-  const { product } = result;
-  console.log(`Catalog: ${result.catalogDisplayName}`);
-  console.log(`Title: ${product.title}`);
-  console.log(`Price: $${product.currentPrice}`);
-  console.log(`In stock: ${product.inStock}`);
-  console.log(`Sizes: ${product.sizes?.join(", ")}`);
-} catch (error) {
-  if (error instanceof OctogenNotFoundError) {
-    console.log("No active product found for that URL.");
-  } else {
-    throw error;
+const result = await client.lookupProduct(
+  "https://example.com/products/blue-linen-dress",
+  {
+    resolutionMode: "auto",
+    onDemandCachePolicy: "prefer_cache",
   }
+);
+
+const { product } = result;
+if (result.source === "indexed") {
+  console.log("Indexed product", product.uuid, result.catalogDisplayName);
+} else {
+  console.log("On-demand product", product.title, product.currency);
+  console.log("Completeness", result.resolution?.completeness);
 }
 ```
 
 </CodeGroup>
 
-## Response fields
+<Note>
+  On-demand resolution is synchronous and bounded. It reads the returned HTML but does not render JavaScript. Allow up to 8 seconds for a cold request, and use your normal timeout and retry policy for transient errors.
+</Note>
 
-The response wraps the catalog context and the full product object.
+## Handle indexed and on-demand results
 
-### Top-level response
+Both sources return `product: MerchantProductView`, but some fields have different guarantees.
 
-| Field | Type | Description |
+| Field | Indexed result | On-demand result |
 | --- | --- | --- |
-| `catalogKey` | string | The catalog key that matched the URL (e.g. `"warrenlotas"`). |
-| `catalogDisplayName` | string | Human-readable catalog name (e.g. `"Warren Lotas"`). |
-| `sourceBaseUrl` | string \| null | Base domain of the catalog source. |
-| `product` | object | The full product record (see below). |
+| `source` | `"indexed"` | `"on_demand"` |
+| `catalogKey`, `catalogDisplayName`, `sourceBaseUrl` | Catalog values | `null` |
+| `product.uuid` | Stable indexed UUID | `null` |
+| `product.catalogKey` | Supplying catalog | `null` |
+| `product.isActive` | Indexed lifecycle state | `null` |
+| `product.productUrl` | Required | Required |
+| Other product fields | Full indexed record when available | Populated only when supported by page evidence |
 
-### Product object
+On-demand results are ephemeral. Octogen does not add them to your catalogs or product index, and you cannot retrieve them later by UUID. Store the returned URL and any fields your application needs.
 
-The `product` object extends the search item with additional detail fields:
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `uuid` | string | Stable unique identifier for the product. |
-| `title` | string \| null | Product display name. |
-| `description` | string \| null | Full product description. |
-| `productUrl` | string | Canonical URL on the retailer's site. |
-| `imageUrl` | string \| null | Primary product image URL. |
-| `images` | string[] | All product image URLs. |
-| `currentPrice` | number \| null | Current selling price. |
-| `originalPrice` | number \| null | Pre-discount price, if available. |
-| `inStock` | boolean \| null | Whether the product is currently in stock. |
-| `sizes` | string[] | Available sizes (e.g. `["s", "m", "l", "xl"]`). |
-| `colors` | object[] | Available colors, each with `label`, `hexCode`, and optional `swatchUrl`. |
-| `tags` | string[] | Free-form tags assigned to the product. |
-| `identifiers` | object | External identifiers: `productId`, `gtin`, `productGroupId`. |
-| `variants` | object[] | Per-variant records with `sku`, `productUrl`, `color`, `size`, `inStock`, `imageUrl`. |
-| `categories` | object[] | Category objects with `name` and optional `url`. |
-| `breadcrumbs` | object[] | Breadcrumb trail with `name` and optional `url`. |
-| `audience` | object \| null | Target audience with `genders` and `ageGroups` arrays. |
-| `details` | object | Structured product details: `materials`, `fit`, `dimensions`, `patterns`. |
-| `promotions` | object[] | Active promotions with optional `description` and `code`. |
-| `reviews` | object[] | Customer reviews with `author`, `rating`, `body`, and `publishedAt`. |
-| `videos` | object[] | Product videos with `url`, `thumbnailUrl`, and `name`. |
-| `enrichment` | object \| null | Octogen-computed enrichment: product type, gender, age groups, color family, category path, structured attributes, and canonical brand data. |
-| `brand` | object \| null | Brand with `name` and optional `slug`, `url`, `description`. |
-| `rating` | object \| null | Aggregate rating with `average` and `count`. |
-| `updatedAt` | string \| null | ISO 8601 timestamp of the last catalog update. |
-
-### Example response
+### On-demand example
 
 ```json
 {
-  "catalogKey": "warrenlotas",
-  "catalogDisplayName": "Warren Lotas",
-  "sourceBaseUrl": "https://warrenlotas.com",
+  "requestId": "req_01J...",
+  "source": "on_demand",
+  "catalogKey": null,
+  "catalogDisplayName": null,
+  "sourceBaseUrl": null,
+  "requestedUrl": "https://example.com/products/blue-linen-dress",
+  "resolvedUrl": "https://example.com/products/blue-linen-dress",
+  "canonicalUrl": "https://example.com/products/blue-linen-dress",
   "product": {
-    "uuid": "prod_01HX...",
-    "title": "Black Hoodie",
-    "description": "Heavyweight cotton hoodie...",
-    "productUrl": "https://warrenlotas.com/products/black-hoodie",
-    "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
-    "images": ["https://cdn.example.com/black-hoodie.jpg"],
-    "currentPrice": 180,
-    "originalPrice": null,
-    "inStock": true,
-    "sizes": ["s", "m", "l", "xl"],
-    "colors": [{"label": "Black", "hexCode": "#000000"}],
-    "tags": ["hoodie", "black"],
-    "identifiers": {"productId": "WL-BH-001", "gtin": null, "productGroupId": null},
-    "isActive": true,
-    "updatedAt": "2026-05-19T18:04:10Z"
-  }
+    "uuid": null,
+    "catalogKey": null,
+    "productUrl": "https://example.com/products/blue-linen-dress",
+    "title": "Blue Linen Dress",
+    "brand": {"name": "Example"},
+    "currentPrice": 128,
+    "currency": "USD",
+    "imageUrl": "https://example.com/images/blue-linen-dress.jpg",
+    "images": ["https://example.com/images/blue-linen-dress.jpg"],
+    "isActive": null
+  },
+  "resolution": {
+    "completeness": "partial",
+    "method": "json_ld",
+    "rendered": false,
+    "missingFields": ["inStock"]
+  },
+  "cacheStatus": "miss",
+  "warnings": []
 }
 ```
 
-## Handling the not-found case
+`resolution.completeness` is `complete` or `partial`. `resolution.method` identifies the strongest evidence used: `json_ld`, `open_graph`, `html_meta`, or `resolved_url`. `missingFields` and `warnings` tell you which expected fields were unavailable or need attention. Do not treat `partial` as an error when the fields your application needs are present.
 
-<Note>
-  If no active product in an active crawled catalog matches the URL, the API returns HTTP `404` with `"product_not_found"` in the error detail. The SDK raises `OctogenNotFoundError`. This is not a retryable error — it means the URL is not indexed in any catalog available to Catalog Partners.
-</Note>
+## Preserve indexed-only behavior
 
-Check that the URL is a canonical product page URL (not a search results page or category page) from an active crawled catalog.
+If your integration assumes every result has a stable UUID, catalog context, and lifecycle state, opt out of the default fallback:
+
+```json
+{
+  "url": "https://example.com/products/blue-linen-dress",
+  "resolutionMode": "index_only"
+}
+```
+
+An index-only miss returns `404 product_not_found`, matching the previous Product Lookup behavior.
+
+## Handle errors
+
+| Status | `detail` | Action |
+| --- | --- | --- |
+| `404` | `product_not_found` | The selected sources did not produce a useful product. Check the URL or change the resolution mode. |
+| `422` | `invalid_product_url` or `unsafe_url` | Fix the URL. Octogen will not resolve unsafe or unsupported targets. |
+| `429` | `rate_limit_exceeded` or `product_lookup_rate_limited` | Wait for the `Retry-After` interval, then retry with backoff. |
+| `502` | `product_lookup_upstream_failed` | The merchant page failed upstream. Retry with backoff. |
+| `503` | `product_lookup_fallback_unavailable` | On-demand resolution is temporarily unavailable. Retry later or use `index_only`. |
+| `504` | `product_lookup_timed_out` | The bounded lookup deadline expired. Retry with backoff. |
+
+All Product Lookup calls use the service-wide API budget described in [Rate Limits](/guides/rate-limits). See [Error Handling](/guides/error-handling) for the SDK exception model and general retry guidance.
