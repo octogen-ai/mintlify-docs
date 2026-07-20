@@ -19,9 +19,9 @@ See the [Product Lookup guide](/guides/product-lookup) and [API reference](/api-
 
 ## Updates
 
-**Catalog Partners can search and browse every active crawled catalog.** This policy automatically includes catalogs activated later and always excludes merchant catalogs. Catalog-specific BigQuery listing access remains separately managed by Octogen.
+**Developers can search and browse every active crawled catalog.** This policy automatically includes catalogs activated later and always excludes merchant catalogs. Catalog-specific BigQuery listing access remains separately managed by Octogen.
 
-**Catalog enumeration has been retired for Catalog Partners.** The REST `GET /v1/catalogs` endpoint, MCP `list_catalogs` tool, SDK listing methods, and catalog summary response model are no longer available. Omit the optional `catalog` field to search all active crawled catalogs, or pass a known active crawled catalog key to scope a request.
+**Catalog enumeration has been retired for Developers.** The REST `GET /v1/catalogs` endpoint, MCP `list_catalogs` tool, SDK listing methods, and catalog summary response model are no longer available. Omit the optional `catalog` field to search all active crawled catalogs, or pass a known active crawled catalog key to scope a request.
 
 </Update>
 
@@ -64,7 +64,7 @@ See the [BigQuery subscribe guide](/guides/bigquery-subscribe) to get started.
 
 ## New features
 
-**Catalog Partner MCP server is live.** Connect any MCP-compatible AI agent — Claude Code, Claude Desktop, Codex CLI, and others — directly to your granted Octogen catalogs over OAuth 2.1 + PKCE. The initial product tools mirror the REST API: `list_catalogs`, `lookup_product`, and `search_products`. Tokens are scoped to your organization and refresh automatically until your sign-in session expires.
+**Developer MCP server is live.** Connect any MCP-compatible AI agent — Claude Code, Claude Desktop, Codex CLI, and others — directly to your granted Octogen catalogs over OAuth 2.1 + PKCE. The initial product tools mirror the REST API: `list_catalogs`, `lookup_product`, and `search_products`. Tokens are scoped to your organization and refresh automatically until your sign-in session expires.
 
 See the [MCP overview](/mcp/overview) to choose a client and get started.
 

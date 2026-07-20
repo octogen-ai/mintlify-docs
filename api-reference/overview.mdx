@@ -4,7 +4,7 @@ description: "REST API reference for the Octogen Platform Catalog API v1 - base 
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Catalog Partner organizations. It lets you search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, and request a product refresh. Choose the REST API for API-key server workloads, or use the [Catalog Partner MCP server](/mcp/overview) for OAuth-based agent workflows.
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, and request a product refresh. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -25,7 +25,7 @@ Authorization: Bearer octo_live_<32-hex-id>_<base64url-secret>
 Content-Type: application/json
 ```
 
-API keys are organization-scoped and currently usable only by Catalog Partner organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys via the partner portal; deactivation takes effect on the next request.
+API keys are organization-scoped and currently usable only by Developer organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys in Octogen Platform; deactivation takes effect on the next request.
 
 <Warning>
   Never expose your Platform API key in client-side code or public repositories.

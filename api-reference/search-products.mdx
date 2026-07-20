@@ -4,7 +4,7 @@ description: "Searches products across all active crawled catalogs, or within on
 sidebarTitle: "Search Products"
 ---
 
-`POST /products/search` lets Catalog Partners search and browse products across all active crawled catalogs. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
+`POST /products/search` lets Developers search and browse products across all active crawled catalogs. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
 
 If you already have a source product and want similar products, use [`POST /products/more-like-this`](/api-reference/more-like-this).
 

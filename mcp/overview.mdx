@@ -4,7 +4,7 @@ description: "Let AI coding tools search and look up products in your granted Oc
 sidebarTitle: "Overview"
 ---
 
-The Octogen Catalog Partner MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call catalog lookup/search tools and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
+The Octogen Developer MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call catalog lookup/search tools and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
 
 ## Connection details
 
@@ -20,7 +20,7 @@ The Octogen Catalog Partner MCP server gives AI agents direct access to the prod
 There are no API keys to generate or rotate. MCP clients that implement OAuth 2.1 discovery walk the authorization chain automatically:
 
 1. On the first tool call, your client opens a browser tab pointed at the Octogen sign-in page.
-2. You sign in with the email that belongs to your Catalog Partner organization. If you belong to multiple organizations, you choose which one to act as.
+2. You sign in with the email that belongs to your Developer organization. If you belong to multiple organizations, you choose which one to act as.
 3. You consent to the requested scopes.
 4. The browser redirects back to your client, which exchanges the authorization code for an access token and a refresh token stored locally.
 
@@ -32,7 +32,7 @@ Access tokens are valid for approximately five minutes. Refresh happens transpar
 Both conditions must be true before your first tool call.
 </Info>
 
-- Your organization is provisioned as a Catalog Partner. If you do not yet have a Catalog Partner organization, contact Octogen support.
+- Your organization is provisioned as a Developer organization. If you do not yet have a Developer organization, contact Octogen support.
 - You can sign in to the Octogen Platform with the email that belongs to that organization.
 
 ## Available tools
@@ -49,7 +49,7 @@ Searches products inside one active crawled catalog by free-text keyword. Use a 
 
 ## BigQuery subscription tools
 
-Catalog Partner organizations can also use MCP to automate BigQuery subscriber registration and status refresh:
+Developer organizations can also use MCP to automate BigQuery subscriber registration and status refresh:
 
 | Tool | Purpose |
 | --- | --- |
@@ -63,7 +63,7 @@ For most scheduled jobs, use the Python SDK's `octogen-bq-autosubscribe` command
 
 ## MCP vs REST API
 
-Both surfaces are equally supported and enforce the same catalog policy. Catalog Partners can search and browse active crawled catalogs and cannot access merchant catalogs. BigQuery listings remain explicitly granted.
+Both surfaces are equally supported and enforce the same catalog policy. Developers can search and browse active crawled catalogs and cannot access merchant catalogs. BigQuery listings remain explicitly granted.
 
 | | Platform Catalog API v1 (API keys) | MCP (OAuth) |
 | --- | --- | --- |
