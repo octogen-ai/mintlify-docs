@@ -4,6 +4,63 @@ description: "Learn how to add an ecommerce domain to Octogen."
 sidebarTitle: "Add an ecommerce domain"
 ---
 
-{/*
-  Add the guide content here. This comment does not appear on the published page.
-*/}
+Octogen's "Vasco" agent can be auto-trained to understand a new ecommerce domain. Under the hood, Vosco creates a per-site program to read, parse and convert that sites product data to Octogen's format.
+
+Rather than do *all* ecommerce domains, we're letting our developers add new sites to Vasco's queue. Vosco is successful roughly 90% of the time, and within ~1.5 hours for the 90th percentile.
+
+There are two ways to add a new site to Vasco's queue:
+
+1. Use the "Voyager" UI in the [Platform Console](https://platform.octogen.ai).
+2. Use the [Voyager API](#voyager-api).
+
+## Voyager API
+
+Use the Voyager API to start or join a voyage for a domain. A voyage crawls the
+site, builds product extraction, and publishes the resulting catalog. Once the
+voyage completes, you can use the regular product endpoints to search and look
+up its products.
+
+### Start or join a voyage
+
+Send the domain or a full URL to `POST /v1/voyage`:
+
+```bash
+curl -sS https://api.octogen.ai/v1/voyage \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"domain": "example.com"}'
+```
+
+The API normalizes the domain for you. A new voyage returns `202 Accepted`; if
+another organization has already requested the same domain, the API returns
+`200 OK` with the existing voyage instead. Repeating the same request is
+idempotent and does not create a duplicate voyage.
+
+```json
+{
+  "taskId": "2026-07-13-09-15-02-example",
+  "domain": "example.com",
+  "status": "queued",
+  "phase": "discovering_site",
+  "progressPercent": 0
+}
+```
+
+### Track a voyage
+
+Use the returned `taskId` to check progress. Poll every five minutes or
+slower:
+
+```bash
+curl -sS https://api.octogen.ai/v1/voyage/2026-07-13-09-15-02-example \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+| Status | Meaning |
+| --- | --- |
+| `queued` | The voyage has been accepted and is waiting to start. |
+| `running` | Octogen is crawling the site, building extraction, or publishing the catalog. |
+| `in_review` | Octogen is performing a quality review; no action is needed from you. |
+| `completed` | The catalog is live and searchable. |
+| `failed` | The voyage could not be completed. The response includes an error. |
+| `cancelled` | Octogen stopped the voyage. |
