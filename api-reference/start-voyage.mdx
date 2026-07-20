@@ -1,0 +1,130 @@
+---
+title: "POST /voyage — request domain coverage"
+description: "Start or join a voyage that adds an ecommerce domain to Octogen's catalog coverage."
+sidebarTitle: "Start a Voyage"
+---
+
+`POST /voyage` starts or joins a voyage for an ecommerce domain. A voyage crawls
+the site, builds product extraction, and publishes the resulting catalog. Once
+the voyage completes, its products are available through the regular search and
+lookup endpoints.
+
+Voyages are shared by domain. If another organization already requested the
+same domain, or the domain already has a live catalog, the API returns the
+existing voyage instead of starting a duplicate. Responses never identify the
+other organizations participating in a shared voyage.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/voyage
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="domain" type="string" required>
+  Registrable domain or full public URL. Octogen lowercases the host and removes
+  its scheme, path, port, and leading `www.` before starting the voyage.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/voyage \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"domain": "https://www.example.com/products"}'
+```
+
+## Response
+
+The response uses the same `VoyageTask` shape for both success cases:
+
+| Status | Meaning |
+| --- | --- |
+| `202 Accepted` | A new voyage was created and dispatched. This consumes voyage quota. |
+| `200 OK` | You joined an existing or already completed voyage. This does not consume voyage quota. |
+
+<ResponseField name="taskId" type="string" required>
+  Stable task identifier. Pass it to [`GET /voyage/{task_id}`](/api-reference/get-voyage) to check progress.
+</ResponseField>
+
+<ResponseField name="domain" type="string" required>
+  Normalized registrable domain.
+</ResponseField>
+
+<ResponseField name="status" type='"queued" | "running" | "in_review" | "completed" | "failed" | "cancelled"' required>
+  Machine-readable voyage status.
+</ResponseField>
+
+<ResponseField name="phase" type='"discovering_site" | "sampling_products" | "building_extraction" | "in_review" | "publishing_catalog" | "complete" | "failed"' required>
+  Current pipeline phase.
+</ResponseField>
+
+<ResponseField name="phaseLabel" type="string" required>
+  Human-readable label for the current phase.
+</ResponseField>
+
+<ResponseField name="progressPercent" type="integer" required>
+  Monotonic progress value from 0 to 100.
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime | null">
+  When the voyage was created.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime | null">
+  When the voyage state was last updated.
+</ResponseField>
+
+<ResponseField name="completedAt" type="datetime | null">
+  When the voyage reached a terminal state.
+</ResponseField>
+
+<ResponseField name="error" type="object | null">
+  Populated when the voyage fails, with a stable `code` and safe `message`.
+</ResponseField>
+
+<ResponseField name="result" type="object | null">
+  Populated after the catalog is live. Includes `catalog`, `productCount`, and
+  the supported `search` and `lookup` endpoint paths.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "taskId": "2026-07-13-09-15-02-example",
+  "domain": "example.com",
+  "status": "queued",
+  "phase": "discovering_site",
+  "phaseLabel": "Discovering site",
+  "progressPercent": 0,
+  "createdAt": "2026-07-13T09:15:02Z",
+  "updatedAt": "2026-07-13T09:15:02Z",
+  "completedAt": null,
+  "error": null,
+  "result": null
+}
+```
+
+Repeating the request while a voyage is in progress returns the same task and
+does not create a duplicate.
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `403` | `"voyage_org_type_forbidden"` | The API key's organization may not use the Voyage API. |
+| `409` | `"voyage_domain_blocked"` | The domain is blocked from voyaging. |
+| `422` | `"voyage_invalid_domain"` | The value is not a public registrable domain. IP addresses, localhost, and private hosts are rejected. |
+| `429` | structured `voyage_quota_exceeded` object | Your concurrent or monthly voyage quota was exceeded. |
+| `429` | `"rate_limit_exceeded"` | Your organization exceeded its request-rate limit. |
+| `503` | `"voyage_unavailable"` | The voyage service is temporarily unavailable. Retry with backoff. |
+
+<Note>
+  Only a newly started voyage consumes voyage quota. Joining an existing voyage
+  consumes neither concurrent nor monthly quota.
+</Note>

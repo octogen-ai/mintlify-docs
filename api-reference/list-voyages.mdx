@@ -1,0 +1,117 @@
+---
+title: "GET /voyage — list voyages"
+description: "List the voyages requested by your organization and inspect current voyage quota usage."
+sidebarTitle: "List Voyages"
+---
+
+`GET /voyage` lists your organization's voyages, newest first. The response
+also includes current concurrent and monthly voyage quota usage.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/voyage
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Query parameters
+
+<ParamField query="status" type='"queued" | "running" | "in_review" | "completed" | "failed" | "cancelled"'>
+  Return only voyages with this public status.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Opaque cursor from a previous response's `nextCursor` field.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Number of voyages to return. Accepted range: 1–100.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS "https://api.octogen.ai/v1/voyage?status=running&limit=50" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+<ResponseField name="items" type="VoyageTask[]" required>
+  Current page of voyages. Each item has the same shape returned by
+  [`GET /voyage/{task_id}`](/api-reference/get-voyage).
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Opaque cursor for the next page, or `null` when there are no more results.
+</ResponseField>
+
+<ResponseField name="quotas" type="object | null">
+  Your organization's current voyage quota limits and usage.
+
+  <Expandable title="Quota properties">
+    <ResponseField name="concurrent.limit" type="integer | null">
+      Maximum number of voyages your organization can have in a non-terminal
+      state at once.
+    </ResponseField>
+    <ResponseField name="concurrent.used" type="integer | null">
+      Current number of active, organization-started voyages.
+    </ResponseField>
+    <ResponseField name="monthly.limit" type="integer | null">
+      Maximum number of new voyages your organization can start per UTC month.
+    </ResponseField>
+    <ResponseField name="monthly.used" type="integer | null">
+      Number of voyages your organization started in the current UTC month.
+    </ResponseField>
+    <ResponseField name="monthly.periodStart" type="date | null">
+      Start of the current monthly quota period.
+    </ResponseField>
+    <ResponseField name="monthly.resetsAt" type="datetime | null">
+      When monthly quota usage resets.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "items": [
+    {
+      "taskId": "2026-07-13-09-15-02-example",
+      "domain": "example.com",
+      "status": "running",
+      "phase": "building_extraction",
+      "phaseLabel": "Building product extraction",
+      "progressPercent": 62,
+      "createdAt": "2026-07-13T09:15:02Z",
+      "updatedAt": "2026-07-13T11:42:10Z",
+      "completedAt": null,
+      "error": null,
+      "result": null
+    }
+  ],
+  "nextCursor": null,
+  "quotas": {
+    "concurrent": {"limit": 5, "used": 3},
+    "monthly": {
+      "limit": 20,
+      "used": 12,
+      "periodStart": "2026-07-01",
+      "resetsAt": "2026-08-01T00:00:00Z"
+    }
+  }
+}
+```
+
+Joined voyages count against neither quota. Concurrent usage decreases when a
+voyage completes, fails, or is cancelled. Monthly usage resets at the start of
+the next UTC calendar month.
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `403` | `"voyage_org_type_forbidden"` | The API key's organization may not use the Voyage API. |
+| `422` | validation error array | A query parameter is invalid. |
+| `429` | `"rate_limit_exceeded"` | Your organization exceeded its request-rate limit. |
