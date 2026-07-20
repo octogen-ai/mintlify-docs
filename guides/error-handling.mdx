@@ -14,7 +14,7 @@ Octogen API errors fall into two categories:
 2. **Network errors** — The request never reached the server (DNS failure, timeout, connection reset). The SDK raises `OctogenConnectionError`.
 
 <Note>
-  If you are using the Catalog Partner MCP server instead of the REST API, tool-level errors are returned as HTTP 200 responses with an `error` field in the payload rather than as HTTP error codes. This guide covers the REST API only.
+  If you are using the Developer MCP server instead of the REST API, tool-level errors are returned as HTTP 200 responses with an `error` field in the payload rather than as HTTP error codes. This guide covers the REST API only.
 </Note>
 
 ## HTTP error reference
@@ -35,7 +35,7 @@ Octogen API errors fall into two categories:
 
     - `OCTO_API_KEY` environment variable is not set
     - The key string was truncated or contains extra whitespace
-    - The key was deactivated in the partner portal
+    - The key was deactivated in Octogen Platform
 
     **Recovery:** Rotate or replace the API key. Do not retry the request with the same key.
   </Accordion>
@@ -45,11 +45,11 @@ Octogen API errors fall into two categories:
 
     The API key is valid, but your organization is not allowed to perform this operation. Common causes:
 
-    - Your organization does not have a Catalog Partner grant
+    - Your organization does not have Developer access
     - The API key belongs to the wrong organization
     - The key's org type does not have permission for the endpoint
 
-    **Recovery:** Check your organization's access in the partner portal.
+    **Recovery:** Check your organization's access in Octogen Platform.
   </Accordion>
 
   <Accordion title="404 — Not found">

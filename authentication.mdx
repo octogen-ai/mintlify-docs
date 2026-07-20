@@ -3,7 +3,7 @@ title: "Authenticate with the Octogen Platform API"
 description: "Learn how to create a Platform API key, configure OCTO_API_KEY in your environment, and send it as a Bearer token on every request."
 ---
 
-Every request to the Octogen Platform Catalog API must include a valid API key. Keys are issued per organization through the partner portal. Catalog-partner keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+Every request to the Octogen Platform Catalog API must include a valid API key. Keys are issued per organization through Octogen Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
 
 ## API key format
 
@@ -18,8 +18,8 @@ Keep your key private. Do not commit it to source control or expose it in client
 ## Set up your API key
 
 <Steps>
-  <Step title="Create a key in the partner portal">
-    Log in to the Octogen partner portal and navigate to **API Keys**. Generate a new key and copy it immediately — the secret portion is only shown once.
+  <Step title="Create a key in Octogen Platform">
+    Log in to Octogen Platform and navigate to **API Keys**. Generate a new key and copy it immediately — the secret portion is only shown once.
   </Step>
   <Step title="Set the environment variable">
     Add your key to your environment so the SDKs can pick it up automatically:
@@ -79,7 +79,7 @@ const client = new OctogenClient({ apiKey: "octo_live_<your-key>" });
 
 ## Rotate and revoke keys
 
-Rotate keys from the **API Keys** section of the partner portal. When you deactivate a key, it is revoked immediately — the next request using that key returns a `401` error. Issue a replacement key before deactivating the old one to avoid downtime.
+Rotate keys from the **API Keys** section of Octogen Platform. When you deactivate a key, it is revoked immediately — the next request using that key returns a `401` error. Issue a replacement key before deactivating the old one to avoid downtime.
 
 <Warning>
   Deactivating a key takes effect on the next API request. There is no grace period. Always create and deploy a replacement key before revoking the old one.
@@ -89,9 +89,9 @@ Rotate keys from the **API Keys** section of the partner portal. When you deacti
 
 | Status | Meaning | What to do |
 | --- | --- | --- |
-| `401` | The key is missing, malformed, or has been revoked. | Check that `OCTO_API_KEY` is set correctly and that the key has not been deactivated in the portal. |
-| `403` | The key is valid, but your organization is not authorized for this resource. | Inspect `detail` and confirm the key belongs to a Catalog Partner organization. |
+| `401` | The key is missing, malformed, or has been revoked. | Check that `OCTO_API_KEY` is set correctly and that the key has not been deactivated in Octogen Platform. |
+| `403` | The key is valid, but your organization is not authorized for this resource. | Inspect `detail` and confirm the key belongs to a Developer organization. |
 
 <Note>
-  API keys are organization-scoped. Search/browse access for Catalog Partners covers active crawled catalogs only. BigQuery listing access remains separately granted.
+  API keys are organization-scoped. Search/browse access for Developers covers active crawled catalogs only. BigQuery listing access remains separately granted.
 </Note>

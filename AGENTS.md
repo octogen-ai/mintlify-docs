@@ -14,8 +14,8 @@
 
 ## Terminology
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- Use **Developer** or **Developer organization** in reader-facing copy, not **Catalog Partner**. Reserve `catalog_partner` for literal internal identifiers that readers must enter or inspect.
+- Refer to the signed-in management UI as **Octogen Platform**, not the **partner portal**.
 
 ## Style preferences
 
