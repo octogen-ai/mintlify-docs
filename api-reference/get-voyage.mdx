@@ -1,0 +1,113 @@
+---
+title: "GET /voyage/{task_id} — get voyage progress"
+description: "Poll the status, phase, progress, and result of a voyage requested by your organization."
+sidebarTitle: "Get Voyage Progress"
+---
+
+`GET /voyage/{task_id}` returns the current state of a voyage your organization
+requested. Poll every five minutes or slower while a voyage is active.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/voyage/{task_id}
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Path parameters
+
+<ParamField path="task_id" type="string" required>
+  `taskId` returned by [`POST /voyage`](/api-reference/start-voyage).
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/voyage/2026-07-13-09-15-02-example \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+<ResponseField name="taskId" type="string" required>
+  Stable task identifier.
+</ResponseField>
+
+<ResponseField name="domain" type="string" required>
+  Normalized registrable domain.
+</ResponseField>
+
+<ResponseField name="status" type='"queued" | "running" | "in_review" | "completed" | "failed" | "cancelled"' required>
+  Machine-readable voyage status.
+</ResponseField>
+
+<ResponseField name="phase" type='"discovering_site" | "sampling_products" | "building_extraction" | "in_review" | "publishing_catalog" | "complete" | "failed"' required>
+  Current pipeline phase.
+</ResponseField>
+
+<ResponseField name="phaseLabel" type="string" required>
+  Human-readable label for the current phase.
+</ResponseField>
+
+<ResponseField name="progressPercent" type="integer" required>
+  Monotonic progress value from 0 to 100.
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime | null">
+  When the voyage was created.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime | null">
+  When the voyage state was last updated.
+</ResponseField>
+
+<ResponseField name="completedAt" type="datetime | null">
+  When the voyage reached a terminal state.
+</ResponseField>
+
+<ResponseField name="error" type="object | null">
+  Populated when the voyage fails, with a stable `code` and safe `message`.
+</ResponseField>
+
+<ResponseField name="result" type="object | null">
+  Populated when the catalog is live. Includes `catalog`, `productCount`, and
+  the supported `search` and `lookup` endpoint paths.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "taskId": "2026-07-13-09-15-02-example",
+  "domain": "example.com",
+  "status": "running",
+  "phase": "building_extraction",
+  "phaseLabel": "Building product extraction",
+  "progressPercent": 62,
+  "createdAt": "2026-07-13T09:15:02Z",
+  "updatedAt": "2026-07-13T11:42:10Z",
+  "completedAt": null,
+  "error": null,
+  "result": null
+}
+```
+
+## Statuses
+
+| Status | Meaning |
+| --- | --- |
+| `queued` | Accepted and waiting to start. |
+| `running` | Octogen is crawling, building extraction, or publishing the catalog. |
+| `in_review` | Octogen is performing quality review. No caller action is required. |
+| `completed` | The catalog is live and searchable. `result` is populated. |
+| `failed` | The voyage could not be completed. `error` is populated. |
+| `cancelled` | Octogen stopped the voyage. |
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `403` | `"voyage_org_type_forbidden"` | The API key's organization may not use the Voyage API. |
+| `404` | `"voyage_not_found"` | The task does not exist or was never requested by your organization. These cases are intentionally indistinguishable. |
+| `429` | `"rate_limit_exceeded"` | Your organization exceeded its request-rate limit. |
+| `503` | `"voyage_unavailable"` | The voyage service is temporarily unavailable. Retry with backoff. |

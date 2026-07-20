@@ -78,6 +78,14 @@
             ]
           },
           {
+            "group": "Voyage API",
+            "pages": [
+              "api-reference/start-voyage",
+              "api-reference/get-voyage",
+              "api-reference/list-voyages"
+            ]
+          },
+          {
             "group": "Data Models",
             "pages": [
               "api-reference/models/product"
