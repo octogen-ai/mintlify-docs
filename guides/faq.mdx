@@ -1,0 +1,28 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Octogen."
+sidebarTitle: "FAQ"
+---
+
+## Do you support my ecommerce site?
+Yes.
+
+Octogen's "Vasco" agent can be auto-trained to understand a new ecommerce domain. Under the hood, Vosco creates a per-site program to read, parse and convert that sites product data to Octogen's format. More in "[Add an ecommerce domain](/guides/add-an-ecommerce-domain)".
+
+## Do you support this other -- non Shopify site?
+Yes. [Vasco](/guides/add-an-ecommerce-domain) is agnostic to ecommerce platforms. Sign up as a `Developer` and give it a spin.
+
+## Are there sites you don't support?
+Yes. For now: Amazon.com, Walmart.com, Target.com, Ebay.com and Etsy.com. They already provide their own structured access APIs.
+
+
+## Where do you get your product data from?
+In many cases, brands work with us to provide a "live view" of their catalog. Many retailers provide "catalog feeds" to ChatGPT, Google, affiliate networks and other ecommerce *SaaS barnacles*. From our experience, those feeds come upstream from what is actually on their site, as to be wooefully inaccurate.
+
+
+In other cases, we efficiently crawl the sites ourselves. [See more information about Octogen's bot.](https://octogen.ai/bots)
+
+While crawling ecommerce sites is a known hard problem, parsing catalog data semantically is an even harder problem: each site has its own unique layout, structure and APIs. Even Shopify sites vibe-structure their own product schema-mapping.
+
+## How fresh is Octogen's data?
+In many cases, our data is a "live view" of some catalogs. In others, we refresh periodically. All API calls return an `updated_at` timestamp for each product. If you need a newer view, you can [use the `refresh` API](/guides/product-refresh) to force a refresh.
