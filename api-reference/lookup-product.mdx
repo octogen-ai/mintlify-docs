@@ -133,7 +133,12 @@ curl -sS https://api.octogen.ai/v1/products/lookup \
 </ResponseField>
 
 <ResponseField name="canonicalUrl" type="string | null">
-  Canonical product URL found in the page evidence. Populated for on-demand results when available.
+  Stable URL for this product: submit it on a follow-up lookup and it
+  deterministically re-resolves the same product. For indexed results, this is
+  the matched product's stored canonical URL (falling back to its exact
+  indexed URL). For on-demand results, it is the canonical URL declared by the
+  product page itself (JSON-LD `url`, `og:url`, or `link rel="canonical"`),
+  falling back to the final fetched URL.
 </ResponseField>
 
 <ResponseField name="resolution" type="ProductResolutionMetadata | null">
@@ -170,6 +175,7 @@ curl -sS https://api.octogen.ai/v1/products/lookup \
   "catalogKey": "warrenlotas",
   "catalogDisplayName": "Warren Lotas",
   "sourceBaseUrl": "https://warrenlotas.com",
+  "canonicalUrl": "https://warrenlotas.com/products/black-hoodie",
   "product": {
     "uuid": "prod_01HX...",
     "catalogKey": "warrenlotas",
