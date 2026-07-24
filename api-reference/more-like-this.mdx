@@ -1,12 +1,12 @@
 ---
 title: "POST /products/more-like-this — find similar products"
-description: "Find products similar to a source product across all active crawled catalogs, or within one catalog, using product enrichment and relative price preferences."
+description: "Find products similar to a source product — identified by URL, UUID, or an image — across all active crawled catalogs, or within one catalog, using product enrichment and relative price preferences."
 sidebarTitle: "More Like This"
 ---
 
-`POST /products/more-like-this` returns products similar to a source product. The API resolves the source by URL or UUID within your catalog grants, builds the similarity query from indexed product enrichment, excludes the source product from results, and returns a standard product list page.
+`POST /products/more-like-this` returns products similar to a source product. The API resolves the source by URL or UUID within your catalog grants, builds the similarity query from indexed product enrichment, excludes the source product from results, and returns a standard product list page. The source can also be an **image** — see [Image sources](#image-sources).
 
-Use this endpoint for related product rails, substitutions, recommendation modules, and agent workflows that start from a known product. To see the strategies side by side with live results, open the [interactive demo](https://www.octogen.ai/demos/mlt-api.html) or the [strategy recipes guide](/guides/mlt-strategy-recipes).
+Use this endpoint for related product rails, substitutions, recommendation modules, and agent workflows that start from a known product. To see the strategies side by side with live results, open the [interactive demo](https://www.octogen.ai/demos/mlt-api.html) or the [strategy recipes guide](/guides/mlt-strategy-recipes). For the image input, open the [image input demo](https://www.octogen.ai/demos/mlt-image-api.html).
 
 ## Request
 
@@ -19,7 +19,7 @@ Content-Type: application/json
 ### Body parameters
 
 <ParamField body="source" type="object" required>
-  Source product identifier. Provide exactly one of `source.url` or `source.uuid`.
+  Source identifier. Provide exactly one of `source.url`, `source.uuid`, or `source.image`.
 </ParamField>
 
 <ParamField body="source.url" type="string">
@@ -28,6 +28,18 @@ Content-Type: application/json
 
 <ParamField body="source.uuid" type="string">
   Indexed product UUID to use as the source product.
+</ParamField>
+
+<ParamField body="source.image" type="object">
+  Source image to derive the similarity query from. Provide exactly one of `source.image.b64` or `source.image.url`. Slower than product sources — see [Image sources](#image-sources) for behavior, guards, and latency.
+</ParamField>
+
+<ParamField body="source.image.b64" type="string">
+  Base64-encoded image bytes. Decoded size is capped at 8 MB (`413` beyond it). Downscale client-side before sending (~1024px JPEG) — the pipeline downscales internally, so larger uploads only add transfer time.
+</ParamField>
+
+<ParamField body="source.image.url" type="string">
+  HTTPS image URL fetched server-side. Available only for hosts on the deployment allowlist (ask your Octogen contact to enable hosts); redirects are not followed and the same 8 MB cap applies while streaming.
 </ParamField>
 
 <ParamField body="catalog" type="string">
@@ -43,7 +55,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="price_preference" type='"lower" | "any" | "higher"' default="any">
-  Relative price preference compared with the source product's `currentPrice`. Use `lower` for less expensive alternatives, `higher` for premium alternatives, or `any` for no relative price filter.
+  Relative price preference compared with the source product's `currentPrice`. Use `lower` for less expensive alternatives, `higher` for premium alternatives, or `any` for no relative price filter. Image sources require `any` (`400` otherwise) — there is no source product to be price-relative to.
 </ParamField>
 
 <ParamField body="retrieval_embedding_columns" type="EmbeddingColumn[]">
@@ -55,7 +67,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="cursor" type="string">
-  Opaque pagination cursor from a previous response's `nextCursor` field. Pass it unmodified with the same request fields to retrieve the next page.
+  Opaque pagination cursor from a previous response's `nextCursor` field. Pass it unmodified with the same request fields to retrieve the next page. Not supported for image sources (`400`): the query is generated per request, so a cursor from one request is not valid against another's.
 </ParamField>
 
 <ParamField body="limit" type="integer" default="12">
@@ -105,10 +117,29 @@ Every indexed product carries several embeddings. Retrieval columns decide which
 
 Send `debug: true` with any combination and the response's `effectiveQuery` shows the exact query the server executed. For worked examples of each strategy with live results, see the [strategy recipes guide](/guides/mlt-strategy-recipes).
 
+## Image sources
+
+Send a photo — a product shot, a look to match — and the API generates the similarity query from the image: a multimodal parse reads it, the query processors derive facets (category, gender, color, attributes), and the search runs with zero-result facet relaxation. See it live in the [image input demo](https://www.octogen.ai/demos/mlt-image-api.html).
+
+```json
+{
+  "source": { "image": { "b64": "<base64 image bytes>" } },
+  "limit": 6,
+  "debug": true
+}
+```
+
+Behavior to know:
+
+- **Latency**: image queries are generated per request — expect p50 ≤ 8s and ~11s when relaxation rounds run (product sources stay search-only fast). The response's `resolution` field reports how the source was resolved; caching for repeat images is on the roadmap and will bring them to ~2s.
+- **Facet relaxation**: every image-derived facet is an inference (including a `brand_name` read off a visible logo), so zero-result searches automatically retry with the least-trusted facet tiers dropped. With `debug: true` the response reports `relaxationRounds` and the released facets. Facets you pass in `include_facets` are never dropped.
+- **Response shape**: image responses return `sourceImage.hash` and `resolution` instead of the resolved-product `source` stanza; `nextCursor` is always `null`.
+- **`include_facets` / `exclude_facets` / embedding-column overrides** work exactly as for product sources.
+
 ## Response
 
-<ResponseField name="source" type="object" required>
-  Public identity of the source product that powered the similarity query.
+<ResponseField name="source" type="object">
+  Public identity of the source product that powered the similarity query. Present for `url`/`uuid` sources; image sources return `sourceImage` instead.
 
   <Expandable title="Source properties">
     <ResponseField name="catalogKey" type="string" required>
@@ -126,6 +157,14 @@ Send `debug: true` with any combination and the response's `effectiveQuery` show
   </Expandable>
 </ResponseField>
 
+<ResponseField name="sourceImage" type="object">
+  Present for image sources only: `{ "hash": string }` — the content hash of the submitted image bytes.
+</ResponseField>
+
+<ResponseField name="resolution" type="string">
+  Present for image sources only. How the source was resolved; currently always `"image_query_generation"` (the generation pipeline ran).
+</ResponseField>
+
 <ResponseField name="items" type="MerchantProductListItem[]" required>
   Similar products for the current page. See the [Product model](/api-reference/models/product) for the full field reference.
 </ResponseField>
@@ -135,7 +174,7 @@ Send `debug: true` with any combination and the response's `effectiveQuery` show
 </ResponseField>
 
 <ResponseField name="effectiveQuery" type="object | null">
-  Present only when `debug` is `true`. Contains the public server-derived query fields: `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `priceMin`, `priceMax`, and `limit`.
+  Present only when `debug` is `true`. Contains the public server-derived query fields: `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `priceMin`, `priceMax`, and `limit`. For image sources it additionally carries `generationStages` (per-stage generation timings), `degradedToTextFallback`, and — when relaxation ran — `relaxationRounds` and `relaxationDroppedFacets`.
 </ResponseField>
 
 ### Example response
