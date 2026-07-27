@@ -39,7 +39,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="source.image.url" type="string">
-  HTTPS image URL fetched server-side. Available only for hosts on the deployment allowlist (ask your Octogen contact to enable hosts); redirects are not followed and the same 8 MB cap applies while streaming.
+  HTTPS image URL fetched server-side — any public host, so retailer product-image URLs can be passed directly. Redirects are not followed, the fetch validates that both DNS resolution and the connected peer are public addresses, and the same 8 MB cap applies while streaming.
 </ParamField>
 
 <ParamField body="catalog" type="string">
@@ -67,7 +67,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="cursor" type="string">
-  Opaque pagination cursor from a previous response's `nextCursor` field. Pass it unmodified with the same request fields to retrieve the next page. Not supported for image sources (`400`): the query is generated per request, so a cursor from one request is not valid against another's.
+  Opaque pagination cursor from a previous response's `nextCursor` field. Pass it unmodified with the same request fields to retrieve the next page. Supported for image sources: the cursor embeds the relaxation round that produced the page, so continuations re-run the exact converged query. Deterministic within the 24h generation-cache window.
 </ParamField>
 
 <ParamField body="limit" type="integer" default="12">
@@ -131,9 +131,9 @@ Send a photo — a product shot, a look to match — and the API generates the s
 
 Behavior to know:
 
-- **Latency**: image queries are generated per request — expect p50 ≤ 8s and ~11s when relaxation rounds run (product sources stay search-only fast). The response's `resolution` field reports how the source was resolved; caching for repeat images is on the roadmap and will bring them to ~2s.
+- **Latency**: the first sight of an image runs generation — expect p50 ≤ 8s, ~11s when relaxation rounds run. **Repeat images are served from a generation cache (24h) in ~0.25s**, and the response's `resolution` field says which happened: `image_query_generation` (pipeline ran) or `cached_image_query` (cached).
 - **Facet relaxation**: every image-derived facet is an inference (including a `brand_name` read off a visible logo), so zero-result searches automatically retry with the least-trusted facet tiers dropped. With `debug: true` the response reports `relaxationRounds` and the released facets. Facets you pass in `include_facets` are never dropped.
-- **Response shape**: image responses return `sourceImage.hash` and `resolution` instead of the resolved-product `source` stanza; `nextCursor` is always `null`.
+- **Response shape**: image responses return `sourceImage.hash` and `resolution` instead of the resolved-product `source` stanza. `nextCursor` is a normal opaque cursor — pass it back with the same request body to page through the result set.
 - **`include_facets` / `exclude_facets` / embedding-column overrides** work exactly as for product sources.
 
 ## Response
@@ -162,7 +162,7 @@ Behavior to know:
 </ResponseField>
 
 <ResponseField name="resolution" type="string">
-  Present for image sources only. How the source was resolved; currently always `"image_query_generation"` (the generation pipeline ran).
+  Present for image sources only. How the source was resolved: `"image_query_generation"` (the generation pipeline ran) or `"cached_image_query"` (served from the 24h generation cache — a repeat of an image seen before).
 </ResponseField>
 
 <ResponseField name="items" type="MerchantProductListItem[]" required>
