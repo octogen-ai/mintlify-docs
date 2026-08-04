@@ -39,9 +39,9 @@ Both conditions must be true before your first tool call.
 
 The product tools use the same catalog access policy as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
 
-### `lookup_product(canonical_url, catalogs?)`
+### `lookup_product(product_url, catalogs?)`
 
-Resolves a product page URL to a full canonical product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. If no active product matches, the tool returns a structured `product_not_found` value — not a transport-level failure — so your agent can recover gracefully.
+Resolves a product page URL to a full product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. If no active product matches, the tool returns a structured `product_not_found` value — not a transport-level failure — so your agent can recover gracefully.
 
 ### `search_products(catalog, query?, limit?, cursor?)`
 
