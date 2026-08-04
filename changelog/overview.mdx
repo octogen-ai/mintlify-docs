@@ -3,6 +3,20 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="August 4, 2026" description="Lookup URL fields clarified">
+
+## Updates
+
+**Product Lookup responses now name each URL for what it is.** `POST /v1/products/lookup` returns four URL fields with one meaning each: `requestedUrl` echoes the URL you submitted on every successful result; `normalizedUrl` (new) is the matched product's Octogen-normalized stable URL on indexed results — submit it on a follow-up lookup to deterministically re-resolve the same product; `resolvedUrl` is the post-redirect URL on on-demand results; and `canonicalUrl` is reserved for the canonical URL the product page itself declares, on on-demand results only.
+
+**Breaking change:** `canonicalUrl` is now `null` on indexed results. If you stored it as the stable re-lookup URL, read `normalizedUrl` instead — it carries the same value indexed results previously exposed there.
+
+**MCP:** the `lookup_product` tool's input parameter is renamed `canonical_url` → `product_url`; it accepts any real product page URL. Agents reading the tool schema at session start pick this up automatically; update any scripted caller that hardcodes the argument name.
+
+The Python and TypeScript SDKs expose the new `normalizedUrl` field. See the [Product Lookup guide](/guides/product-lookup) and [API reference](/api-reference/lookup-product).
+
+</Update>
+
 <Update label="July 16, 2026" description="On-demand Product Lookup">
 
 ## New features

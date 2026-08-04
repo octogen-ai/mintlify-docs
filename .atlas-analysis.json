@@ -75,7 +75,7 @@
     "Python SDK (async, httpx + Pydantic) for the Octogen commerce API",
     "TypeScript/ESM SDK for the Octogen commerce API",
     "Faceted product search with price range, color, category, and attribute filters",
-    "Product URL lookup — resolve any product page URL to a canonical enriched record",
+    "Product URL lookup — resolve any product page URL to a full enriched record",
     "Cursor-based pagination for large catalog traversal",
     "Structured error model with typed exceptions per status code"
   ],
@@ -90,7 +90,7 @@
     "OctogenClient.lookupProduct(url) — TypeScript SDK",
     "OctogenClient.searchProducts(params) — TypeScript SDK",
     "MCP tool: list_catalogs()",
-    "MCP tool: lookup_product(canonical_url, catalogs?)",
+    "MCP tool: lookup_product(product_url, catalogs?)",
     "MCP tool: search_products(catalog, query?, limit?, cursor?)"
   ]
 }

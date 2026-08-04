@@ -8,7 +8,7 @@ Product Lookup turns one product page URL into a `MerchantProductView`. By defau
 
 The response always identifies its source:
 
-- `source: "indexed"` returns the full canonical product record and catalog context.
+- `source: "indexed"` returns the full indexed product record and catalog context.
 - `source: "on_demand"` returns a partial-safe product view without inventing an indexed UUID, catalog ownership, or lifecycle state.
 
 ## Choose a resolution mode
@@ -107,14 +107,18 @@ Both sources return `product: MerchantProductView`, but some fields have differe
 | `product.catalogKey` | Supplying catalog | `null` |
 | `product.isActive` | Indexed lifecycle state | `null` |
 | `product.productUrl` | Required | Required |
-| `canonicalUrl` | Stored canonical URL of the matched product (falls back to its exact indexed URL) | Canonical URL declared by the product page (falls back to the final fetched URL) |
+| `requestedUrl` | The URL you submitted, echoed back | The URL you submitted, echoed back |
+| `normalizedUrl` | The matched product's Octogen-normalized stable URL | `null` |
+| `resolvedUrl` | `null` | Final URL after redirects |
+| `canonicalUrl` | `null` | Canonical URL declared by the product page (falls back to the final fetched URL when the page declares none) |
 | Other product fields | Full indexed record when available | Populated only when supported by page evidence |
 
-`canonicalUrl` is the stable URL for the product on both paths: submit it on a
-follow-up lookup and it deterministically re-resolves the same product. Prefer
-storing it over the URL you originally submitted.
+For follow-up lookups, use `normalizedUrl` on indexed results and
+`resolvedUrl` on on-demand results: submit either on a follow-up lookup and it
+deterministically re-resolves the same product. Prefer storing them over the
+URL you originally submitted.
 
-On-demand results are ephemeral. Octogen does not add them to your catalogs or product index, and you cannot retrieve them later by UUID. Store the returned `canonicalUrl` and any fields your application needs.
+On-demand results are ephemeral. Octogen does not add them to your catalogs or product index, and you cannot retrieve them later by UUID. Store the returned `resolvedUrl` and any fields your application needs.
 
 ### On-demand example
 
@@ -127,6 +131,7 @@ On-demand results are ephemeral. Octogen does not add them to your catalogs or p
   "sourceBaseUrl": null,
   "requestedUrl": "https://example.com/products/blue-linen-dress",
   "resolvedUrl": "https://example.com/products/blue-linen-dress",
+  "normalizedUrl": null,
   "canonicalUrl": "https://example.com/products/blue-linen-dress",
   "product": {
     "uuid": null,
