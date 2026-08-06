@@ -1,0 +1,75 @@
+---
+title: "DELETE /coverage/url-lists/{urlListId} — delete a URL list"
+description: "Permanently delete a coverage URL list and tear down its BigQuery resources."
+sidebarTitle: "Delete a URL List"
+---
+
+`DELETE /coverage/url-lists/{urlListId}` requests deletion of a coverage URL
+list. Deletion is **asynchronous and permanent** — there is no grace window
+and no restore. Teardown revokes Reader access, deletes the BigQuery listing
+and datasets, and purges the list's URLs. The list's name is released
+immediately for reuse.
+
+## Request
+
+```http
+DELETE https://api.octogen.ai/v1/coverage/url-lists/{urlListId}
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Path parameters
+
+<ParamField path="urlListId" type="string" required>
+  The list id (`cul_...`).
+</ParamField>
+
+### Example
+
+```bash
+curl -sS -X DELETE https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2 \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+`202 Accepted` with the [URL list object](/api-reference/get-url-list#response)
+in `delete_pending`. The list keeps appearing in reads until teardown
+completes, then disappears. Repeating the request while deletion is pending
+returns the same `delete_pending` object.
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `"url_list_not_found"` | No list with that id exists in your organization. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        url_list = await client.delete_coverage_url_list(
+            "cul_01KZAC9QSY5RWSTZ63FGBS50F2"
+        )
+        print(url_list.status)  # delete_pending
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const urlList = await client.deleteCoverageUrlList(
+  "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+);
+console.log(urlList.status); // delete_pending
+```
+
+</CodeGroup>

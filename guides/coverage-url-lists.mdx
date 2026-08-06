@@ -1,0 +1,155 @@
+---
+title: "Track catalog coverage for your URL lists"
+description: "Upload named sets of product URLs, let Octogen join them against its crawled catalogs daily, and query the matches in BigQuery."
+sidebarTitle: "Coverage URL Lists"
+---
+
+Coverage URL Lists answer a recurring question: **"which of these product URLs
+does Octogen cover?"** You upload a named set of product URLs — a campaign
+feed, a competitor assortment, a partner's catalog export — and Octogen joins
+it against every active crawled catalog daily. The matching products are
+published to a per-list BigQuery dataset that your organization's registered
+BigQuery Readers can subscribe to, exactly like catalog listings.
+
+Use the [Coverage API reference](/api-reference/create-url-list) for complete
+request and response schemas.
+
+## How it works
+
+1. **Create a list** and add up to 100,000 product URLs. Octogen normalizes
+   each URL server-side and stores memberships keyed on the normalized form.
+2. **Octogen joins daily.** Every active crawled catalog is matched against
+   your list. Matching ignores query parameters and tolerates common URL
+   variants (for example, a Shopify `/collections/<name>/products/<handle>`
+   URL matches the same product's `/products/<handle>` URL).
+3. **Query the matches in BigQuery.** Each list gets an Analytics Hub listing
+   whose shared view `products_current_v1` holds the currently matched
+   products, replaced on every export.
+
+Your organization can hold up to 5 live lists. Deleting a list is permanent
+and tears down its BigQuery resources.
+
+## Create a list and add URLs
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/coverage/url-lists \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "q3-campaign"}'
+
+curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"urls": [
+    "https://shop.example/products/dress?utm_source=newsletter",
+    "https://shop.example/collections/summer/products/linen-shirt"
+  ]}'
+```
+
+```python python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        url_list = await client.create_coverage_url_list(name="q3-campaign")
+        result = await client.add_coverage_url_list_urls(
+            url_list.url_list_id,
+            urls=[
+                "https://shop.example/products/dress?utm_source=newsletter",
+                "https://shop.example/collections/summer/products/linen-shirt",
+            ],
+        )
+        print(result.url_count, "URLs;", len(result.rejected), "rejected")
+
+asyncio.run(main())
+```
+
+```typescript typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const urlList = await client.createCoverageUrlList("q3-campaign");
+const result = await client.addCoverageUrlListUrls(urlList.urlListId, [
+  "https://shop.example/products/dress?utm_source=newsletter",
+  "https://shop.example/collections/summer/products/linen-shirt",
+]);
+console.log(result.urlCount, "URLs;", result.rejected.length, "rejected");
+```
+
+</CodeGroup>
+
+Adds are idempotent and report per-URL outcomes: `accepted` echoes each stored
+URL alongside its `normalizedUrl`, and unparseable entries land in `rejected`
+with code `invalid_url` without failing the batch. Batches are capped at
+1,000 URLs per request, so loop over larger files.
+
+The new list starts in `provisioning` and typically becomes `active` — with
+its `bigQuery` details populated — within a minute. You never have to wait:
+URL mutations work in every live state.
+
+## Check membership
+
+`POST .../urls/contains` tells you whether URLs are **in your list** (added by
+you), applying the same normalization as adds. Coverage results — whether
+Octogen's catalogs match those URLs — live in BigQuery, below.
+
+```bash curl
+curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"urls": ["https://shop.example/products/dress"]}'
+```
+
+## Query your coverage in BigQuery
+
+Once the list is `active`, its `bigQuery` block names an Analytics Hub listing
+in the `catalogs_prod` exchange:
+
+```json
+"bigQuery": {
+  "exchangeId": "catalogs_prod",
+  "listingId": "coverage_cul_01KZAC9QSY5RWSTZ63FGBS50F2_v1",
+  "sharedDatasetId": "coverage_share_cul_01KZAC9QSY5RWSTZ63FGBS50F2_v1",
+  "viewId": "products_current_v1",
+  "lastExportedAt": "2026-08-06T06:31:12Z",
+  "lastRowCount": 1128,
+  "readerCount": 1
+}
+```
+
+Access is granted automatically to your organization's registered BigQuery
+Readers — the same Readers used for catalog listings — so subscribing works
+exactly like the [BigQuery Subscribe guide](/guides/bigquery-subscribe)
+describes. After subscribing, query the linked dataset:
+
+```sql
+SELECT catalog_key, product_url, title, current_price, in_stock
+FROM `my-gcp-project.octogen_coverage_q3.products_current_v1`
+ORDER BY catalog_key, title
+```
+
+The view holds the **currently matched products** for your list — the same
+columns as catalog exports (`uuid`, `catalog_key`, `product_url`, `title`,
+`brand`, prices, `variants`, `enrichment`, and more). Each daily export
+replaces the previous snapshot; `lastExportedAt` and `lastRowCount` on the
+list object tell you what the view currently reflects. A URL you added that
+has no matching row simply is not covered yet.
+
+## Keep the list current
+
+- **Add and remove** URLs at any time; the next daily export picks up the
+  change.
+- **Enumerate** the list with `GET .../urls` (insertion order, cursor
+  pagination) to reconcile against your source of truth.
+- **Delete** the list when the campaign ends. Deletion is permanent, tears
+  down the BigQuery listing and datasets, and frees the name and a list slot
+  immediately.
+
+## Next steps
+
+- [Coverage API reference](/api-reference/create-url-list)
+- [BigQuery Subscribe guide](/guides/bigquery-subscribe)
+- [Error handling guide](/guides/error-handling)

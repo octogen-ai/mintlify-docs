@@ -1,0 +1,115 @@
+---
+title: "GET /coverage/url-lists/{urlListId}/urls — enumerate URLs"
+description: "Page through a coverage URL list's member URLs in stable insertion order."
+sidebarTitle: "Enumerate URLs"
+---
+
+`GET /coverage/url-lists/{urlListId}/urls` pages through a list's member URLs
+in stable insertion order.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/coverage/url-lists/{urlListId}/urls
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Path parameters
+
+<ParamField path="urlListId" type="string" required>
+  The list id (`cul_...`).
+</ParamField>
+
+### Query parameters
+
+<ParamField query="cursor" type="string">
+  Opaque continuation cursor from a previous response's `nextCursor`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Page size, 1–100.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS "https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls?limit=100" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+<ResponseField name="items" type="array" required>
+  One entry per member URL: `url` as originally submitted, the stored
+  `normalizedUrl`, and `addedAt`.
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null" required>
+  Pass as `cursor` on the next request; `null` on the last page.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "items": [
+    {
+      "url": "https://shop.example/products/dress?utm_source=newsletter",
+      "normalizedUrl": "https://shop.example/products/dress",
+      "addedAt": "2026-08-05T20:16:41Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `400` | `"invalid_cursor"` | The pagination cursor is malformed or stale. Restart without a cursor. |
+| `404` | `"url_list_not_found"` | No list with that id exists in your organization. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        cursor = None
+        while True:
+            page = await client.list_coverage_url_list_urls(
+                "cul_01KZAC9QSY5RWSTZ63FGBS50F2", cursor=cursor, limit=100
+            )
+            for entry in page.items:
+                print(entry.normalized_url)
+            if page.next_cursor is None:
+                break
+            cursor = page.next_cursor
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+let cursor: string | undefined;
+do {
+  const page = await client.listCoverageUrlListUrls(
+    "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+    { cursor, limit: 100 },
+  );
+  for (const entry of page.items) {
+    console.log(entry.normalizedUrl);
+  }
+  cursor = page.nextCursor ?? undefined;
+} while (cursor);
+```
+
+</CodeGroup>

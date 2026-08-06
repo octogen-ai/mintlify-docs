@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="August 6, 2026" description="Coverage URL Lists">
+
+## New features
+
+**Track Octogen's coverage of your own product URL lists.** The new Coverage API (`/v1/coverage/url-lists`) lets a Developer organization upload named sets of product URLs — up to 5 lists of 100,000 URLs each — that Octogen joins against every active crawled catalog daily. Each list is published as its own BigQuery Analytics Hub listing, and access is granted automatically to your organization's registered BigQuery Readers, so subscribing works exactly like catalog listings. The shared view `products_current_v1` holds the currently matched products with the same columns as catalog exports.
+
+URL mutations are idempotent set operations with per-URL outcomes: every URL is normalized server-side, unparseable entries are rejected individually with `invalid_url` without failing the batch, and matching tolerates common variants such as query-parameter differences and Shopify collection-path aliases.
+
+The Python and TypeScript SDKs expose all eight endpoints. See the [Coverage URL Lists guide](/guides/coverage-url-lists) and [API reference](/api-reference/create-url-list).
+
+</Update>
+
 <Update label="August 4, 2026" description="Lookup URL fields clarified">
 
 ## Updates

@@ -1,0 +1,79 @@
+---
+title: "GET /coverage/url-lists — list your URL lists"
+description: "Enumerate your organization's coverage URL lists with cursor pagination."
+sidebarTitle: "List URL Lists"
+---
+
+`GET /coverage/url-lists` returns your organization's coverage URL lists,
+newest first, with cursor pagination.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/coverage/url-lists
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Query parameters
+
+<ParamField query="cursor" type="string">
+  Opaque continuation cursor from a previous response's `nextCursor`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Page size, 1–100.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS "https://api.octogen.ai/v1/coverage/url-lists?limit=10" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+<ResponseField name="items" type="array" required>
+  [URL list objects](/api-reference/get-url-list#response), newest first.
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null" required>
+  Pass as `cursor` on the next request; `null` on the last page. Cursors are
+  opaque — do not parse or construct them.
+</ResponseField>
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `400` | `"invalid_cursor"` | The pagination cursor is malformed or stale. Restart without a cursor. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        page = await client.list_coverage_url_lists(limit=10)
+        for url_list in page.items:
+            print(url_list.name, url_list.status, url_list.url_count)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const page = await client.listCoverageUrlLists({ limit: 10 });
+for (const urlList of page.items) {
+  console.log(urlList.name, urlList.status, urlList.urlCount);
+}
+```
+
+</CodeGroup>
