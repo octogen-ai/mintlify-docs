@@ -1,33 +1,50 @@
 ---
-title: "Track catalog coverage for your URL lists"
-description: "Upload named sets of product URLs, let Octogen join them against its crawled catalogs daily, and query the matches in BigQuery."
+title: "Coverage API - URL Lists"
+description: "URL Lists provide detailed access to Octogen catalog data via BigQuery"
 sidebarTitle: "Coverage URL Lists"
 ---
 
-Coverage URL Lists answer a recurring question: **"which of these product URLs
-does Octogen cover?"** You upload a named set of product URLs — a campaign
-feed, a competitor assortment, a partner's catalog export — and Octogen joins
-it against every active crawled catalog daily. The matching products are
-published to a per-list BigQuery dataset that your organization's registered
-BigQuery Readers can subscribe to, exactly like catalog listings.
-
-Use the [Coverage API reference](/api-reference/create-url-list) for complete
-request and response schemas.
+A **URL list** is a set of product URLs you own and edit through the API. Each
+list automatically gets its own BigQuery listing, refreshed daily with the
+full product records for every URL Octogen covers — so instead of looking up
+URLs one at a time or subscribing to whole catalogs and joining on your side,
+you upload the URLs you care about and read the answer in BigQuery.
 
 ## How it works
 
-1. **Create a list** and add up to 100,000 product URLs. Octogen normalizes
-   each URL server-side and stores memberships keyed on the normalized form.
-2. **Octogen joins daily.** Every active crawled catalog is matched against
-   your list. Matching ignores query parameters and tolerates common URL
-   variants (for example, a Shopify `/collections/<name>/products/<handle>`
-   URL matches the same product's `/products/<handle>` URL).
-3. **Query the matches in BigQuery.** Each list gets an Analytics Hub listing
-   whose shared view `products_current_v1` holds the currently matched
-   products, replaced on every export.
+<Steps>
+  <Step title="Create a list">
+    One API call. A BigQuery listing is provisioned automatically — typically
+    within a minute — and shared with the BigQuery Readers you've already
+    registered with Octogen.
+  </Step>
+  <Step title="Add and remove URLs any time">
+    Batch calls, up to 1,000 URLs each. Re-sending URLs that are already there
+    is a harmless no-op, so you can sync your side blindly.
+  </Step>
+  <Step title="Read fresh results in BigQuery every day">
+    Each covered URL becomes full product rows — title, brand, price, images,
+    variants, and the rest — in exactly the schema your existing catalog
+    listings use. Uncovered URLs simply produce no rows.
+  </Step>
+</Steps>
 
-Your organization can hold up to 5 live lists. Deleting a list is permanent
-and tears down its BigQuery resources.
+## The API at a glance
+
+Same base URL and API key as the rest of the platform API
+(`https://api.octogen.ai/v1`). See the
+[Coverage API reference](/api-reference/create-url-list) for complete schemas.
+
+| Endpoint | What it does |
+| --- | --- |
+| `POST /coverage/url-lists` | Create a list |
+| `GET /coverage/url-lists` | List your lists |
+| `GET /coverage/url-lists/{urlListId}` | Get one list — status, URL count, where its BigQuery data lives, when it was last refreshed |
+| `POST /coverage/url-lists/{urlListId}/urls` | Add URLs (batch) |
+| `POST /coverage/url-lists/{urlListId}/urls/remove` | Remove URLs (batch) |
+| `POST /coverage/url-lists/{urlListId}/urls/contains` | Check whether specific URLs are in the list |
+| `GET /coverage/url-lists/{urlListId}/urls` | Page through the list's URLs |
+| `DELETE /coverage/url-lists/{urlListId}` | Delete the list and its BigQuery data |
 
 ## Create a list and add URLs
 
@@ -81,14 +98,15 @@ console.log(result.urlCount, "URLs;", result.rejected.length, "rejected");
 
 </CodeGroup>
 
-Adds are idempotent and report per-URL outcomes: `accepted` echoes each stored
-URL alongside its `normalizedUrl`, and unparseable entries land in `rejected`
-with code `invalid_url` without failing the batch. Batches are capped at
-1,000 URLs per request, so loop over larger files.
-
-The new list starts in `provisioning` and typically becomes `active` — with
-its `bigQuery` details populated — within a minute. You never have to wait:
-URL mutations work in every live state.
+- **Adds are idempotent** and report exactly what happened to each URL:
+  `accepted` echoes each stored URL alongside its `normalizedUrl`, and
+  unparseable entries land in `rejected` with code `invalid_url` — without
+  failing the batch.
+- **Batches are capped at 1,000 URLs per request**, so loop over larger
+  files.
+- **The new list starts in `provisioning`** and typically becomes `active` —
+  with its `bigQuery` details populated — within a minute. You never have to
+  wait: URL mutations work in every live state.
 
 ## Check membership
 
@@ -120,10 +138,22 @@ in the `catalogs_prod` exchange:
 }
 ```
 
-Access is granted automatically to your organization's registered BigQuery
-Readers — the same Readers used for catalog listings — so subscribing works
-exactly like the [BigQuery Subscribe guide](/guides/bigquery-subscribe)
-describes. After subscribing, query the linked dataset:
+- **Access is granted automatically** to your organization's registered
+  BigQuery Readers — the same Readers used for catalog listings — so
+  subscribing works exactly like the
+  [BigQuery Subscribe guide](/guides/bigquery-subscribe) describes.
+- **The view holds the currently matched products** for your list, with the
+  same columns as catalog exports (`uuid`, `catalog_key`, `product_url`,
+  `title`, `brand`, prices, `variants`, `enrichment`, and more). Pipelines
+  you've already built just work.
+- **Each daily export replaces the previous snapshot**; `lastExportedAt` and
+  `lastRowCount` on the list object tell you what the view currently
+  reflects.
+- **A URL with no matching row simply isn't covered yet.** The gap between
+  `urlCount` and `lastRowCount` is the part of your list Octogen doesn't
+  cover.
+
+After subscribing, query the linked dataset:
 
 ```sql
 SELECT catalog_key, product_url, title, current_price, in_stock
@@ -131,22 +161,24 @@ FROM `my-gcp-project.octogen_coverage_q3.products_current_v1`
 ORDER BY catalog_key, title
 ```
 
-The view holds the **currently matched products** for your list — the same
-columns as catalog exports (`uuid`, `catalog_key`, `product_url`, `title`,
-`brand`, prices, `variants`, `enrichment`, and more). Each daily export
-replaces the previous snapshot; `lastExportedAt` and `lastRowCount` on the
-list object tell you what the view currently reflects. A URL you added that
-has no matching row simply is not covered yet.
+## Behavior worth knowing
 
-## Keep the list current
-
-- **Add and remove** URLs at any time; the next daily export picks up the
-  change.
-- **Enumerate** the list with `GET .../urls` (insertion order, cursor
-  pagination) to reconcile against your source of truth.
-- **Delete** the list when the campaign ends. Deletion is permanent, tears
-  down the BigQuery listing and datasets, and frees the name and a list slot
-  immediately.
+- **You don't need to clean your URLs.** Octogen normalizes them — tracking
+  parameters, `http/https`, and host-case differences won't cause misses or
+  duplicates, and meaningful query parameters are preserved.
+- **Matching is page-level.** URLs that differ only in query parameters
+  generally resolve to the same product page and are matched as one; common
+  variants such as Shopify `/collections/<name>/products/<handle>` paths
+  match the same product's `/products/<handle>` URL.
+- **Results refresh once a day.** `lastExportedAt` on the list tells you
+  when. Between refreshes, edits to the list don't change BigQuery.
+- **Enumerate any time.** `GET .../urls` pages through the list in insertion
+  order, so you can reconcile against your source of truth.
+- **Delete means delete.** Access is cut within minutes and the data is
+  removed. There's no undelete — recreate the list if you change your mind.
+  The name and list slot free up immediately.
+- **Limits:** 5 lists per organization, 100,000 URLs per list, 1,000 URLs
+  per request.
 
 ## Next steps
 
