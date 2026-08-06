@@ -58,6 +58,7 @@
               "guides/mlt-strategy-recipes",
               "guides/product-refresh",
               "guides/bigquery-subscribe",
+              "guides/coverage-url-lists",
               "guides/pagination",
               "guides/error-handling",
               "guides/rate-limits",
@@ -85,6 +86,19 @@
               "api-reference/start-voyage",
               "api-reference/get-voyage",
               "api-reference/list-voyages"
+            ]
+          },
+          {
+            "group": "Coverage API",
+            "pages": [
+              "api-reference/create-url-list",
+              "api-reference/list-url-lists",
+              "api-reference/get-url-list",
+              "api-reference/delete-url-list",
+              "api-reference/add-url-list-urls",
+              "api-reference/remove-url-list-urls",
+              "api-reference/check-url-list-urls",
+              "api-reference/list-url-list-urls"
             ]
           },
           {

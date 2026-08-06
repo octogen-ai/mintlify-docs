@@ -1,0 +1,95 @@
+---
+title: "POST /coverage/url-lists — create a URL list"
+description: "Create a named coverage URL list that Octogen joins against its crawled catalogs and shares back in BigQuery."
+sidebarTitle: "Create a URL List"
+---
+
+`POST /coverage/url-lists` creates a coverage URL list: a named set of product
+URLs that Octogen continuously answers coverage for. Once the list is active,
+Octogen joins it against every active crawled catalog daily and publishes the
+matching products to a per-list BigQuery listing your organization's
+registered BigQuery Readers can subscribe to.
+
+A new list starts in `provisioning` while its BigQuery resources are created
+and typically becomes `active` within a minute. You can add URLs immediately —
+provisioning never blocks membership changes.
+
+Each Developer organization can have up to **5 live lists** (provisioning or
+active), each holding up to **100,000 URLs**.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/coverage/url-lists
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  List name, 1–80 characters, unique among your live lists. The name is
+  released as soon as a list is deleted.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/coverage/url-lists \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "q3-campaign"}'
+```
+
+## Response
+
+`201 Created` with the [URL list object](/api-reference/get-url-list#response).
+The `bigQuery` field is `null` until provisioning completes.
+
+### Example response
+
+```json
+{
+  "urlListId": "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+  "name": "q3-campaign",
+  "status": "provisioning",
+  "urlCount": 0,
+  "bigQuery": null,
+  "createdAt": "2026-08-05T20:14:03Z",
+  "updatedAt": "2026-08-05T20:14:03Z"
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `409` | `"url_list_name_conflict"` | A live list already uses that name. |
+| `409` | `"url_list_limit_exceeded"` | Your organization already has 5 live lists. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        url_list = await client.create_coverage_url_list(name="q3-campaign")
+        print(url_list.url_list_id, url_list.status)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const urlList = await client.createCoverageUrlList("q3-campaign");
+console.log(urlList.urlListId, urlList.status);
+```
+
+</CodeGroup>

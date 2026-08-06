@@ -1,0 +1,86 @@
+---
+title: "POST /coverage/url-lists/{urlListId}/urls/remove — remove URLs"
+description: "Remove product URLs from a coverage URL list."
+sidebarTitle: "Remove URLs"
+---
+
+`POST /coverage/url-lists/{urlListId}/urls/remove` removes URLs from a list.
+It is an **idempotent set-remove**: removing a URL that is not a member is
+accepted and simply does not change `urlCount`. URLs are normalized with the
+same rules as [adding URLs](/api-reference/add-url-list-urls), so any variant
+that normalizes to a member's normalized URL removes that member.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/coverage/url-lists/{urlListId}/urls/remove
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Path parameters
+
+<ParamField path="urlListId" type="string" required>
+  The list id (`cul_...`).
+</ParamField>
+
+### Body parameters
+
+<ParamField body="urls" type="string[]" required>
+  1–1,000 product URLs per request, each at most 2,048 characters.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/remove \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"urls": ["https://shop.example/products/dress"]}'
+```
+
+## Response
+
+The same shape as [adding URLs](/api-reference/add-url-list-urls#response):
+`accepted`, `rejected`, the list's new `urlCount`, and a `requestId`.
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `"url_list_not_found"` | No list with that id exists in your organization. |
+| `409` | `"url_list_deleting"` | The list is being deleted; mutations are refused. |
+| `409` | `"url_list_migrating"` | The list's entries are being re-normalized; retry shortly. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        result = await client.remove_coverage_url_list_urls(
+            "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+            urls=["https://shop.example/products/dress"],
+        )
+        print(result.url_count)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const result = await client.removeCoverageUrlListUrls(
+  "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+  ["https://shop.example/products/dress"],
+);
+console.log(result.urlCount);
+```
+
+</CodeGroup>

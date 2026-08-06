@@ -1,0 +1,125 @@
+---
+title: "POST /coverage/url-lists/{urlListId}/urls — add URLs"
+description: "Add product URLs to a coverage URL list with per-URL accepted/rejected outcomes."
+sidebarTitle: "Add URLs"
+---
+
+`POST /coverage/url-lists/{urlListId}/urls` adds product URLs to a list. It is
+an **idempotent set-add**: re-adding a URL that is already a member is
+accepted and changes nothing.
+
+Every URL is normalized server-side before storage — the scheme and host are
+lowercased, fragments and trailing slashes are dropped, and tracking
+parameters (`utm_*` and similar) are stripped while meaningful query
+parameters are preserved. Membership is keyed on the normalized form, so two
+submitted variants that normalize identically store one entry. URLs that
+cannot be normalized as product URLs are rejected **per URL** with code
+`invalid_url` without failing the batch.
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/coverage/url-lists/{urlListId}/urls
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Path parameters
+
+<ParamField path="urlListId" type="string" required>
+  The list id (`cul_...`).
+</ParamField>
+
+### Body parameters
+
+<ParamField body="urls" type="string[]" required>
+  1–1,000 product URLs per request, each at most 2,048 characters. Each entry
+  must be an absolute `http(s)` URL.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"urls": ["https://shop.example/products/dress?utm_source=newsletter"]}'
+```
+
+## Response
+
+<ResponseField name="accepted" type="array" required>
+  One entry per stored URL: `url` as you sent it and the `normalizedUrl` that
+  was stored.
+</ResponseField>
+
+<ResponseField name="rejected" type="array" required>
+  One entry per rejected URL with a stable `code` (`invalid_url`) and a safe
+  `message`.
+</ResponseField>
+
+<ResponseField name="urlCount" type="integer" required>
+  The list's total URL count after this request.
+</ResponseField>
+
+<ResponseField name="requestId" type="string" required>
+  Identifier for this mutation, useful in support requests.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "accepted": [
+    {
+      "url": "https://shop.example/products/dress?utm_source=newsletter",
+      "normalizedUrl": "https://shop.example/products/dress"
+    }
+  ],
+  "rejected": [],
+  "urlCount": 5445,
+  "requestId": "9f0f5a3f-6a3f-4a3d-9d3c-1b2a3c4d5e6f"
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `"url_list_not_found"` | No list with that id exists in your organization. |
+| `409` | `"url_list_deleting"` | The list is being deleted; mutations are refused. |
+| `409` | `"url_list_migrating"` | The list's entries are being re-normalized; retry shortly. |
+| `409` | `"list_url_capacity_exceeded"` | The add would exceed 100,000 entries. The whole request is refused. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        result = await client.add_coverage_url_list_urls(
+            "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+            urls=["https://shop.example/products/dress?utm_source=newsletter"],
+        )
+        print(result.url_count, [r.code for r in result.rejected])
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const result = await client.addCoverageUrlListUrls(
+  "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+  ["https://shop.example/products/dress?utm_source=newsletter"],
+);
+console.log(result.urlCount, result.rejected.map((r) => r.code));
+```
+
+</CodeGroup>

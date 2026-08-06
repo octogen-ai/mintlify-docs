@@ -1,0 +1,111 @@
+---
+title: "POST /coverage/url-lists/{urlListId}/urls/contains — check URLs"
+description: "Check which URLs are members of a coverage URL list."
+sidebarTitle: "Check URLs"
+---
+
+`POST /coverage/url-lists/{urlListId}/urls/contains` checks membership for a
+batch of URLs. Each input is normalized with the same rules as
+[adding URLs](/api-reference/add-url-list-urls), then looked up against the
+list. This checks **list membership** — whether you added the URL — not
+whether Octogen's catalogs cover it; coverage results live in the list's
+[BigQuery output](/guides/coverage-url-lists#query-your-coverage-in-bigquery).
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/coverage/url-lists/{urlListId}/urls/contains
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Path parameters
+
+<ParamField path="urlListId" type="string" required>
+  The list id (`cul_...`).
+</ParamField>
+
+### Body parameters
+
+<ParamField body="urls" type="string[]" required>
+  1–1,000 product URLs per request, each at most 2,048 characters.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"urls": ["https://shop.example/products/dress", "https://shop.example/products/coat"]}'
+```
+
+## Response
+
+<ResponseField name="results" type="array" required>
+  One result per input URL, in request order: `url` as you sent it,
+  `normalizedUrl`, `present`, and `addedAt` (`null` when not present).
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "results": [
+    {
+      "url": "https://shop.example/products/dress",
+      "normalizedUrl": "https://shop.example/products/dress",
+      "present": true,
+      "addedAt": "2026-08-05T20:16:41Z"
+    },
+    {
+      "url": "https://shop.example/products/coat",
+      "normalizedUrl": "https://shop.example/products/coat",
+      "present": false,
+      "addedAt": null
+    }
+  ]
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `"url_list_not_found"` | No list with that id exists in your organization. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        response = await client.check_coverage_url_list_urls(
+            "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+            urls=["https://shop.example/products/dress"],
+        )
+        for result in response.results:
+            print(result.url, result.present)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const response = await client.checkCoverageUrlListUrls(
+  "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+  ["https://shop.example/products/dress"],
+);
+for (const result of response.results) {
+  console.log(result.url, result.present);
+}
+```
+
+</CodeGroup>

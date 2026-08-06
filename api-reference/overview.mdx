@@ -4,7 +4,7 @@ description: "REST API reference for the Octogen Platform Catalog API v1 - base 
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, and request a product refresh. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, request a product refresh, and maintain coverage URL lists that Octogen joins against its catalogs daily. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -40,7 +40,7 @@ The machine-readable contract is published at every platform deploy:
 https://cdn.octogen.ai/openapi/platform/v1/openapi.json
 ```
 
-The document includes server URLs, operation IDs such as `searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `refreshProducts`, `startVoyage`, `getVoyage`, and `listVoyages`, full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
+The document includes server URLs, operation IDs such as `searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `refreshProducts`, `startVoyage`, `getVoyage`, `listVoyages`, `createUrlList`, `listUrlLists`, `getUrlList`, `deleteUrlList`, `addUrlListUrls`, `removeUrlListUrls`, `checkUrlListUrls`, and `listUrlListUrls`, full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
 
 ## Endpoints
 
@@ -55,6 +55,14 @@ The public reference currently documents these endpoints.
 | `POST` | `/voyage` | `startVoyage` | Starts or joins a voyage to add coverage for an ecommerce domain. |
 | `GET` | `/voyage/{task_id}` | `getVoyage` | Returns the current progress of a voyage requested by your organization. |
 | `GET` | `/voyage` | `listVoyages` | Lists your organization's voyages and current voyage quota usage. |
+| `POST` | `/coverage/url-lists` | `createUrlList` | Creates a coverage URL list that Octogen joins against its catalogs daily. |
+| `GET` | `/coverage/url-lists` | `listUrlLists` | Lists your organization's coverage URL lists. |
+| `GET` | `/coverage/url-lists/{urlListId}` | `getUrlList` | Returns one coverage URL list, including its BigQuery listing details. |
+| `DELETE` | `/coverage/url-lists/{urlListId}` | `deleteUrlList` | Permanently deletes a coverage URL list and its BigQuery resources. |
+| `POST` | `/coverage/url-lists/{urlListId}/urls` | `addUrlListUrls` | Adds product URLs to a list with per-URL outcomes. |
+| `GET` | `/coverage/url-lists/{urlListId}/urls` | `listUrlListUrls` | Pages through a list's member URLs. |
+| `POST` | `/coverage/url-lists/{urlListId}/urls/remove` | `removeUrlListUrls` | Removes product URLs from a list. |
+| `POST` | `/coverage/url-lists/{urlListId}/urls/contains` | `checkUrlListUrls` | Checks which URLs are members of a list. |
 
 ## Error model
 

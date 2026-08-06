@@ -1,0 +1,120 @@
+---
+title: "GET /coverage/url-lists/{urlListId} — get a URL list"
+description: "Fetch one coverage URL list, including its BigQuery listing details and last export status."
+sidebarTitle: "Get a URL List"
+---
+
+`GET /coverage/url-lists/{urlListId}` returns one coverage URL list by id.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/coverage/url-lists/{urlListId}
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Path parameters
+
+<ParamField path="urlListId" type="string" required>
+  The list id (`cul_...`) returned when the list was created.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2 \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+<ResponseField name="urlListId" type="string" required>
+  Stable list identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The list's name, unique among your live lists.
+</ResponseField>
+
+<ResponseField name="status" type='"provisioning" | "active" | "delete_pending"' required>
+  Lifecycle state. `provisioning` lists are being set up (the `bigQuery` field
+  is still `null`); `active` lists are exported daily; `delete_pending` lists
+  are being torn down and disappear when teardown completes.
+</ResponseField>
+
+<ResponseField name="urlCount" type="integer" required>
+  Current number of member URLs (after normalization and dedup).
+</ResponseField>
+
+<ResponseField name="bigQuery" type="object | null" required>
+  BigQuery output details once the list is provisioned:
+  `exchangeId` and `listingId` name the Analytics Hub listing,
+  `sharedDatasetId` the shared dataset, and `viewId` the queryable view
+  (`products_current_v1`). `lastExportedAt` and `lastRowCount` describe the
+  most recent daily export, and `readerCount` is the number of your
+  registered BigQuery Readers with access.
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime" required>
+  When the list was created.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime" required>
+  When the list last changed (membership, status, or export bookkeeping).
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "urlListId": "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
+  "name": "q3-campaign",
+  "status": "active",
+  "urlCount": 5445,
+  "bigQuery": {
+    "exchangeId": "catalogs_prod",
+    "listingId": "coverage_cul_01KZAC9QSY5RWSTZ63FGBS50F2_v1",
+    "sharedDatasetId": "coverage_share_cul_01KZAC9QSY5RWSTZ63FGBS50F2_v1",
+    "viewId": "products_current_v1",
+    "lastExportedAt": "2026-08-06T06:31:12Z",
+    "lastRowCount": 1128,
+    "readerCount": 1
+  },
+  "createdAt": "2026-08-05T20:14:03Z",
+  "updatedAt": "2026-08-06T06:31:12Z"
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `"url_list_not_found"` | No list with that id exists in your organization. |
+| `503` | `"url_lists_unavailable"` | The feature is temporarily unavailable. Retry with backoff. |
+
+## SDK equivalents
+
+<CodeGroup>
+
+```python Python
+import asyncio
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient() as client:
+        url_list = await client.get_coverage_url_list("cul_01KZAC9QSY5RWSTZ63FGBS50F2")
+        if url_list.big_query is not None:
+            print(url_list.big_query.listing_id, url_list.big_query.last_row_count)
+
+asyncio.run(main())
+```
+
+```typescript TypeScript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient();
+const urlList = await client.getCoverageUrlList("cul_01KZAC9QSY5RWSTZ63FGBS50F2");
+console.log(urlList.bigQuery?.listingId, urlList.bigQuery?.lastRowCount);
+```
+
+</CodeGroup>

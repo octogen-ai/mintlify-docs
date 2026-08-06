@@ -14,7 +14,10 @@ Use BigQuery when you want to join Octogen catalog data against your own data, r
 
 ## How access works
 
-BigQuery subscription is a two-party flow:
+Subscription applies to catalog listings and to
+[coverage URL list](/guides/coverage-url-lists) listings alike — the only
+difference is that coverage listings grant your registered Readers access
+automatically. BigQuery subscription is a two-party flow:
 
 1. **Octogen grants listing access.** Octogen publishes the catalog as an Analytics Hub listing and grants your Google principal `roles/analyticshub.subscriber` on that listing.
 2. **You create the linked dataset.** You run the subscription step from your own environment using Google Application Default Credentials. The linked dataset is created in your GCP project and billed to you.
