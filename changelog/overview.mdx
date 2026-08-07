@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="August 7, 2026" description="Per-URL coverage view for URL Lists">
+
+## New features
+
+**See exactly which of your URLs are covered.** Every URL List's BigQuery dataset now carries a second view, `url_coverage_v1` — one row per URL in your list with `(url, normalized_url, covered, exported_at)` — so the uncovered portion of a list is a single query: `SELECT url FROM url_coverage_v1 WHERE NOT covered`.
+
+The view appears automatically in your linked dataset, including subscriptions created before it existed, and refreshes with the same daily export as `products_current_v1`, so the two views always describe the same snapshot. `covered = TRUE` means the products view has at least one row for that URL; matching tolerates the same variants as adds (query parameters, Shopify collection paths).
+
+No API or SDK changes. See the [Coverage URL Lists guide](/guides/coverage-url-lists).
+
+</Update>
+
 <Update label="August 6, 2026" description="Coverage URL Lists">
 
 ## New features
