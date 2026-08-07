@@ -49,10 +49,13 @@ curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS
 <ResponseField name="bigQuery" type="object | null" required>
   BigQuery output details once the list is provisioned:
   `exchangeId` and `listingId` name the Analytics Hub listing,
-  `sharedDatasetId` the shared dataset, and `viewId` the queryable view
-  (`products_current_v1`). `lastExportedAt` and `lastRowCount` describe the
-  most recent daily export, and `readerCount` is the number of your
-  registered BigQuery Readers with access.
+  `sharedDatasetId` the shared dataset, and `viewId` the products view
+  (`products_current_v1`). The dataset also carries the per-URL
+  `url_coverage_v1` view — see the
+  [Coverage URL Lists guide](/guides/coverage-url-lists).
+  `lastExportedAt` and `lastRowCount` describe the most recent daily export,
+  and `readerCount` is the number of your registered BigQuery Readers with
+  access.
 </ResponseField>
 
 <ResponseField name="createdAt" type="datetime" required>

@@ -25,7 +25,8 @@ you upload the URLs you care about and read the answer in BigQuery.
   <Step title="Read fresh results in BigQuery every day">
     Each covered URL becomes full product rows — title, brand, price, images,
     variants, and the rest — in exactly the schema your existing catalog
-    listings use. Uncovered URLs simply produce no rows.
+    listings use. A per-URL coverage view says which of your URLs matched and
+    which didn't.
   </Step>
 </Steps>
 
@@ -149,9 +150,8 @@ in the `catalogs_prod` exchange:
 - **Each daily export replaces the previous snapshot**; `lastExportedAt` and
   `lastRowCount` on the list object tell you what the view currently
   reflects.
-- **A URL with no matching row simply isn't covered yet.** The gap between
-  `urlCount` and `lastRowCount` is the part of your list Octogen doesn't
-  cover.
+- **A URL with no matching row simply isn't covered yet** — and the
+  `url_coverage_v1` view, below, tells you exactly which URLs those are.
 
 After subscribing, query the linked dataset:
 
@@ -160,6 +160,36 @@ SELECT catalog_key, product_url, title, current_price, in_stock
 FROM `my-gcp-project.octogen_coverage_q3.products_current_v1`
 ORDER BY catalog_key, title
 ```
+
+## See exactly which URLs are covered
+
+The same dataset carries a second view, **`url_coverage_v1`** — one row per
+URL in your list, saying whether it matched:
+
+| Column | Meaning |
+| --- | --- |
+| `url` | The URL as you submitted it |
+| `normalized_url` | Octogen's normalized form of it |
+| `covered` | `TRUE` if the export matched at least one product |
+| `exported_at` | The snapshot timestamp |
+
+The uncovered portion of your list is one query:
+
+```sql
+SELECT url
+FROM `my-gcp-project.octogen_coverage_q3.url_coverage_v1`
+WHERE NOT covered
+```
+
+- **No action needed** — the view appears automatically in your linked
+  dataset, including datasets you subscribed before it existed.
+- **Same refresh as the products view**: both are written by the same daily
+  export, so they always describe the same snapshot. URLs added since the
+  last export show up on the next one.
+- **`covered = TRUE` means the products view has at least one row for that
+  URL.** Don't infer coverage by comparing row counts across the two views —
+  one URL can match several products and several URLs can match one product,
+  so the counts aren't ordered. This view is the per-URL ground truth.
 
 ## Behavior worth knowing
 
