@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="August 12, 2026" description="Resolve products from your own HTML">
+
+## New features
+
+**Turn the product page your user is viewing into a product object.** The new `POST /v1/products/resolve-from-html` endpoint accepts a product page's HTML (up to 5 MiB) plus its URL, and returns the same response envelope as Product Lookup with a new `source: "client_html"` value. Octogen never fetches the page, never reads its index, and never stores what you send — extraction is the same deterministic JSON-LD → Open Graph → HTML meta pass the on-demand lookup path uses, applied to your bytes.
+
+Capture the live DOM from your client application while your user is on the product page (`document.documentElement.outerHTML` + `location.href`), relay it through your backend, and resolve exactly what the user saw — including storefronts that block server-side fetching entirely, and the precise variant and price state of the session. Live-DOM captures are already rendered, so storefronts that inject their JSON-LD client-side extract at full fidelity. For URLs on covered domains, Product Lookup remains the richer call.
+
+See the [Resolve from HTML guide](/guides/resolve-from-html) and [API reference](/api-reference/resolve-product-from-html).
+
+</Update>
+
 <Update label="August 7, 2026" description="Per-URL coverage view for URL Lists">
 
 ## New features

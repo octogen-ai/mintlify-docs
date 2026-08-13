@@ -1,0 +1,131 @@
+---
+title: "POST /products/resolve-from-html — resolve a product from page HTML"
+description: "POST /products/resolve-from-html extracts a product from HTML you supply, with no index read and no outbound fetch."
+sidebarTitle: "Resolve from HTML"
+---
+
+`POST /v1/products/resolve-from-html` resolves one product from the page HTML you submit — typically captured from the product page your user is viewing in your client application — and returns the same source-aware `MerchantProductUrlLookupResponse` as [Product Lookup](/api-reference/lookup-product), with `source: "client_html"`. Octogen never reads its index and never fetches anything: the response is derived entirely from the document you send. The request is stateless — nothing is cached and nothing is stored.
+
+Extraction is the same deterministic pass the on-demand lookup path uses: JSON-LD `schema.org/Product` first, then Open Graph tags, then plain HTML meta. There is no JavaScript rendering and no inference — capture the live DOM rather than the raw server response. See the [guide](/guides/resolve-from-html) for capture mechanics and timing.
+
+<Warning>
+Call this endpoint from your backend only. Your platform API key is an organization-scoped secret — never embed it in code that runs on your users' devices. Relay captures through your own server: `user's browser → your backend → api.octogen.ai`.
+</Warning>
+
+## Request
+
+```http
+POST https://api.octogen.ai/v1/products/resolve-from-html
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="html" type="string" required>
+  The product page HTML, at most 5 MiB. This is the same size bound Octogen's own live-fetch path enforces, so any page that path could retrieve is submittable. The raw request body is capped at 8 MiB; larger requests are rejected with `413`.
+</ParamField>
+
+<ParamField body="url" type="string">
+  Optional source URL of the page. When present it anchors relative image URLs and selects the matching JSON-LD product node on multi-product pages, exactly as the final fetched URL does on the lookup path. When absent, the page must declare its own canonical URL (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`; relative image URLs are dropped and the response carries a `source_url_missing` warning.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "html": "<!doctype html><html>…</html>",
+    "url": "https://example.com/products/blue-linen-dress"
+  }'
+```
+
+In the client application, the capture is two values read while the user is on the product page — serialize the live DOM, not the server response:
+
+```js
+const capture = {
+  html: document.documentElement.outerHTML,
+  url: location.href,
+};
+// Send `capture` to your backend, which calls Octogen with your API key.
+```
+
+To build the request body from a saved HTML file (for example, while testing), let `jq` handle the JSON escaping:
+
+```bash
+jq -Rs --arg url "https://example.com/products/blue-linen-dress" '{html: ., url: $url}' page.html \
+  | curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+      -H "Authorization: Bearer $OCTO_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data @-
+```
+
+## Response
+
+The response reuses the lookup envelope, so a client that already handles `source: "on_demand"` lookup results parses it without new fields to learn:
+
+```json
+{
+  "requestId": "req_01JX…",
+  "source": "client_html",
+  "product": {
+    "uuid": null,
+    "catalogKey": null,
+    "title": "Blue Linen Dress",
+    "brand": { "name": "Example Brand" },
+    "productUrl": "https://example.com/products/blue-linen-dress",
+    "imageUrl": null,
+    "primaryImage": { "url": "https://example.com/media/dress.jpg" },
+    "images": [{ "url": "https://example.com/media/dress.jpg" }],
+    "currentPrice": 148.0,
+    "currency": "USD",
+    "inStock": true,
+    "isActive": null
+  },
+  "requestedUrl": "https://example.com/products/blue-linen-dress",
+  "resolvedUrl": null,
+  "canonicalUrl": "https://example.com/products/blue-linen-dress",
+  "resolution": {
+    "completeness": "complete",
+    "method": "json_ld",
+    "rendered": false,
+    "missingFields": []
+  },
+  "cacheStatus": null,
+  "warnings": []
+}
+```
+
+Differences from lookup responses, all following from "you supplied the bytes":
+
+| Field | Behavior on `client_html` results |
+| --- | --- |
+| `resolvedUrl` | Always `null` — nothing was fetched, so there is no post-redirect URL. |
+| `cacheStatus` | Always `null` — no cache is consulted or written. |
+| `requestedUrl` | Echoes the `url` you submitted, or `null` when you sent none. |
+| `canonicalUrl` | The canonical URL the page declares, falling back to your submitted `url` when the page declares none. |
+| `product.uuid`, `catalogKey`, `isActive` | Always `null`, as on `on_demand` results — no indexed identity is fabricated. |
+| `product.imageUrl` | Always `null` (CDN-hosted copies never exist for supplied HTML); source image URLs ride `images[].url`. |
+| `resolution.rendered` | Always `false`. It describes Octogen's processing — Octogen never renders — not how you captured the page. |
+
+### Warnings
+
+| Code | Meaning |
+| --- | --- |
+| `source_url_missing` | No `url` was supplied; the canonical came from the page and relative image URLs were dropped. |
+| `product_fields_clamped` | One or more extracted values exceeded response bounds and were truncated or dropped (for example, a description over 10,000 characters or more than 50 image URLs). |
+
+## Errors
+
+| Status | Detail | Meaning |
+| --- | --- | --- |
+| `404` | `product_not_found` | The HTML contains no credible product metadata, or no canonical product URL could be established. |
+| `413` | `request_body_too_large` | The request body exceeds the 8 MiB cap. |
+| `422` | — | Missing or empty `html`, an invalid `url`, or `html` over 5 MiB. Validation errors identify the failing field by `loc` and never echo the submitted document. |
+| `429` | `product_resolution_rate_limited` | The HTML-resolution rate limit or its concurrency gate is exhausted. Retry after the `Retry-After` interval. |
+| `503` | `product_resolution_unavailable` | HTML resolution is temporarily unavailable. |
+| `504` | `product_resolution_timed_out` | The request could not start its extraction within the service's deadline. |
+
+See [Error handling](/guides/error-handling) for the general error envelope and retry guidance.

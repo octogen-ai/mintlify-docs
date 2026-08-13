@@ -53,6 +53,7 @@
             "pages": [
               "guides/catalog-search",
               "guides/product-lookup",
+              "guides/resolve-from-html",
               "guides/more-like-this",
               "guides/add-an-ecommerce-domain",
               "guides/mlt-strategy-recipes",
@@ -75,6 +76,7 @@
             "pages": [
               "api-reference/overview",
               "api-reference/lookup-product",
+              "api-reference/resolve-product-from-html",
               "api-reference/more-like-this",
               "api-reference/refresh-products",
               "api-reference/search-products"

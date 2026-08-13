@@ -1,0 +1,81 @@
+---
+title: "Resolve a product from HTML your users capture"
+description: "Turn the product page your user is viewing into the same product object Product Lookup returns — no fetch, no index, no caching."
+sidebarTitle: "Resolve from HTML"
+---
+
+Resolve from HTML turns page bytes **your application captures** into a product object. Where [Product Lookup](/guides/product-lookup) takes a URL and lets Octogen find or fetch the product, `POST /v1/products/resolve-from-html` takes the HTML itself — typically captured from the product page your user is viewing in your client application. Octogen never fetches the page, never reads its index, and never stores what you send.
+
+Use it when:
+
+- Your users browse product pages your servers never fetch — resolve exactly what they see, at the moment they see it.
+- You need the precise state the user saw: the selected variant, the live price, the flash-sale moment.
+
+Prefer [Product Lookup](/guides/product-lookup) whenever a URL is on a domain Octogen covers — indexed results are strictly richer, with enriched attributes, CDN-hosted images, and a stable product identity. Check coverage with [`GET /v1/domains`](/api-reference/overview).
+
+## Capture from your client, resolve from your backend
+
+The capture itself is two values, read in your client application while the user is on the product page:
+
+```js
+const capture = {
+  html: document.documentElement.outerHTML,
+  url: location.href,
+};
+```
+
+Two rules make captures reliable:
+
+- **Capture the live DOM, not the server response.** `document.documentElement.outerHTML` serializes the page *after* the storefront's JavaScript has run — which is exactly what you want, because many storefronts inject their product JSON-LD client-side. A capture of the raw server response often extracts worse (see [what the resolution block tells you](#what-the-resolution-block-tells-you)).
+- **Capture after the page settles.** Wait for the page to finish loading plus a short delay. On storefronts that navigate client-side, re-capture after each route change, and read `location.href` at capture time so the URL always matches the DOM you serialize.
+
+<Warning>
+Your platform API key is an organization-scoped, server-to-server secret. Never embed it in client-side code — a page, an extension, or any code that runs on your users' devices. Send the capture from your client to **your own backend**, and have your backend call Octogen:
+
+`user's browser → your backend → api.octogen.ai`
+</Warning>
+
+Your backend then forwards the capture unchanged:
+
+```bash
+curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg html "$CAPTURED_HTML" --arg url "$CAPTURED_URL" '{html: $html, url: $url}')"
+```
+
+A successful response is the familiar lookup envelope with `source: "client_html"`, plus a `resolution` block that tells you how the extraction went — see the [API reference](/api-reference/resolve-product-from-html) for the full field-by-field contract.
+
+Captures from signed-in sessions can include user-specific markup such as an account name or cart contents. Octogen reads only product metadata from the document and stores none of it, but as a rule, capture product pages only — not checkout or account surfaces.
+
+## Always send the URL
+
+The `url` field is optional in the contract, but in this model you always have it — `location.href` — so always send it. It does three jobs:
+
+1. **Anchors relative URLs.** Pages routinely reference images as `/media/photo.jpg`; without a base URL those references are dropped.
+2. **Selects the variant your user chose.** When a page embeds several JSON-LD product nodes or a `ProductGroup` with per-variant entries, the extractor picks the node whose declared URL matches yours — the variant query parameters in `location.href` are exactly what make the right colorway win.
+3. **Provides fallback identity.** Every product needs a `productUrl`. Without your `url`, the page must declare its own canonical (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`.
+
+If a capture genuinely arrives without a URL, the response carries a `source_url_missing` warning and only absolute image URLs survive. The `url` is caller-asserted and unverified — it is a parsing hint, not provenance, which is why these results carry `source: "client_html"` rather than `"on_demand"`.
+
+## What the resolution block tells you
+
+Extraction reads standardized metadata in priority order — JSON-LD `schema.org/Product`, then Open Graph, then HTML meta — with no JavaScript execution and no inference. The `resolution` block reports what the document actually contained:
+
+- `method` names the strongest source found (`json_ld`, `open_graph`, `html_meta`).
+- `completeness` is `complete` when title, brand, images, price, and currency were all found; otherwise `partial`, with `missingFields` naming the gaps.
+- `rendered` is always `false` — it describes Octogen's processing, not your capture.
+
+A live-DOM capture of a well-marked-up storefront typically yields `json_ld` / `complete`. If your captures consistently come back `open_graph` / `partial` with price missing, you are almost certainly serializing before the storefront's JavaScript injects its JSON-LD — capture later, after the page settles.
+
+<Note>
+Testing the API before your capture path exists? Open any product page in your own browser and run `copy(document.documentElement.outerHTML)` in the DevTools console — that is a faithful stand-in for a client capture. Saving the page with **Save Page As** or fetching it with `curl` gives you the pre-render server response instead, which extracts worse on storefronts that hydrate their metadata.
+</Note>
+
+## Limits and errors
+
+- `html` is capped at 5 MiB — comfortably above real product page sizes — and the raw request body at 8 MiB (`413` beyond that).
+- HTML resolution has its own rate limit and concurrency gate, separate from lookup's on-demand budget. A `429` carries `Retry-After`; a `504` means the extraction could not start within the service's deadline. Both are retryable.
+- A page with no credible product metadata returns `404 product_not_found` — the same signal lookup uses, so shared handling code works unchanged.
+
+See the [API reference](/api-reference/resolve-product-from-html) for the complete error table and [Rate limits](/guides/rate-limits) for the general budgeting model.
