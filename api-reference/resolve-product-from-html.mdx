@@ -27,7 +27,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="url" type="string">
-  Optional source URL of the page. When present it anchors relative image URLs and selects the matching JSON-LD product node on multi-product pages, exactly as the final fetched URL does on the lookup path. When absent, the page must declare its own canonical URL (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`; relative image URLs are dropped and the response carries a `source_url_missing` warning.
+  Source URL of the page. Recommended on every request — your client has `location.href` at capture time. It anchors relative image URLs and selects the matching JSON-LD product node on multi-product pages, exactly as the final fetched URL does on the lookup path. The field is optional only so captures that lost their provenance can still resolve: when absent, the page must declare its own canonical URL (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`; relative image URLs are dropped and the response carries a `source_url_missing` warning.
 </ParamField>
 
 ### Example
