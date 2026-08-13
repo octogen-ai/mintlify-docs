@@ -1,0 +1,76 @@
+---
+title: "Resolve a product from HTML you already have"
+description: "Turn product page HTML you captured yourself into the same product object Product Lookup returns — no fetch, no index, no caching."
+sidebarTitle: "Resolve from HTML"
+---
+
+Resolve from HTML turns page bytes **you already hold** into a product object. Where [Product Lookup](/guides/product-lookup) takes a URL and lets Octogen find or fetch the product, `POST /v1/products/resolve-from-html` takes the HTML itself: your crawler's output, a browser capture, an archived snapshot. Octogen never fetches the page, never reads its index, and never stores what you send.
+
+Use it when:
+
+- Your pipeline already downloads product pages and you want structured product data without a second fetch from Octogen.
+- The page sits behind bot protection or authentication that your infrastructure can traverse and Octogen's cannot.
+- You captured the page at a moment you care about (a price you saw, a flash-sale state) and want that exact snapshot resolved.
+
+Prefer [Product Lookup](/guides/product-lookup) whenever the URL is on a domain Octogen covers — indexed results are strictly richer, with enriched attributes, CDN-hosted images, and a stable product identity. Check coverage with [`GET /v1/domains`](/api-reference/overview).
+
+## Make a request
+
+The endpoint takes the HTML and, optionally, the page's source URL:
+
+```bash
+jq -Rs --arg url "https://example.com/products/blue-linen-dress" '{html: ., url: $url}' page.html \
+  | curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+      -H "Authorization: Bearer $OCTO_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data @-
+```
+
+Or as one pipeline that downloads and resolves in a single command:
+
+```bash
+URL="https://example.com/products/blue-linen-dress"
+curl -sL "$URL" \
+  | jq -Rs --arg url "$URL" '{html: ., url: $url}' \
+  | curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+      -H "Authorization: Bearer $OCTO_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data @- \
+  | jq .
+```
+
+A successful response is the familiar lookup envelope with `source: "client_html"`, plus a `resolution` block that tells you how the extraction went — see the [API reference](/api-reference/resolve-product-from-html) for the full field-by-field contract.
+
+## Always send the URL when you have it
+
+The `url` field is optional, but it is a parsing aid you should not skip casually. It does three jobs:
+
+1. **Anchors relative URLs.** Pages routinely reference images as `/media/photo.jpg`; without a base URL those references are dropped.
+2. **Disambiguates multi-product pages.** When a page embeds several JSON-LD product nodes or a `ProductGroup` with per-variant entries, the extractor picks the node whose declared URL matches yours — that is how the right colorway wins.
+3. **Provides fallback identity.** Every product needs a `productUrl`. Without your `url`, the page must declare its own canonical (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`.
+
+Omit `url` only when you genuinely do not know where the HTML came from. The response then carries a `source_url_missing` warning, and only absolute image URLs survive. The `url` is caller-asserted and unverified — it is a parsing hint, not provenance, which is why these results carry `source: "client_html"` rather than `"on_demand"`.
+
+## Send rendered HTML for hydrated storefronts
+
+Extraction quality is bounded by what is in the bytes you send. The extractor reads standardized metadata in priority order — JSON-LD `schema.org/Product`, then Open Graph, then HTML meta — with no JavaScript execution. Many storefronts inject their JSON-LD client-side, so the server's raw response and the browser's rendered DOM extract very differently:
+
+| Capture | Typical result on a hydrated storefront |
+| --- | --- |
+| `curl` of the URL (pre-hydration) | `method: "open_graph"`, `completeness: "partial"` — title and images, but often no price or brand |
+| Rendered DOM (post-hydration) | `method: "json_ld"`, `completeness: "complete"` — brand, price, currency, availability |
+
+To capture the rendered DOM:
+
+- **In your browser**: open the page, then in the DevTools console run `copy(document.documentElement.outerHTML)` and paste into a file. Note that **Save Page As** captures the pre-hydration server response — use the console.
+- **In a pipeline**: use a headless browser and serialize the DOM after hydration settles (for example, Playwright's `page.content()` after `domcontentloaded` plus a short delay).
+
+The `resolution` block tells you which mode you got: `method` and `completeness` reflect what the document actually contained, and `missingFields` names what was not found. `rendered` is always `false` — it describes Octogen's processing, not your capture.
+
+## Limits and errors
+
+- `html` is capped at 5 MiB — the same bound Octogen's own live-fetch path enforces — and the raw request body at 8 MiB (`413` beyond that).
+- HTML resolution has its own rate limit and concurrency gate, separate from lookup's on-demand budget. A `429` carries `Retry-After`; a `504` means the extraction could not start within the service's deadline. Both are retryable.
+- A page with no credible product metadata returns `404 product_not_found` — the same signal lookup uses, so shared handling code works unchanged.
+
+See the [API reference](/api-reference/resolve-product-from-html) for the complete error table and [Rate limits](/guides/rate-limits) for the general budgeting model.
