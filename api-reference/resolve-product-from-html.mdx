@@ -4,9 +4,13 @@ description: "POST /products/resolve-from-html extracts a product from HTML you 
 sidebarTitle: "Resolve from HTML"
 ---
 
-`POST /v1/products/resolve-from-html` resolves one product from the page HTML you submit and returns the same source-aware `MerchantProductUrlLookupResponse` as [Product Lookup](/api-reference/lookup-product), with `source: "client_html"`. Octogen never reads its index and never fetches anything: the response is derived entirely from the document you send. The request is stateless — nothing is cached and nothing is stored.
+`POST /v1/products/resolve-from-html` resolves one product from the page HTML you submit — typically captured from the product page your user is viewing in your client application — and returns the same source-aware `MerchantProductUrlLookupResponse` as [Product Lookup](/api-reference/lookup-product), with `source: "client_html"`. Octogen never reads its index and never fetches anything: the response is derived entirely from the document you send. The request is stateless — nothing is cached and nothing is stored.
 
-Extraction is the same deterministic pass the on-demand lookup path uses: JSON-LD `schema.org/Product` first, then Open Graph tags, then plain HTML meta. There is no JavaScript rendering and no inference — see the [guide](/guides/resolve-from-html) for what that means for hydrated pages.
+Extraction is the same deterministic pass the on-demand lookup path uses: JSON-LD `schema.org/Product` first, then Open Graph tags, then plain HTML meta. There is no JavaScript rendering and no inference — capture the live DOM rather than the raw server response. See the [guide](/guides/resolve-from-html) for capture mechanics and timing.
+
+<Warning>
+Call this endpoint from your backend only. Your platform API key is an organization-scoped secret — never embed it in code that runs on your users' devices. Relay captures through your own server: `user's browser → your backend → api.octogen.ai`.
+</Warning>
 
 ## Request
 
@@ -38,7 +42,17 @@ curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
   }'
 ```
 
-To build the request body from a saved HTML file, let `jq` handle the JSON escaping:
+In the client application, the capture is two values read while the user is on the product page — serialize the live DOM, not the server response:
+
+```js
+const capture = {
+  html: document.documentElement.outerHTML,
+  url: location.href,
+};
+// Send `capture` to your backend, which calls Octogen with your API key.
+```
+
+To build the request body from a saved HTML file (for example, while testing), let `jq` handle the JSON escaping:
 
 ```bash
 jq -Rs --arg url "https://example.com/products/blue-linen-dress" '{html: ., url: $url}' page.html \
