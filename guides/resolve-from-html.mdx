@@ -48,15 +48,15 @@ A successful response is the familiar lookup envelope with `source: "client_html
 
 Captures from signed-in sessions can include user-specific markup such as an account name or cart contents. Octogen reads only product metadata from the document and stores none of it, but as a rule, capture product pages only — not checkout or account surfaces.
 
-## Always send the URL
+## What the URL does
 
-The `url` field is optional in the contract, but in this model you always have it — `location.href` — so always send it. It does three jobs:
+The `url` field is optional — HTML can still resolve even when you don't know which page it came from. Since your client has `location.href` at capture time, we recommend sending it on every request. It does three jobs:
 
 1. **Anchors relative URLs.** Pages routinely reference images as `/media/photo.jpg`; without a base URL those references are dropped.
 2. **Selects the variant your user chose.** When a page embeds several JSON-LD product nodes or a `ProductGroup` with per-variant entries, the extractor picks the node whose declared URL matches yours — the variant query parameters in `location.href` are exactly what make the right colorway win.
 3. **Provides fallback identity.** Every product needs a `productUrl`. Without your `url`, the page must declare its own canonical (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`.
 
-If a capture genuinely arrives without a URL, the response carries a `source_url_missing` warning and only absolute image URLs survive. The `url` is caller-asserted and unverified — it is a parsing hint, not provenance, which is why these results carry `source: "client_html"` rather than `"on_demand"`.
+When a request arrives without a URL, resolution falls back to the URL the page declares about itself (JSON-LD `url`, `og:url`, or `link rel="canonical"`), the response carries a `source_url_missing` warning, and only absolute image URLs survive. Treat that as a fallback for HTML whose source you don't know, not something to design for. The `url` is caller-asserted and unverified — it is a parsing hint, not proof of where the HTML came from, which is why these results carry `source: "client_html"` rather than `"on_demand"`.
 
 ## What the resolution block tells you
 
