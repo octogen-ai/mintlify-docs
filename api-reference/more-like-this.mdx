@@ -1,6 +1,6 @@
 ---
 title: "POST /products/more-like-this — find similar products"
-description: "Find products similar to a source product — identified by URL, UUID, or an image — across all active crawled catalogs, or within one catalog, using product enrichment and relative price preferences."
+description: "Find products similar to a source product — identified by URL, UUID, or an image — across all active crawled catalogs, or restricted to a catalog allowlist, using product enrichment and relative price preferences."
 sidebarTitle: "More Like This"
 ---
 
@@ -42,8 +42,8 @@ Content-Type: application/json
   HTTPS image URL fetched server-side — any public host, so retailer product-image URLs can be passed directly. Redirects are not followed, the fetch validates that both DNS resolution and the connected peer are public addresses, and the same 8 MB cap applies while streaming.
 </ParamField>
 
-<ParamField body="catalog" type="string">
-  Optional active crawled catalog key. When omitted, source resolution and search run across all active crawled catalogs. When provided, use a known active crawled catalog key.
+<ParamField body="catalogs" type="string[]">
+  Optional catalog allowlist (1–100 keys) restricting **results** to these catalogs. Retrieval-only: the source product may live outside the allowlist and still resolves. Keys are not validated — an unknown or inaccessible key simply matches nothing. When omitted, search runs across all active crawled catalogs. With `debug: true`, the applied allowlist is echoed as `effectiveQuery.catalogs`. Replaces the former single-valued `catalog` field, which is now rejected with a `422`.
 </ParamField>
 
 <ParamField body="include_facets" type="Facet[]">
@@ -88,7 +88,7 @@ curl -sS https://api.octogen.ai/v1/products/more-like-this \
     "source": {
       "url": "https://warrenlotas.com/products/black-hoodie"
     },
-    "catalog": "warrenlotas",
+    "catalogs": ["warrenlotas"],
     "price_preference": "any",
     "limit": 12
   }'
@@ -174,7 +174,7 @@ Behavior to know:
 </ResponseField>
 
 <ResponseField name="effectiveQuery" type="object | null">
-  Present only when `debug` is `true`. Contains the public server-derived query fields: `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `priceMin`, `priceMax`, and `limit`. For image sources it additionally carries `generationStages` (per-stage generation timings), `degradedToTextFallback`, and — when relaxation ran — `relaxationRounds` and `relaxationDroppedFacets`.
+  Present only when `debug` is `true`. Contains the public server-derived query fields: `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `priceMin`, `priceMax`, `limit`, and — when a `catalogs` allowlist was sent — `catalogs` (the normalized allowlist as applied). For image sources it additionally carries `generationStages` (per-stage generation timings), `degradedToTextFallback`, and — when relaxation ran — `relaxationRounds` and `relaxationDroppedFacets`.
 </ResponseField>
 
 ### Example response
@@ -215,7 +215,7 @@ async def main() -> None:
     async with OctogenClient() as client:
         page = await client.more_like_this_products(
             source_url="https://warrenlotas.com/products/black-hoodie",
-            catalog="warrenlotas",
+            catalogs=["warrenlotas"],
             price_preference="any",
             limit=12,
         )
@@ -231,7 +231,7 @@ import { OctogenClient } from "@octogen-ai/sdk";
 const client = new OctogenClient();
 const page = await client.moreLikeThisProducts({
   source: { url: "https://warrenlotas.com/products/black-hoodie" },
-  catalog: "warrenlotas",
+  catalogs: ["warrenlotas"],
   pricePreference: "any",
   limit: 12,
 });
@@ -251,5 +251,5 @@ The endpoint uses the standard Catalog API error model:
 | --- | --- |
 | `401` | Missing, malformed, or invalid Bearer API key. |
 | `403` | API key is valid but not allowed to access this resource. |
-| `404` | The requested catalog or source product is not visible for this API key. |
+| `404` | The source product is not visible for this API key. |
 | `422` | Request validation failed, including missing source identifiers, both source identifiers being present, an invalid limit, an invalid `price_preference`, or an unknown embedding column. |
