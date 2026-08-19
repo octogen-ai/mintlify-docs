@@ -9,7 +9,7 @@ Resolve from HTML turns page bytes **your application captures** into a product 
 Use it when:
 
 - Your users browse product pages your servers never fetch — resolve exactly what they see, at the moment they see it.
-- You need the precise state the user saw: the selected variant, the live price, the flash-sale moment.
+- You need the page's state at the moment the user saw it: the live price, the flash-sale moment, the product exactly as the page declared it.
 
 Prefer [Product Lookup](/guides/product-lookup) whenever a URL is on a domain Octogen covers — indexed results are strictly richer, with enriched attributes, CDN-hosted images, and a stable product identity. Check coverage with [`GET /v1/domains`](/api-reference/overview).
 
@@ -50,13 +50,17 @@ Captures from signed-in sessions can include user-specific markup such as an acc
 
 ## What the URL does
 
-The `url` field is optional — HTML can still resolve even when you don't know which page it came from. Since your client has `location.href` at capture time, we recommend sending it on every request. It does three jobs:
+The `url` field is optional — but sending it is **strongly recommended**: read `location.href` at the same instant you serialize the DOM, and send it on every request. HTML alone can still resolve, but on many storefronts the URL carries information that exists nowhere in the document. It does three jobs:
 
 1. **Anchors relative URLs.** Pages routinely reference images as `/media/photo.jpg`; without a base URL those references are dropped.
-2. **Selects the variant your user chose.** When a page embeds several JSON-LD product nodes or a `ProductGroup` with per-variant entries, the extractor picks the node whose declared URL matches yours — the variant query parameters in `location.href` are exactly what make the right colorway win.
+2. **Preserves the variant your user chose.** When a shopper picks a size or color without leaving the page, most storefronts record that choice *only* in the URL (`?size=L`, `?sizeCode=120`, `?color=45739`) — the page's product markup keeps describing the variant it loaded with. Your submitted `url` is echoed back as `requestedUrl`, making it the only variant-qualified identity in the response: page-declared canonicals deliberately drop variant parameters, so keying products on `canonicalUrl` collapses every variant into one. And when a page's markup does declare per-variant URLs, the extractor uses your `url` to pick the matching node.
 3. **Provides fallback identity.** Every product needs a `productUrl`. Without your `url`, the page must declare its own canonical (JSON-LD `url`, `og:url`, or `link rel="canonical"`) or resolution fails with `404 product_not_found`.
 
 When a request arrives without a URL, resolution falls back to the URL the page declares about itself (JSON-LD `url`, `og:url`, or `link rel="canonical"`), the response carries a `source_url_missing` warning, and only absolute image URLs survive. Treat that as a fallback for HTML whose source you don't know, not something to design for. The `url` is caller-asserted and unverified — it is a parsing hint, not proof of where the HTML came from, which is why these results carry `source: "client_html"` rather than `"on_demand"`.
+
+<Note>
+A capture is the page's **declared** state, not its widget state. Storefronts handle variant selection three ways: some navigate to a per-variant page (the URL and HTML both identify the variant), most rewrite only the URL (send it and the identity survives as `requestedUrl`), and a few record the selection nowhere — there, no parser can recover it, and even the captured URL may still reflect the variant the page loaded with. When variant precision matters, re-read `location.href` after the selection and re-capture; if the URL didn't change, treat the result as the page's default variant.
+</Note>
 
 ## What the resolution block tells you
 
