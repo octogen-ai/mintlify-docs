@@ -1,9 +1,11 @@
 ---
 title: "Authenticate with the Octogen Platform API"
-description: "Learn how to create a Platform API key, configure OCTO_API_KEY in your environment, and send it as a Bearer token on every request."
+description: "Learn how to create a Platform API key, configure OCTO_API_KEY in your environment, and send it as a Bearer token to authenticated endpoints."
 ---
 
-Every request to the Octogen Platform Catalog API must include a valid API key. Keys are issued per organization through Octogen Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+Most requests to the Octogen Platform Catalog API require a valid API key. Keys are issued per organization through Octogen Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+
+[`GET /domains`](/api-reference/list-domains), `POST /products/lookup`, and `POST /products/search` also support a limited keyless trial. Include an API key for production workloads, higher limits, and access to the complete `/v1` surface.
 
 ## API key format
 
@@ -46,7 +48,7 @@ Keep your key private. Do not commit it to source control or expose it in client
 
 ## Attach the key to requests
 
-Send the key as a Bearer token in the `Authorization` header on every request:
+Send the key as a Bearer token in the `Authorization` header on authenticated requests:
 
 ```http
 Authorization: Bearer octo_live_<your-key>

@@ -75,6 +75,8 @@
             "group": "Catalog API",
             "pages": [
               "api-reference/overview",
+              "api-reference/list-domains",
+              "api-reference/get-me",
               "api-reference/lookup-product",
               "api-reference/resolve-product-from-html",
               "api-reference/more-like-this",

@@ -1,0 +1,86 @@
+---
+title: "GET /domains — list covered domains"
+description: "List every domain covered by an active Octogen catalog and cache the result with ETag revalidation."
+sidebarTitle: "List Covered Domains"
+---
+
+`GET /domains` returns every normalized host covered by an active crawled catalog. Use this endpoint before Product Lookup to determine whether Octogen covers a product page's domain.
+
+The response is read-only and full-corpus. It returns one entry for each `(host, catalog)` pair, sorted by host and catalog.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/domains
+Authorization: Bearer <your-platform-api-key>
+```
+
+The `Authorization` header is optional for this endpoint. Requests without a key use the keyless trial's lower per-IP allowance. Include your Platform API key for production workloads and your organization's rate-limit allowance.
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/domains \
+  -H "Authorization: Bearer $OCTO_API_KEY"
+```
+
+## Response
+
+<ResponseField name="domains" type="DomainEntry[]" required>
+  Every covered `(host, catalog)` pair, sorted by host and catalog.
+
+  <Expandable title="Domain entry properties">
+    <ResponseField name="host" type="string" required>
+      Normalized host covered by the catalog. Hosts are lowercase and omit a leading `www.`.
+    </ResponseField>
+    <ResponseField name="catalog" type="string" required>
+      Catalog key covering the host.
+    </ResponseField>
+    <ResponseField name="catalogDisplayName" type="string" required>
+      Human-readable catalog name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "domains": [
+    {
+      "host": "allbirds.com",
+      "catalog": "allbirds",
+      "catalogDisplayName": "Allbirds"
+    },
+    {
+      "host": "macys.com",
+      "catalog": "macys",
+      "catalogDisplayName": "Macy's"
+    }
+  ]
+}
+```
+
+Normalize a product URL's host before matching it against the response: lowercase it and remove a leading `www.`. For example, compare both `https://www.macys.com/...` and `https://macys.com/...` against `macys.com`.
+
+## Cache the domain list
+
+A successful response includes a strong `ETag` and `Cache-Control: max-age=300`. Store the response and send its `ETag` in `If-None-Match` when revalidating:
+
+```bash
+curl -i https://api.octogen.ai/v1/domains \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H 'If-None-Match: "<etag-from-the-previous-response>"'
+```
+
+The API returns `304 Not Modified` with an empty body when the covered-domain set has not changed. Continue using your cached response.
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `401` | `"Invalid API key"` | The supplied API key is malformed or invalid. Omit it to use the keyless trial, or replace it with a valid key. |
+| `403` | `"api_key_org_type_forbidden"` | The key belongs to an organization that may not use `/v1`. |
+| `429` | `"rate_limit_exceeded"` | Your organization exceeded its request-rate limit. |
+| `429` | `detail.code: "keyless_trial_exhausted"` | The keyless trial's per-IP allowance is exhausted. Wait for the rolling allowance to refill or add an API key. |
+| `503` | `"catalog_registry_unavailable"` | The catalog registry is temporarily unavailable. Retry with backoff. |
