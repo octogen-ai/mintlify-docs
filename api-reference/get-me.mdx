@@ -1,0 +1,107 @@
+---
+title: "GET /me — inspect your API identity and limits"
+description: "Return the organization, API-key metadata, voyage quotas, and rate-limit status associated with your calling credential."
+sidebarTitle: "Get API Identity"
+---
+
+`GET /me` returns the identity and current limits associated with your Platform API key. Use it to verify credentials at startup, inspect voyage quota usage, or monitor the request-rate allowance available to your organization.
+
+The response never includes API-key secret material. The key's ID and non-secret display prefix are safe to log.
+
+## Request
+
+```http
+GET https://api.octogen.ai/v1/me
+Authorization: Bearer <your-platform-api-key>
+```
+
+This endpoint requires a Platform API key. It is not included in the keyless trial.
+
+### Example
+
+```bash
+curl -sS https://api.octogen.ai/v1/me \
+  -H "Authorization: Bearer $OCTO_API_KEY"
+```
+
+## Response
+
+<ResponseField name="principal" type='"api_key" | "super_admin"' required>
+  Credential type that authenticated the request. Developer integrations receive `api_key`.
+</ResponseField>
+
+<ResponseField name="organization" type="object | null">
+  Organization associated with the key. The object contains `id`, `name`, `slug`, and `type`. Developer organizations have the literal API value `catalog_partner` for `type`.
+</ResponseField>
+
+<ResponseField name="key" type="object | null">
+  Non-secret metadata for the calling API key.
+
+  <Expandable title="Key properties">
+    <ResponseField name="id" type="string" required>
+      Key ID from the middle segment of the Platform API key.
+    </ResponseField>
+    <ResponseField name="prefix" type="string | null">
+      Non-secret display prefix, such as `octo_live_3f9c1a2b4d`.
+    </ResponseField>
+    <ResponseField name="source" type="string | null">
+      How the key was created. This field can be omitted when its provenance is unknown.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="quotas" type="object | null">
+  Organization resource quotas. `quotas.voyage` has the same `concurrent` and `monthly` limit and usage fields returned by [`GET /voyage`](/api-reference/list-voyages#response).
+</ResponseField>
+
+<ResponseField name="rateLimit" type="object | null">
+  Rate-limit bucket charged for this request. `limit` is the number of requests allowed per window, `remaining` is the current remaining allowance, and `resetAt` is the RFC 3339 UTC refill time. The value is `null` when rate limiting is disabled.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "principal": "api_key",
+  "organization": {
+    "id": "0f5b1c9e-6d4a-4a1f-9f0e-2c7b8a9d1e33",
+    "name": "Acme Co",
+    "slug": "acme-co",
+    "type": "catalog_partner"
+  },
+  "key": {
+    "id": "3f9c1a2b4d5e6f708192a3b4c5d6e7f8",
+    "prefix": "octo_live_3f9c1a2b4d"
+  },
+  "quotas": {
+    "voyage": {
+      "concurrent": {
+        "limit": 2,
+        "used": 0
+      },
+      "monthly": {
+        "limit": 25,
+        "used": 3,
+        "periodStart": "2026-08-01",
+        "resetsAt": "2026-09-01T00:00:00Z"
+      }
+    }
+  },
+  "rateLimit": {
+    "limit": 3000,
+    "remaining": 2998,
+    "resetAt": "2026-08-20T14:31:00Z"
+  }
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `401` | `"Authorization Bearer token required"` | The request did not include a Bearer token. |
+| `401` | `"Invalid API key"` | The API key is malformed or invalid. |
+| `401` | `"API key revoked"` | The key was deactivated. Create and deploy a replacement key. |
+| `403` | `"api_key_org_type_forbidden"` | The key belongs to an organization that may not use `/v1`. |
+| `403` | `"api_key_forbidden"` | The key's organization is no longer active. |
+| `429` | `"rate_limit_exceeded"` | Your organization exceeded its request-rate limit. |

@@ -4,7 +4,7 @@ description: "REST API reference for the Octogen Platform Catalog API v1 - base 
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, request a product refresh, and maintain coverage URL lists that Octogen joins against its catalogs daily. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
+The Octogen Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you list covered domains, inspect your calling credential and limits, search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, request a product refresh, and maintain coverage URL lists that Octogen joins against its catalogs daily. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -18,7 +18,7 @@ Every request body and response body uses `application/json`. Set `Content-Type:
 
 ## Authentication
 
-Send your Platform API key as a Bearer token on every request:
+Send your Platform API key as a Bearer token on authenticated requests:
 
 ```http
 Authorization: Bearer octo_live_<32-hex-id>_<base64url-secret>
@@ -26,6 +26,8 @@ Content-Type: application/json
 ```
 
 API keys are organization-scoped and currently usable only by Developer organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys in Octogen Platform; deactivation takes effect on the next request.
+
+`GET /domains`, `POST /products/lookup`, and `POST /products/search` also support a limited keyless trial. Include an API key for production workloads and access to the complete `/v1` surface.
 
 <Warning>
   Never expose your Platform API key in client-side code or public repositories.
@@ -40,7 +42,7 @@ The machine-readable contract is published at every platform deploy:
 https://cdn.octogen.ai/openapi/platform/v1/openapi.json
 ```
 
-The document includes server URLs, operation IDs such as `searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `refreshProducts`, `startVoyage`, `getVoyage`, `listVoyages`, `createUrlList`, `listUrlLists`, `getUrlList`, `deleteUrlList`, `addUrlListUrls`, `removeUrlListUrls`, `checkUrlListUrls`, and `listUrlListUrls`, full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
+The document includes server URLs, operation IDs such as `listDomains`, `getMe`, `searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `resolveProductFromHtml`, `refreshProducts`, `startVoyage`, `getVoyage`, `listVoyages`, `createUrlList`, `listUrlLists`, `getUrlList`, `deleteUrlList`, `addUrlListUrls`, `removeUrlListUrls`, `checkUrlListUrls`, and `listUrlListUrls`, full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.
 
 ## Endpoints
 
@@ -48,9 +50,12 @@ The public reference currently documents these endpoints.
 
 | Method | Path | Operation | Description |
 | --- | --- | --- | --- |
+| `GET` | `/domains` | `listDomains` | Lists the domains covered by active crawled catalogs. |
+| `GET` | `/me` | `getMe` | Returns the calling credential's identity, quotas, and rate-limit status. |
 | `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a full product record. |
 | `POST` | `/products/more-like-this` | `moreLikeThisProducts` | Finds products similar to a source product URL or UUID. |
 | `POST` | `/products/refresh` | `refreshProducts` | Requests fresh updates for product URLs or UUIDs. |
+| `POST` | `/products/resolve-from-html` | `resolveProductFromHtml` | Extracts a product from HTML supplied by the caller. |
 | `POST` | `/products/search` | `searchProducts` | Searches products across all active crawled catalogs, or within one catalog when `catalog` is provided. |
 | `POST` | `/voyage` | `startVoyage` | Starts or joins a voyage to add coverage for an ecommerce domain. |
 | `GET` | `/voyage/{task_id}` | `getVoyage` | Returns the current progress of a voyage requested by your organization. |
