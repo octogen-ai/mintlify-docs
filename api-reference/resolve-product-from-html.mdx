@@ -112,10 +112,23 @@ Differences from lookup responses, all following from "you supplied the bytes":
 
 ### Warnings
 
+`warnings` contains stable snake_case codes. Each code appears at most once per
+response. The successful-response vocabulary is:
+
 | Code | Meaning |
 | --- | --- |
 | `source_url_missing` | No `url` was supplied; the canonical came from the page and relative image URLs were dropped. |
-| `product_fields_clamped` | One or more extracted values exceeded response bounds and were truncated or dropped (for example, a description over 10,000 characters or more than 50 image URLs). |
+| `multiple_product_nodes` | Multiple JSON-LD product candidates were found; the strongest candidate was selected. |
+| `variant_url_no_match` | The selected candidate URL did not match the submitted URL. This can mean a sibling product was selected, or that the same product URL dropped variant or tracking parameters. |
+| `malformed_json_ld` | At least one malformed JSON-LD block was skipped. Other valid blocks were still considered. |
+| `canonical_invalid` | The page declared a canonical URL with an unusable hostname—often because two URLs were accidentally concatenated. Octogen discarded it and tried another URL source. |
+| `canonical_cross_origin` | The canonical URL's hostname is neither the submitted hostname nor its parent or subdomain. This may indicate cross-site or incorrect product metadata. |
+| `canonical_listing_page` | The canonical URL looks like a parent listing or category page. |
+| `price_currency_missing` | A price was extracted without a currency. |
+| `product_fields_clamped` | One or more extracted fields were adjusted to fit API limits—for example, long text was truncated, extra or invalid image URLs were removed, or a negative price was omitted. |
+
+If no canonical URL can be established, the endpoint returns
+`404 product_not_found` instead of a successful response with a warning.
 
 ## Errors
 
