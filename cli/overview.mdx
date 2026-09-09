@@ -1,0 +1,108 @@
+---
+title: "Octogen CLI"
+description: "Use Octogen's product lookup, search, similarity, coverage, and voyage APIs from a terminal or an agent workflow."
+sidebarTitle: "Overview"
+---
+
+The Octogen CLI gives people and agents a consistent command-line interface to Octogen. It prints readable output in an interactive terminal and JSON when stdout is piped, so scripts can consume the same commands without extra flags.
+
+<Warning>
+The CLI is currently a pre-release. Install it from the `next` npm dist-tag while its interface is being finalized.
+</Warning>
+
+## Requirements
+
+- Node.js 20 or later
+- An Octogen API key for authenticated commands
+
+The `domains`, `lookup`, and `search` commands also support a limited keyless trial.
+
+## Run the CLI
+
+You can run the CLI without installing it globally:
+
+```bash
+npx -y @octogen-ai/cli@next domains --check https://www.macys.com/shop/product/x
+```
+
+To authenticate, set your API key in the environment:
+
+```bash
+export OCTOGEN_PLATFORM_API_KEY=octo_live_...
+npx -y @octogen-ai/cli@next status
+```
+
+The CLI also accepts a key from `--api-key-stdin`, `--api-key-file`, or a `.env` file between your current directory and the nearest Git repository root. It does not provide a `--api-key` argument because command-line arguments can appear in shell history and process listings.
+
+## Common commands
+
+### Look up a product
+
+```bash
+npx -y @octogen-ai/cli@next lookup \
+  https://lagence.com/products/akiya-satin-maxi-dress-merlot-red
+```
+
+### Search products
+
+```bash
+npx -y @octogen-ai/cli@next search "paisley jackets" --limit 3
+npx -y @octogen-ai/cli@next search dress \
+  --facet color=red,blue \
+  --price-max 300 \
+  --catalog macys
+```
+
+### Find similar products
+
+```bash
+npx -y @octogen-ai/cli@next similar \
+  https://lagence.com/products/akiya-satin-maxi-dress-merlot-red
+```
+
+### Check domain coverage
+
+```bash
+npx -y @octogen-ai/cli@next domains --check \
+  https://www.macys.com/shop/product/x
+```
+
+### Start and monitor a voyage
+
+```bash
+npx -y @octogen-ai/cli@next voyage https://newmerchant.example --wait
+npx -y @octogen-ai/cli@next voyage status task_01H...
+```
+
+Other commands include `refresh`, `resolve`, and the low-level `api` escape hatch. See the [CLI source and complete command reference](https://github.com/octogen-ai/octogen-dev/tree/main/cli) for every option.
+
+## Output for agents
+
+The CLI automatically emits one-line JSON when stdout is not a TTY. Use `--json` to force JSON or `--no-json` to force human-readable output.
+
+```bash
+npx -y @octogen-ai/cli@next search "blue denim dress" --limit 3 --json
+```
+
+Diagnostics go to stderr, while stdout contains only the result. Use `--quiet` to silence diagnostics or `--verbose` to include timing and allow-listed response headers.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | Unexpected network, server, or runtime failure |
+| `2` | Invalid command usage |
+| `3` | No usable credential |
+| `4` | The organization is not entitled to the requested operation |
+| `5` | Throttled or out of quota |
+| `6` | The request succeeded but returned no result |
+| `7` | Partial success or an unfinished wait |
+
+Exit code `6` never represents throttling. This distinction lets an agent tell an empty result apart from an unavailable or exhausted service.
+
+## Keyless trial
+
+Without an API key, `domains`, `lookup`, and `search` use the keyless trial. The trial allows 30 requests per IP address per day and returns complete payloads. Other commands require authentication.
+
+Shared networks can exhaust the trial before your first request. A keyless limit returns exit code `5`, not `6`.

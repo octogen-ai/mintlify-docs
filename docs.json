@@ -40,6 +40,12 @@
             ]
           },
           {
+            "group": "CLI",
+            "pages": [
+              "cli/overview"
+            ]
+          },
+          {
             "group": "MCP Integration",
             "pages": [
               "mcp/overview",
