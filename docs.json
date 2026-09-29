@@ -63,7 +63,6 @@
               "guides/more-like-this",
               "guides/add-an-ecommerce-domain",
               "guides/mlt-strategy-recipes",
-              "guides/product-refresh",
               "guides/bigquery-subscribe",
               "guides/coverage-url-lists",
               "guides/pagination",
@@ -86,7 +85,6 @@
               "api-reference/lookup-product",
               "api-reference/resolve-product-from-html",
               "api-reference/more-like-this",
-              "api-reference/refresh-products",
               "api-reference/search-products"
             ]
           },
