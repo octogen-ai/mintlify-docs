@@ -23,9 +23,9 @@ Octogen API errors fall into two categories:
   <Accordion title="400 — Bad request">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `400`
 
-    The request was syntactically valid JSON but could not be accepted for the requested operation. For `POST /products/refresh`, this means no target could be accepted; inspect the response body's `rejected` array for per-target codes and messages.
+    The request was syntactically valid JSON but could not be accepted for the requested operation.
 
-    **Recovery:** Fix the rejected targets and retry only those targets.
+    **Recovery:** Inspect the response details, correct the request, and retry.
   </Accordion>
 
   <Accordion title="401 — Authentication error">
@@ -111,7 +111,7 @@ Octogen API errors fall into two categories:
   <Accordion title="503 — Service unavailable">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `503`
 
-    A downstream Octogen service was temporarily unavailable. For Product Lookup, `detail: "product_lookup_fallback_unavailable"` means on-demand resolution is unavailable; use `index_only` if an indexed result is sufficient. For `POST /products/refresh`, `detail: "product_refresh_unavailable"` means Octogen could not start product refresh processing.
+    A downstream Octogen service was temporarily unavailable. For Product Lookup, `detail: "product_lookup_fallback_unavailable"` means on-demand resolution is unavailable; use `index_only` if an indexed result is sufficient.
 
     **Recovery:** Retry with exponential backoff. If the error persists, contact Octogen support with the timestamp and request body summary.
   </Accordion>
