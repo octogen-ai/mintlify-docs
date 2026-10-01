@@ -52,6 +52,14 @@ Octogen API errors fall into two categories:
     **Recovery:** Check your organization's access in Octogen Platform.
   </Accordion>
 
+  <Accordion title="402 — Insufficient prepaid credit">
+    **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `402`
+
+    Your prepaid organization does not have enough available credit for the request. This response is not charged.
+
+    **Recovery:** Add credit or wait for your next monthly free-credit renewal. See [API pricing and billing](/guides/pricing-and-billing).
+  </Accordion>
+
   <Accordion title="404 — Not found">
     **SDK exception:** `OctogenNotFoundError`
 
