@@ -1,0 +1,31 @@
+---
+title: "API pricing and billing"
+description: "Pricing, prepaid credit, and payment guidance for the Octogen API."
+---
+
+This guide applies to prepaid organizations using Octogen APIs. If your organization has a separate contract, your agreed terms apply.
+
+## API request prices
+
+Prices are in USD.
+
+| API request | Price (USD) per successful request |
+| --- | --- |
+| Product search | &#36;0.014 (&#36;14 per 1,000 requests) |
+| Product lookup and parse | &#36;0.002 (&#36;2 per 1,000 requests) |
+
+Successful HTTP 2xx requests are charged. Each successful attempt is charged separately, including repeats, retries, and pagination.
+
+## Monthly free credit
+
+Your organization receives $5 in free credit each monthly renewal. Credit is shared across the organization’s API keys, and free credit is used first. Unused free credit expires at renewal. Buying credit does not change your renewal date or add another free-credit grant.
+
+## Add credit
+
+You can add prepaid credit from the **Usage & billing** page in Octogen Platform. Purchased credit does not expire and is non-refundable. There are no subscriptions or automatic recharges.
+
+## Balance and access
+
+Balances and usage can take a few minutes to update. Delayed usage may use some of a new purchase, so your available balance may be lower than the amount you bought.
+
+If prepaid credit is insufficient, covered API requests return HTTP 402 and are not charged. Add credit or wait for the next monthly renewal. Access resumes when enough credit is available; a purchase may not restore access if usage has consumed the available credit.
