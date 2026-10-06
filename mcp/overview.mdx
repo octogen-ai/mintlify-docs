@@ -1,10 +1,10 @@
 ---
-title: "Connect AI agents to Octogen via MCP"
-description: "Let AI coding tools search and look up products in your granted Octogen catalogs using the Model Context Protocol — no API keys required."
+title: "Connect AI agents to StoreRouter via MCP"
+description: "Let AI coding tools search and look up products in your granted StoreRouter catalogs using the Model Context Protocol — no API keys required."
 sidebarTitle: "Overview"
 ---
 
-The Octogen Developer MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call catalog lookup/search tools and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
+The StoreRouter Developer MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call catalog lookup/search tools and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
 
 ## Connection details
 
@@ -24,7 +24,7 @@ There are no API keys to generate or rotate. MCP clients that implement OAuth 2.
 3. You consent to the requested scopes.
 4. The browser redirects back to your client, which exchanges the authorization code for an access token and a refresh token stored locally.
 
-Access tokens are valid for approximately five minutes. Refresh happens transparently in the background as long as your Octogen sign-in session is active. To end access, sign out of the Octogen Platform or have your organization administrator remove your account.
+Access tokens are valid for approximately five minutes. Refresh happens transparently in the background as long as your StoreRouter sign-in session is active. To end access, sign out of the StoreRouter Platform or have your organization administrator remove your account.
 
 ## Prerequisites
 
@@ -32,8 +32,8 @@ Access tokens are valid for approximately five minutes. Refresh happens transpar
 Both conditions must be true before your first tool call.
 </Info>
 
-- Your organization is provisioned as a Developer organization. If you do not yet have a Developer organization, contact Octogen support.
-- You can sign in to the Octogen Platform with the email that belongs to that organization.
+- Your organization is provisioned as a Developer organization. If you do not yet have a Developer organization, contact StoreRouter support.
+- You can sign in to the StoreRouter Platform with the email that belongs to that organization.
 
 ## Available tools
 
@@ -56,7 +56,7 @@ Developer organizations can also use MCP to automate BigQuery subscriber registr
 | `list_bigquery_listing_resources` | Lists BigQuery Analytics Hub listings granted to your organization. |
 | `list_bigquery_subscribers` | Lists registered subscriber projects, principals, and per-catalog status cells. |
 | `register_bigquery_subscriber` | Registers the GCP project and principal that should receive Analytics Hub subscriber access. |
-| `refresh_bigquery_subscription_status` | Checks whether a linked dataset subscription exists and updates Octogen status. |
+| `refresh_bigquery_subscription_status` | Checks whether a linked dataset subscription exists and updates StoreRouter status. |
 | `delete_bigquery_subscriber` | Disables a registered subscriber. |
 
 For most scheduled jobs, use the Python SDK's `octogen-bq-autosubscribe` command instead of calling these tools directly. See [Subscribe to catalogs in BigQuery](/guides/bigquery-subscribe).
@@ -71,7 +71,7 @@ Both surfaces are equally supported and enforce the same catalog policy. Develop
 | Auth | Bearer `octo_live_...` key | OAuth 2.1 + PKCE — browser sign-in, tokens cached locally |
 | Caller identity | `(api_key_id, org_id)` | `(user_sub, org_id, oauth_client_id)` |
 | Token lifetime | Until manually revoked | ~5 minutes access; refresh until session expiry |
-| Revocation | Revoke the API key | Sign out of Octogen Platform or remove user from org |
+| Revocation | Revoke the API key | Sign out of StoreRouter Platform or remove user from org |
 
 Both surfaces also share one per-organization [rate limit](/guides/rate-limits): tool calls and REST API requests draw from the same budget.
 
@@ -81,12 +81,12 @@ Choose the guide for the AI tool you are using.
 
 <CardGroup cols={3}>
   <Card title="Claude Code" icon="terminal" href="/mcp/claude-code">
-    Add Octogen to Claude Code with a single command and share the config with your team via `.mcp.json`.
+    Add StoreRouter to Claude Code with a single command and share the config with your team via `.mcp.json`.
   </Card>
   <Card title="Claude Desktop" icon="desktop" href="/mcp/claude-desktop">
     Connect Claude Desktop using the `mcp-remote` adapter and a one-time JSON config change.
   </Card>
   <Card title="Codex CLI" icon="code" href="/mcp/codex-cli">
-    Register Octogen with Codex CLI using its dedicated compatibility endpoint.
+    Register StoreRouter with Codex CLI using its dedicated compatibility endpoint.
   </Card>
 </CardGroup>

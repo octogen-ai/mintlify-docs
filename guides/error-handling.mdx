@@ -1,14 +1,14 @@
 ---
-title: "Handle Octogen API errors in your integration"
-description: "Understand the Octogen error model, SDK exception types, and recovery strategies for auth failures, missing resources, and validation errors."
+title: "Handle StoreRouter API errors in your integration"
+description: "Understand the StoreRouter error model, SDK exception types, and recovery strategies for auth failures, missing resources, and validation errors."
 sidebarTitle: "Error Handling"
 ---
 
-The Octogen API uses standard HTTP status codes for errors. The Python and TypeScript SDKs translate every non-2xx response into a typed exception, so you can catch specific error conditions without inspecting raw HTTP status codes. Understanding which errors are transient and which require a code or configuration change helps you build integrations that fail fast on bugs and recover gracefully from network issues.
+The StoreRouter API uses standard HTTP status codes for errors. The Python and TypeScript SDKs translate every non-2xx response into a typed exception, so you can catch specific error conditions without inspecting raw HTTP status codes. Understanding which errors are transient and which require a code or configuration change helps you build integrations that fail fast on bugs and recover gracefully from network issues.
 
 ## Error categories
 
-Octogen API errors fall into two categories:
+StoreRouter API errors fall into two categories:
 
 1. **HTTP errors (4xx/5xx)** — The server returned a non-2xx response. The SDK raises a typed exception with a `status_code`, `detail`, and the raw `response` attached.
 2. **Network errors** — The request never reached the server (DNS failure, timeout, connection reset). The SDK raises `OctogenConnectionError`.
@@ -35,7 +35,7 @@ Octogen API errors fall into two categories:
 
     - `OCTO_API_KEY` environment variable is not set
     - The key string was truncated or contains extra whitespace
-    - The key was deactivated in Octogen Platform
+    - The key was deactivated in StoreRouter Platform
 
     **Recovery:** Rotate or replace the API key. Do not retry the request with the same key.
   </Accordion>
@@ -49,7 +49,7 @@ Octogen API errors fall into two categories:
     - The API key belongs to the wrong organization
     - The key's org type does not have permission for the endpoint
 
-    **Recovery:** Check your organization's access in Octogen Platform.
+    **Recovery:** Check your organization's access in StoreRouter Platform.
   </Accordion>
 
   <Accordion title="402 — Insufficient prepaid credit">
@@ -113,15 +113,15 @@ Octogen API errors fall into two categories:
 
     Product Lookup returns `detail: "product_lookup_upstream_failed"` when the merchant page fails upstream.
 
-    **Recovery:** Retry with exponential backoff. If the error persists, verify the merchant URL in a browser before contacting Octogen support.
+    **Recovery:** Retry with exponential backoff. If the error persists, verify the merchant URL in a browser before contacting StoreRouter support.
   </Accordion>
 
   <Accordion title="503 — Service unavailable">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `503`
 
-    A downstream Octogen service was temporarily unavailable. For Product Lookup, `detail: "product_lookup_fallback_unavailable"` means on-demand resolution is unavailable; use `index_only` if an indexed result is sufficient.
+    A downstream StoreRouter service was temporarily unavailable. For Product Lookup, `detail: "product_lookup_fallback_unavailable"` means on-demand resolution is unavailable; use `index_only` if an indexed result is sufficient.
 
-    **Recovery:** Retry with exponential backoff. If the error persists, contact Octogen support with the timestamp and request body summary.
+    **Recovery:** Retry with exponential backoff. If the error persists, contact StoreRouter support with the timestamp and request body summary.
   </Accordion>
 
   <Accordion title="504 — Lookup timed out">

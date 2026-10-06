@@ -4,7 +4,7 @@ description: "POST /products/resolve-from-html extracts a product from HTML you 
 sidebarTitle: "Resolve from HTML"
 ---
 
-`POST /v1/products/resolve-from-html` resolves one product from the page HTML you submit — typically captured from the product page your user is viewing in your client application — and returns the same source-aware `MerchantProductUrlLookupResponse` as [Product Lookup](/api-reference/lookup-product), with `source: "client_html"`. Octogen never reads its index and never fetches anything: the response is derived entirely from the document you send. The request is stateless — nothing is cached and nothing is stored.
+`POST /v1/products/resolve-from-html` resolves one product from the page HTML you submit — typically captured from the product page your user is viewing in your client application — and returns the same source-aware `MerchantProductUrlLookupResponse` as [Product Lookup](/api-reference/lookup-product), with `source: "client_html"`. StoreRouter never reads its index and never fetches anything: the response is derived entirely from the document you send. The request is stateless — nothing is cached and nothing is stored.
 
 Extraction is the same deterministic pass the on-demand lookup path uses: JSON-LD `schema.org/Product` first, then Open Graph tags, then plain HTML meta. There is no JavaScript rendering and no inference — capture the live DOM rather than the raw server response. See the [guide](/guides/resolve-from-html) for capture mechanics and timing.
 
@@ -23,7 +23,7 @@ Content-Type: application/json
 ### Body parameters
 
 <ParamField body="html" type="string" required>
-  The product page HTML, at most 5 MiB. This is the same size bound Octogen's own live-fetch path enforces, so any page that path could retrieve is submittable. The raw request body is capped at 8 MiB; larger requests are rejected with `413`.
+  The product page HTML, at most 5 MiB. This is the same size bound StoreRouter's own live-fetch path enforces, so any page that path could retrieve is submittable. The raw request body is capped at 8 MiB; larger requests are rejected with `413`.
 </ParamField>
 
 <ParamField body="url" type="string">
@@ -49,7 +49,7 @@ const capture = {
   html: document.documentElement.outerHTML,
   url: location.href,
 };
-// Send `capture` to your backend, which calls Octogen with your API key.
+// Send `capture` to your backend, which calls StoreRouter with your API key.
 ```
 
 To build the request body from a saved HTML file (for example, while testing), let `jq` handle the JSON escaping:
@@ -108,7 +108,7 @@ Differences from lookup responses, all following from "you supplied the bytes":
 | `canonicalUrl` | The canonical URL the page declares, falling back to your submitted `url` when the page declares none. |
 | `product.uuid`, `catalogKey`, `isActive` | Always `null`, as on `on_demand` results — no indexed identity is fabricated. |
 | `product.imageUrl` | Always `null` (CDN-hosted copies never exist for supplied HTML); source image URLs ride `images[].url`. |
-| `resolution.rendered` | Always `false`. It describes Octogen's processing — Octogen never renders — not how you captured the page. |
+| `resolution.rendered` | Always `false`. It describes StoreRouter's processing — StoreRouter never renders — not how you captured the page. |
 
 ### Warnings
 
@@ -121,7 +121,7 @@ response. The successful-response vocabulary is:
 | `multiple_product_nodes` | Multiple JSON-LD product candidates were found; the strongest candidate was selected. |
 | `variant_url_no_match` | The selected candidate URL did not match the submitted URL. This can mean a sibling product was selected, or that the same product URL dropped variant or tracking parameters. |
 | `malformed_json_ld` | At least one malformed JSON-LD block was skipped. Other valid blocks were still considered. |
-| `canonical_invalid` | The page declared a canonical URL with an unusable hostname—often because two URLs were accidentally concatenated. Octogen discarded it and tried another URL source. |
+| `canonical_invalid` | The page declared a canonical URL with an unusable hostname—often because two URLs were accidentally concatenated. StoreRouter discarded it and tried another URL source. |
 | `canonical_cross_origin` | The canonical URL's hostname is neither the submitted hostname nor its parent or subdomain. This may indicate cross-site or incorrect product metadata. |
 | `canonical_listing_page` | The canonical URL looks like a parent listing or category page. |
 | `price_currency_missing` | A price was extracted without a currency. |

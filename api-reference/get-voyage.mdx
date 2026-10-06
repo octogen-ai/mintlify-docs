@@ -97,11 +97,11 @@ curl -sS https://api.octogen.ai/v1/voyage/2026-07-13-09-15-02-example \
 | Status | Meaning |
 | --- | --- |
 | `queued` | Accepted and waiting to start. |
-| `running` | Octogen is crawling, building extraction, or publishing the catalog. |
-| `in_review` | Octogen is performing quality review. No caller action is required. |
+| `running` | StoreRouter is crawling, building extraction, or publishing the catalog. |
+| `in_review` | StoreRouter is performing quality review. No caller action is required. |
 | `completed` | The catalog is live and searchable. `result` is populated. |
 | `failed` | The voyage could not be completed. `error` is populated. |
-| `cancelled` | Octogen stopped the voyage. |
+| `cancelled` | StoreRouter stopped the voyage. |
 
 ## Errors
 

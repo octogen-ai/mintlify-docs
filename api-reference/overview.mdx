@@ -1,10 +1,10 @@
 ---
 title: "Platform Catalog API v1 overview"
-description: "REST API reference for the Octogen Platform Catalog API v1 - base URL, authentication, endpoints, error codes, and OpenAPI spec link."
+description: "REST API reference for the StoreRouter Platform Catalog API v1 - base URL, authentication, endpoints, error codes, and OpenAPI spec link."
 sidebarTitle: "Overview"
 ---
 
-The Octogen Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you list covered domains, inspect your calling credential and limits, search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, and maintain coverage URL lists that Octogen joins against its catalogs daily. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
+The StoreRouter Platform Catalog API v1 is a server-to-server REST API for Developer organizations. It lets you list covered domains, inspect your calling credential and limits, search products across active crawled catalogs, find products similar to a source product, look up a product by its page URL, and maintain coverage URL lists that StoreRouter joins against its catalogs daily. Choose the REST API for API-key server workloads, or use the [Developer MCP server](/mcp/overview) for OAuth-based agent workflows.
 
 ## Base URL and content type
 
@@ -25,7 +25,7 @@ Authorization: Bearer octo_live_<32-hex-id>_<base64url-secret>
 Content-Type: application/json
 ```
 
-API keys are organization-scoped and currently usable only by Developer organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys in Octogen Platform; deactivation takes effect on the next request.
+API keys are organization-scoped and currently usable only by Developer organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys in StoreRouter Platform; deactivation takes effect on the next request.
 
 `GET /domains`, `POST /products/lookup`, and `POST /products/search` also support a limited keyless trial. Include an API key for production workloads and access to the complete `/v1` surface.
 
@@ -59,7 +59,7 @@ The public reference currently documents these endpoints.
 | `POST` | `/voyage` | `startVoyage` | Starts or joins a voyage to add coverage for an ecommerce domain. |
 | `GET` | `/voyage/{task_id}` | `getVoyage` | Returns the current progress of a voyage requested by your organization. |
 | `GET` | `/voyage` | `listVoyages` | Lists your organization's voyages and current voyage quota usage. |
-| `POST` | `/coverage/url-lists` | `createUrlList` | Creates a coverage URL list that Octogen joins against its catalogs daily. |
+| `POST` | `/coverage/url-lists` | `createUrlList` | Creates a coverage URL list that StoreRouter joins against its catalogs daily. |
 | `GET` | `/coverage/url-lists` | `listUrlLists` | Lists your organization's coverage URL lists. |
 | `GET` | `/coverage/url-lists/{urlListId}` | `getUrlList` | Returns one coverage URL list, including its BigQuery listing details. |
 | `DELETE` | `/coverage/url-lists/{urlListId}` | `deleteUrlList` | Permanently deletes a coverage URL list and its BigQuery resources. |

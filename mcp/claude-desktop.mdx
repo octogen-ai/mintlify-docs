@@ -1,10 +1,10 @@
 ---
-title: "Use Octogen with Claude Desktop via MCP"
-description: "Bridge Claude Desktop to the Octogen MCP server using the mcp-remote adapter — edit one config file, restart the app, and sign in once."
+title: "Use StoreRouter with Claude Desktop via MCP"
+description: "Bridge Claude Desktop to the StoreRouter MCP server using the mcp-remote adapter — edit one config file, restart the app, and sign in once."
 sidebarTitle: "Claude Desktop"
 ---
 
-Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to the Octogen MCP server, you use the open-source [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) adapter, which bridges stdio to the Octogen streamable HTTP endpoint. The setup requires editing a single JSON config file and restarting the application.
+Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to the StoreRouter MCP server, you use the open-source [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) adapter, which bridges stdio to the StoreRouter streamable HTTP endpoint. The setup requires editing a single JSON config file and restarting the application.
 
 <Steps>
   <Step title="Locate your Claude Desktop config file">
@@ -31,13 +31,13 @@ Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to t
     If the file does not exist yet, create it at that path.
   </Step>
 
-  <Step title="Add the Octogen MCP server entry">
+  <Step title="Add the StoreRouter MCP server entry">
     Open the config file and add (or merge) the following JSON:
 
     ```json
     {
       "mcpServers": {
-        "Octogen MCP": {
+        "StoreRouter MCP": {
           "command": "npx",
           "args": ["-y", "mcp-remote", "https://mcp.octogen.ai/mcp"]
         }
@@ -45,7 +45,7 @@ Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to t
     }
     ```
 
-    The `npx -y mcp-remote` invocation downloads and runs the adapter on first launch; it is kept up to date automatically on each restart. If your config file already contains other `mcpServers` entries, add the `"Octogen MCP"` key alongside them without removing the existing ones.
+    The `npx -y mcp-remote` invocation downloads and runs the adapter on first launch; it is kept up to date automatically on each restart. If your config file already contains other `mcpServers` entries, add the `"StoreRouter MCP"` key alongside them without removing the existing ones.
 
     <Note>
       You do not need to install `mcp-remote` globally. The `npx -y` flag fetches the latest published version each time Claude Desktop starts.
@@ -61,12 +61,12 @@ Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to t
     Then reopen Claude Desktop normally.
 
     <Warning>
-      Closing the Claude Desktop window without quitting the application does not reload the MCP server config. If the Octogen tools do not appear after restarting, confirm the app was fully quit before reopening.
+      Closing the Claude Desktop window without quitting the application does not reload the MCP server config. If the StoreRouter tools do not appear after restarting, confirm the app was fully quit before reopening.
     </Warning>
   </Step>
 
   <Step title="Sign in on first connection">
-    The first time Claude Desktop connects to the Octogen MCP server, the `mcp-remote` adapter opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
+    The first time Claude Desktop connects to the StoreRouter MCP server, the `mcp-remote` adapter opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
 
     1. Enter the email that belongs to your Developer organization.
     2. Authenticate using your organization's configured method (password, SSO, or magic link).

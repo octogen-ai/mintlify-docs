@@ -1,10 +1,10 @@
 ---
 title: "POST /products/lookup — resolve a product URL"
-description: "POST /products/lookup resolves a product URL from Octogen's index or with bounded on-demand product resolution."
+description: "POST /products/lookup resolves a product URL from StoreRouter's index or with bounded on-demand product resolution."
 sidebarTitle: "Lookup Product"
 ---
 
-`POST /v1/products/lookup` resolves one product page URL and returns a source-aware `MerchantProductUrlLookupResponse`. The default `auto` mode checks Octogen's product index first, then uses on-demand product resolution if the URL is not indexed and that capability is available.
+`POST /v1/products/lookup` resolves one product page URL and returns a source-aware `MerchantProductUrlLookupResponse`. The default `auto` mode checks StoreRouter's product index first, then uses on-demand product resolution if the URL is not indexed and that capability is available.
 
 ## Request
 
@@ -17,7 +17,7 @@ Content-Type: application/json
 ### Body parameters
 
 <ParamField body="url" type="string" required>
-  Product page URL to resolve. The URL does not need to belong to an Octogen catalog unless `resolutionMode` is `index_only`.
+  Product page URL to resolve. The URL does not need to belong to a StoreRouter catalog unless `resolutionMode` is `index_only`.
 </ParamField>
 
 <ParamField body="resolutionMode" type="string" default="auto">
@@ -120,7 +120,7 @@ curl -sS https://api.octogen.ai/v1/products/lookup \
     <ResponseField name="promotions" type="PromotionView[]">Active promotions.</ResponseField>
     <ResponseField name="reviews" type="ReviewView[]">Customer reviews.</ResponseField>
     <ResponseField name="videos" type="VideoView[]">Product videos.</ResponseField>
-    <ResponseField name="enrichment" type="ProductEnrichment | null">Octogen enrichment for indexed products when available.</ResponseField>
+    <ResponseField name="enrichment" type="ProductEnrichment | null">StoreRouter enrichment for indexed products when available.</ResponseField>
   </Expandable>
 </ResponseField>
 
@@ -134,7 +134,7 @@ curl -sS https://api.octogen.ai/v1/products/lookup \
 </ResponseField>
 
 <ResponseField name="normalizedUrl" type="string | null">
-  The matched product's URL as normalized by Octogen (HTTPS-forced, `www.`
+  The matched product's URL as normalized by StoreRouter (HTTPS-forced, `www.`
   stripped, tracking parameters removed, query sorted). Populated for indexed
   results. This is the stable URL: submit it on a follow-up lookup and it
   deterministically re-resolves the same product. Prefer storing it over the

@@ -1,10 +1,10 @@
 ---
-title: "Stay within Octogen's API rate limits"
-description: "Understand Octogen's per-organization rate limit, the X-RateLimit headers and 429 responses on the REST API, the equivalent MCP error, and how to back off correctly."
+title: "Stay within StoreRouter's API rate limits"
+description: "Understand StoreRouter's per-organization rate limit, the X-RateLimit headers and 429 responses on the REST API, the equivalent MCP error, and how to back off correctly."
 sidebarTitle: "Rate Limits"
 ---
 
-Octogen rate limits requests **per organization**. The budget is shared across every Platform API key *and* MCP session in your organization — it keys on your organization, not on an individual key or agent — so all of your automated traffic draws from one pool.
+StoreRouter rate limits requests **per organization**. The budget is shared across every Platform API key *and* MCP session in your organization — it keys on your organization, not on an individual key or agent — so all of your automated traffic draws from one pool.
 
 <Note>
   The limit is a generous safety ceiling set well above normal integration traffic, and it may be tuned over time. It is **not published as a fixed number** — read your current allowance from the `X-RateLimit-Limit` response header rather than hard-coding a value.
@@ -107,6 +107,6 @@ When the budget is exhausted, a tool call fails with an `McpError` (JSON-RPC err
 - **Honor `Retry-After`.** Wait at least that long before retrying, then add exponential backoff with jitter for repeated `429`s.
 - **Throttle bulk work.** For backfills or batch jobs, cap your concurrency and add a small delay between requests instead of firing them all at once.
 - **Share the budget deliberately.** Because API keys and MCP sessions share one per-org pool, a heavy backend job can starve your interactive agents. Schedule large jobs accordingly.
-- **Ask for more if you need it.** If your steady-state load approaches the limit, contact Octogen support to raise your organization's allowance rather than retrying through `429`s.
+- **Ask for more if you need it.** If your steady-state load approaches the limit, contact StoreRouter support to raise your organization's allowance rather than retrying through `429`s.
 
 See [Error Handling](/guides/error-handling) for the full error model and SDK exception hierarchy.

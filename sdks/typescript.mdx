@@ -1,10 +1,10 @@
 ---
-title: "Octogen TypeScript SDK — async client API reference"
-description: "Install the TypeScript SDK for Octogen, set your API key, and search or look up products across active crawled catalogs with full ESM type safety in Node.js."
+title: "StoreRouter TypeScript SDK — async client API reference"
+description: "Install the TypeScript SDK for StoreRouter, set your API key, and search or look up products across active crawled catalogs with full ESM type safety in Node.js."
 sidebarTitle: "TypeScript SDK"
 ---
 
-The Octogen TypeScript SDK gives you a fully typed, async client for the Octogen commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
+The StoreRouter TypeScript SDK gives you a fully typed, async client for the StoreRouter commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
 
 ## Installation
 
@@ -75,7 +75,7 @@ async lookupProduct(
 ): Promise<MerchantProductUrlLookupResponse>
 ```
 
-Resolves a product page URL from Octogen's index or with on-demand product resolution. Set `resolutionMode: "index_only"` when your integration requires indexed identity and catalog context.
+Resolves a product page URL from StoreRouter's index or with on-demand product resolution. Set `resolutionMode: "index_only"` when your integration requires indexed identity and catalog context.
 
 ```typescript
 const result = await client.lookupProduct(
@@ -200,7 +200,7 @@ async function main(): Promise<void> {
     }
   } catch (error) {
     if (error instanceof OctogenAPIError) {
-      console.error(`Octogen API error: status=${String(error.statusCode)}`);
+      console.error(`StoreRouter API error: status=${String(error.statusCode)}`);
       console.error(inspect(error.detail, { depth: null }));
     }
     throw error;
@@ -267,7 +267,7 @@ All SDK errors extend `OctogenError`. HTTP errors extend `OctogenAPIError`, whic
 
 <AccordionGroup>
   <Accordion title="OctogenAuthenticationError — 401">
-    Thrown when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in Octogen Platform.
+    Thrown when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in StoreRouter Platform.
   </Accordion>
   <Accordion title="OctogenForbiddenError — 403">
     Thrown when a valid key attempts an action it is not authorized for — for example, accessing a catalog that has not been granted to your organization.

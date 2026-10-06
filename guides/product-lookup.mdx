@@ -1,10 +1,10 @@
 ---
 title: "Resolve a product by URL"
-description: "Resolve a product page URL from Octogen's index or, when needed, with bounded on-demand product resolution."
+description: "Resolve a product page URL from StoreRouter's index or, when needed, with bounded on-demand product resolution."
 sidebarTitle: "Product Lookup"
 ---
 
-Product Lookup turns one product page URL into a `MerchantProductView`. By default, Octogen checks the product index first. If the URL is not indexed and on-demand product resolution is available, Octogen fetches the page and returns the useful product fields it can verify.
+Product Lookup turns one product page URL into a `MerchantProductView`. By default, StoreRouter checks the product index first. If the URL is not indexed and on-demand product resolution is available, StoreRouter fetches the page and returns the useful product fields it can verify.
 
 The response always identifies its source:
 
@@ -108,7 +108,7 @@ Both sources return `product: MerchantProductView`, but some fields have differe
 | `product.isActive` | Indexed lifecycle state | `null` |
 | `product.productUrl` | Required | Required |
 | `requestedUrl` | The URL you submitted, echoed back | The URL you submitted, echoed back |
-| `normalizedUrl` | The matched product's Octogen-normalized stable URL | `null` |
+| `normalizedUrl` | The matched product's StoreRouter-normalized stable URL | `null` |
 | `resolvedUrl` | `null` | Final URL after redirects |
 | `canonicalUrl` | `null` | Canonical URL declared by the product page (falls back to the final fetched URL when the page declares none) |
 | Other product fields | Full indexed record when available | Populated only when supported by page evidence |
@@ -118,7 +118,7 @@ For follow-up lookups, use `normalizedUrl` on indexed results and
 deterministically re-resolves the same product. Prefer storing them over the
 URL you originally submitted.
 
-On-demand results are ephemeral. Octogen does not add them to your catalogs or product index, and you cannot retrieve them later by UUID. Store the returned `resolvedUrl` and any fields your application needs.
+On-demand results are ephemeral. StoreRouter does not add them to your catalogs or product index, and you cannot retrieve them later by UUID. Store the returned `resolvedUrl` and any fields your application needs.
 
 ### On-demand example
 
@@ -176,7 +176,7 @@ An index-only miss returns `404 product_not_found`, matching the previous Produc
 | Status | `detail` | Action |
 | --- | --- | --- |
 | `404` | `product_not_found` | The selected sources did not produce a useful product. Check the URL or change the resolution mode. |
-| `422` | `invalid_product_url` or `unsafe_url` | Fix the URL. Octogen will not resolve unsafe or unsupported targets. |
+| `422` | `invalid_product_url` or `unsafe_url` | Fix the URL. StoreRouter will not resolve unsafe or unsupported targets. |
 | `429` | `rate_limit_exceeded` or `product_lookup_rate_limited` | Wait for the `Retry-After` interval, then retry with backoff. |
 | `502` | `product_lookup_upstream_failed` | The merchant page failed upstream. Retry with backoff. |
 | `503` | `product_lookup_fallback_unavailable` | On-demand resolution is temporarily unavailable. Retry later or use `index_only`. |

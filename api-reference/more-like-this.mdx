@@ -6,7 +6,7 @@ sidebarTitle: "More Like This"
 
 `POST /products/more-like-this` returns products similar to a source product. The API resolves the source by URL or UUID within your catalog grants, builds the similarity query from indexed product enrichment, excludes the source product from results, and returns a standard product list page. The source can also be an **image** — see [Image sources](#image-sources).
 
-Use this endpoint for related product rails, substitutions, recommendation modules, and agent workflows that start from a known product. To see the strategies side by side with live results, open the [interactive demo](https://www.octogen.ai/demos/mlt-api.html) or the [strategy recipes guide](/guides/mlt-strategy-recipes). For the image input, open the [image input demo](https://www.octogen.ai/demos/mlt-image-api.html).
+Use this endpoint for related product rails, substitutions, recommendation modules, and agent workflows that start from a known product. To see the strategies side by side with live results, open the [interactive demo](https://storerouter.ai/demos/mlt-api.html) or the [strategy recipes guide](/guides/mlt-strategy-recipes). For the image input, open the [image input demo](https://storerouter.ai/demos/mlt-image-api.html).
 
 ## Request
 
@@ -47,7 +47,7 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="include_facets" type="Facet[]">
-  Additional include facets appended after Octogen's server-generated audience facets.
+  Additional include facets appended after StoreRouter's server-generated audience facets.
 </ParamField>
 
 <ParamField body="exclude_facets" type="Facet[]">
@@ -119,7 +119,7 @@ Send `debug: true` with any combination and the response's `effectiveQuery` show
 
 ## Image sources
 
-Send a photo — a product shot, a look to match — and the API generates the similarity query from the image: a multimodal parse reads it, the query processors derive facets (category, gender, color, attributes), and the search runs with zero-result facet relaxation. See it live in the [image input demo](https://www.octogen.ai/demos/mlt-image-api.html).
+Send a photo — a product shot, a look to match — and the API generates the similarity query from the image: a multimodal parse reads it, the query processors derive facets (category, gender, color, attributes), and the search runs with zero-result facet relaxation. See it live in the [image input demo](https://storerouter.ai/demos/mlt-image-api.html).
 
 ```json
 {
