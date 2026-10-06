@@ -1,12 +1,12 @@
 ---
 title: "Subscribe to catalogs in BigQuery"
-description: "Create linked BigQuery datasets for your granted Octogen catalogs, either one listing at a time or automatically from cron."
+description: "Create linked BigQuery datasets for your granted StoreRouter catalogs, either one listing at a time or automatically from cron."
 sidebarTitle: "BigQuery Subscribe"
 ---
 
-For analytical and bulk workloads, Octogen can publish a granted catalog as a [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction) **listing**. Subscribing to the listing creates a **linked dataset** in your Google Cloud project, so you can query the full catalog with standard SQL while Octogen updates flow through automatically.
+For analytical and bulk workloads, StoreRouter can publish a granted catalog as a [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction) **listing**. Subscribing to the listing creates a **linked dataset** in your Google Cloud project, so you can query the full catalog with standard SQL while StoreRouter updates flow through automatically.
 
-Use BigQuery when you want to join Octogen catalog data against your own data, run large scans, or build analytics pipelines. Use the [Catalog Search API](/guides/catalog-search) or [MCP](/mcp/overview) for interactive product lookup and agent workflows.
+Use BigQuery when you want to join StoreRouter catalog data against your own data, run large scans, or build analytics pipelines. Use the [Catalog Search API](/guides/catalog-search) or [MCP](/mcp/overview) for interactive product lookup and agent workflows.
 
 <Note>
   BigQuery subscription uses your **Google Cloud** credentials and your destination GCP project. It does not use `OCTO_API_KEY`. The helper commands are part of the Python SDK's optional `bigquery` extra.
@@ -19,17 +19,17 @@ Subscription applies to catalog listings and to
 difference is that coverage listings grant your registered Readers access
 automatically. BigQuery subscription is a two-party flow:
 
-1. **Octogen grants listing access.** Octogen publishes the catalog as an Analytics Hub listing and grants your Google principal `roles/analyticshub.subscriber` on that listing.
+1. **StoreRouter grants listing access.** StoreRouter publishes the catalog as an Analytics Hub listing and grants your Google principal `roles/analyticshub.subscriber` on that listing.
 2. **You create the linked dataset.** You run the subscription step from your own environment using Google Application Default Credentials. The linked dataset is created in your GCP project and billed to you.
-3. **Octogen observes the subscription.** After the linked dataset exists, Octogen refreshes the subscription status to `active`.
+3. **StoreRouter observes the subscription.** After the linked dataset exists, StoreRouter refreshes the subscription status to `active`.
 
 The grant is asynchronous. It can take a few minutes for a listing to move from `pending` to `awaiting_subscription`.
 
 ## Prerequisites
 
 <Steps>
-  <Step title="Ask Octogen to enable BigQuery listing access">
-    Your Octogen contact must enable BigQuery listing access for your organization.
+  <Step title="Ask StoreRouter to enable BigQuery listing access">
+    Your StoreRouter contact must enable BigQuery listing access for your organization.
   </Step>
   <Step title="Choose a subscriber principal">
     Choose the Google principal that will create linked datasets. For automation, use a service account such as:
@@ -130,11 +130,11 @@ The command performs one idempotent sync pass:
 2. Lists your registered BigQuery subscribers.
 3. Registers your Reader if it is missing.
 4. Subscribes every catalog whose status is `awaiting_subscription`.
-5. Refreshes Octogen status after each linked dataset is created.
+5. Refreshes StoreRouter status after each linked dataset is created.
 
 ### Bootstrap MCP OAuth credentials
 
-`octogen-bq-autosubscribe` calls Octogen MCP to list and register subscriber state. Bootstrap MCP credentials once from an interactive terminal:
+`octogen-bq-autosubscribe` calls StoreRouter MCP to list and register subscriber state. Bootstrap MCP credentials once from an interactive terminal:
 
 ```bash
 octogen-mcp-login \
@@ -162,19 +162,19 @@ octogen-bq-autosubscribe \
 */15 * * * * cd /path/to/octogen-dev && OCTOGEN_MCP_CLIENT_ID_FILE=/secure/octogen-mcp.client-id OCTOGEN_MCP_REFRESH_TOKEN_FILE=/secure/octogen-mcp.refresh uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
 ```
 
-`OCTOGEN_MCP_REFRESH_TOKEN_FILE` should contain an Octogen MCP OAuth refresh token. If the identity provider rotates that refresh token during exchange, the command writes the replacement back to the same file while holding a sibling `.lock` file, so overlapping cron runs do not overwrite the same rotating token at once.
+`OCTOGEN_MCP_REFRESH_TOKEN_FILE` should contain a StoreRouter MCP OAuth refresh token. If the identity provider rotates that refresh token during exchange, the command writes the replacement back to the same file while holding a sibling `.lock` file, so overlapping cron runs do not overwrite the same rotating token at once.
 
 ### Autosubscribe options
 
 | Flag | Required | Default | Description |
 | --- | --- | --- | --- |
 | `--project` | Yes | — | Destination GCP project for linked datasets. |
-| `--principal` | Yes | — | Google subscriber principal Octogen should grant. |
+| `--principal` | Yes | — | Google subscriber principal StoreRouter should grant. |
 | `--catalog` | No | All granted catalogs | Restrict the run to one catalog. Repeat for multiple catalogs. |
 | `--friendly-name` | No | Derived per dataset | Friendly name for created linked datasets. |
 | `--apply` | No | Off | Register and subscribe. Without it, the command reports what would happen. |
 | `--json` | No | Off | Emit JSON output. |
-| `--mcp-url` | No | `https://mcp.octogen.ai/mcp/` | Octogen MCP endpoint. |
+| `--mcp-url` | No | `https://mcp.octogen.ai/mcp/` | StoreRouter MCP endpoint. |
 | `--mcp-client-id-file` | No | `OCTOGEN_MCP_CLIENT_ID_FILE` | File containing the public OAuth client id from `octogen-mcp-login`. |
 | `--mcp-refresh-token-file` | No | `OCTOGEN_MCP_REFRESH_TOKEN_FILE` | File containing the rotating MCP refresh token. |
 | `--mcp-token-command` | No | `OCTOGEN_MCP_TOKEN_COMMAND` | Command that prints a short-lived MCP access token. |
@@ -189,7 +189,7 @@ Agents and custom clients can implement the same flow through MCP tools:
 | `list_bigquery_listing_resources` | Lists BigQuery listings granted to your organization. |
 | `list_bigquery_subscribers` | Lists registered subscriber projects, principals, and per-catalog status cells. |
 | `register_bigquery_subscriber` | Registers the GCP project and principal that should receive Analytics Hub subscriber access. |
-| `refresh_bigquery_subscription_status` | Checks whether a linked dataset subscription exists and updates the Octogen status. |
+| `refresh_bigquery_subscription_status` | Checks whether a linked dataset subscription exists and updates the StoreRouter status. |
 | `delete_bigquery_subscriber` | Disables a registered subscriber. |
 
 Most customers should use `octogen-bq-autosubscribe` instead of calling these tools directly. It handles idempotency, pending grants, existing subscriptions, and status refreshes for you.
@@ -228,11 +228,11 @@ print(result.sample_query)
 
 | Action | Meaning |
 | --- | --- |
-| `already_active` | Octogen already sees an active linked dataset subscription. |
-| `already_subscribed` | BigQuery reported an existing linked dataset, and Octogen status was refreshed. |
-| `subscribed` | The command created a linked dataset and refreshed Octogen status. |
+| `already_active` | StoreRouter already sees an active linked dataset subscription. |
+| `already_subscribed` | BigQuery reported an existing linked dataset, and StoreRouter status was refreshed. |
+| `subscribed` | The command created a linked dataset and refreshed StoreRouter status. |
 | `would_subscribe` | Dry run: the catalog is ready and would be subscribed with `--apply`. |
-| `pending` | The Reader or listing grant is still being prepared, or Octogen has not observed status yet. |
+| `pending` | The Reader or listing grant is still being prepared, or StoreRouter has not observed status yet. |
 | `skipped` | The catalog is not ready or not enabled for this subscriber. |
 | `error` | The catalog needs attention or the subscribe/refresh step failed. |
 

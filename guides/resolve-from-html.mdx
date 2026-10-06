@@ -4,14 +4,14 @@ description: "Turn the product page your user is viewing into the same product o
 sidebarTitle: "Resolve from HTML"
 ---
 
-Resolve from HTML turns page bytes **your application captures** into a product object. Where [Product Lookup](/guides/product-lookup) takes a URL and lets Octogen find or fetch the product, `POST /v1/products/resolve-from-html` takes the HTML itself — typically captured from the product page your user is viewing in your client application. Octogen never fetches the page, never reads its index, and never stores what you send.
+Resolve from HTML turns page bytes **your application captures** into a product object. Where [Product Lookup](/guides/product-lookup) takes a URL and lets StoreRouter find or fetch the product, `POST /v1/products/resolve-from-html` takes the HTML itself — typically captured from the product page your user is viewing in your client application. StoreRouter never fetches the page, never reads its index, and never stores what you send.
 
 Use it when:
 
 - Your users browse product pages your servers never fetch — resolve exactly what they see, at the moment they see it.
 - You need the page's state at the moment the user saw it: the live price, the flash-sale moment, the product exactly as the page declared it.
 
-Prefer [Product Lookup](/guides/product-lookup) whenever a URL is on a domain Octogen covers — indexed results are strictly richer, with enriched attributes, CDN-hosted images, and a stable product identity. Check coverage with [`GET /v1/domains`](/api-reference/list-domains).
+Prefer [Product Lookup](/guides/product-lookup) whenever a URL is on a domain StoreRouter covers — indexed results are strictly richer, with enriched attributes, CDN-hosted images, and a stable product identity. Check coverage with [`GET /v1/domains`](/api-reference/list-domains).
 
 ## Capture from your client, resolve from your backend
 
@@ -30,7 +30,7 @@ Two rules make captures reliable:
 - **Capture after the page settles.** Wait for the page to finish loading plus a short delay. On storefronts that navigate client-side, re-capture after each route change, and read `location.href` at capture time so the URL always matches the DOM you serialize.
 
 <Warning>
-Your platform API key is an organization-scoped, server-to-server secret. Never embed it in client-side code — a page, an extension, or any code that runs on your users' devices. Send the capture from your client to **your own backend**, and have your backend call Octogen:
+Your platform API key is an organization-scoped, server-to-server secret. Never embed it in client-side code — a page, an extension, or any code that runs on your users' devices. Send the capture from your client to **your own backend**, and have your backend call StoreRouter:
 
 `user's browser → your backend → api.octogen.ai`
 </Warning>
@@ -46,7 +46,7 @@ curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
 
 A successful response is the familiar lookup envelope with `source: "client_html"`, plus a `resolution` block that tells you how the extraction went — see the [API reference](/api-reference/resolve-product-from-html) for the full field-by-field contract.
 
-Captures from signed-in sessions can include user-specific markup such as an account name or cart contents. Octogen reads only product metadata from the document and stores none of it, but as a rule, capture product pages only — not checkout or account surfaces.
+Captures from signed-in sessions can include user-specific markup such as an account name or cart contents. StoreRouter reads only product metadata from the document and stores none of it, but as a rule, capture product pages only — not checkout or account surfaces.
 
 ## What the URL does
 
@@ -68,7 +68,7 @@ Extraction reads standardized metadata in priority order — JSON-LD `schema.org
 
 - `method` names the strongest source found (`json_ld`, `open_graph`, `html_meta`).
 - `completeness` is `complete` when title, brand, images, price, and currency were all found; otherwise `partial`, with `missingFields` naming the gaps.
-- `rendered` is always `false` — it describes Octogen's processing, not your capture.
+- `rendered` is always `false` — it describes StoreRouter's processing, not your capture.
 
 A live-DOM capture of a well-marked-up storefront typically yields `json_ld` / `complete`. If your captures consistently come back `open_graph` / `partial` with price missing, you are almost certainly serializing before the storefront's JavaScript injects its JSON-LD — capture later, after the page settles.
 

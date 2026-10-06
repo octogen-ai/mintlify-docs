@@ -1,10 +1,10 @@
 ---
 title: "Find products similar to a source product"
-description: "Use Octogen's More Like This endpoint to build related-product rails, substitutions, and similar-item recommendations from a product URL or UUID."
+description: "Use StoreRouter's More Like This endpoint to build related-product rails, substitutions, and similar-item recommendations from a product URL or UUID."
 sidebarTitle: "More Like This"
 ---
 
-The More Like This endpoint finds products similar to a known source product. It is product-anchored: pass a product URL or indexed UUID, and Octogen derives the query from product enrichment, style, tags, audience, and optional facet constraints.
+The More Like This endpoint finds products similar to a known source product. It is product-anchored: pass a product URL or indexed UUID, and StoreRouter derives the query from product enrichment, style, tags, audience, and optional facet constraints.
 
 Use `POST /v1/products/more-like-this` when you already have a product and want related items. Use [`POST /v1/products/search`](/guides/catalog-search) when the user starts from a keyword, facets, or an arbitrary price range.
 

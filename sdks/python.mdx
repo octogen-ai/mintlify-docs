@@ -1,10 +1,10 @@
 ---
-title: "Octogen Python SDK — async HTTP client API reference"
-description: "Install the async Python SDK for Octogen, set your API key, and search or look up products across active crawled catalogs with typed Pydantic models."
+title: "StoreRouter Python SDK — async HTTP client API reference"
+description: "Install the async Python SDK for StoreRouter, set your API key, and search or look up products across active crawled catalogs with typed Pydantic models."
 sidebarTitle: "Python SDK"
 ---
 
-The Octogen Python SDK gives you an async, type-safe client for the Octogen commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
+The StoreRouter Python SDK gives you an async, type-safe client for the StoreRouter commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
 
 ## Installation
 
@@ -92,7 +92,7 @@ async def lookup_product(
 ) -> MerchantProductUrlLookupResponse
 ```
 
-Resolves a product page URL from Octogen's index or with on-demand product resolution. Set `resolution_mode="index_only"` when your integration requires indexed identity and catalog context.
+Resolves a product page URL from StoreRouter's index or with on-demand product resolution. Set `resolution_mode="index_only"` when your integration requires indexed identity and catalog context.
 
 ```python
 result = await client.lookup_product(
@@ -235,7 +235,7 @@ async def main() -> None:
                 print(f"- {title} | {brand} | {price}")
                 print(f"  {product.product_url}")
     except OctogenAPIError as exc:
-        print(f"Octogen API error: status={exc.status_code}")
+        print(f"StoreRouter API error: status={exc.status_code}")
         print(pformat(exc.detail))
         raise
 
@@ -303,7 +303,7 @@ All SDK errors inherit from `OctogenError`. HTTP errors inherit from `OctogenAPI
 
 <AccordionGroup>
   <Accordion title="OctogenAuthenticationError — 401">
-    Raised when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in Octogen Platform.
+    Raised when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in StoreRouter Platform.
   </Accordion>
   <Accordion title="OctogenForbiddenError — 403">
     Raised when a valid key attempts an action it is not authorized for — for example, accessing a catalog that has not been granted to your organization.
@@ -344,7 +344,7 @@ except OctogenConnectionError as exc:
 
 ## BigQuery subscribe (optional)
 
-If Octogen shares a catalog with you over [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction), the SDK can subscribe to the listing and create a linked dataset in your own Google Cloud project, so you can query the catalog with SQL. See the [Subscribe to a catalog in BigQuery](/guides/bigquery-subscribe) guide for the full walkthrough.
+If StoreRouter shares a catalog with you over [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction), the SDK can subscribe to the listing and create a linked dataset in your own Google Cloud project, so you can query the catalog with SQL. See the [Subscribe to a catalog in BigQuery](/guides/bigquery-subscribe) guide for the full walkthrough.
 
 This helper uses your **Google Cloud** Application Default Credentials — not your `OCTO_API_KEY` — so it lives behind an optional `bigquery` extra. Sync it from the [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository:
 
@@ -397,5 +397,5 @@ print(result.linked_dataset, result.state)
 ```
 
 <Note>
-  Two BigQuery error types extend `OctogenError`: `OctogenBigQueryError` (base) and `OctogenBigQueryAccessPendingError`, raised when Octogen's IAM grant on the listing hasn't propagated yet. Because the grant is asynchronous, catch the access-pending error and retry after a few minutes.
+  Two BigQuery error types extend `OctogenError`: `OctogenBigQueryError` (base) and `OctogenBigQueryAccessPendingError`, raised when StoreRouter's IAM grant on the listing hasn't propagated yet. Because the grant is asynchronous, catch the access-pending error and retry after a few minutes.
 </Note>

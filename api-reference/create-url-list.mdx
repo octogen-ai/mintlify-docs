@@ -1,12 +1,12 @@
 ---
 title: "POST /coverage/url-lists — create a URL list"
-description: "Create a named coverage URL list that Octogen joins against its crawled catalogs and shares back in BigQuery."
+description: "Create a named coverage URL list that StoreRouter joins against its crawled catalogs and shares back in BigQuery."
 sidebarTitle: "Create a URL List"
 ---
 
 `POST /coverage/url-lists` creates a coverage URL list: a named set of product
-URLs that Octogen continuously answers coverage for. Once the list is active,
-Octogen joins it against every active crawled catalog daily and publishes the
+URLs that StoreRouter continuously answers coverage for. Once the list is active,
+StoreRouter joins it against every active crawled catalog daily and publishes the
 matching products to a per-list BigQuery listing your organization's
 registered BigQuery Readers can subscribe to.
 

@@ -1,10 +1,10 @@
 ---
-title: "Paginate through large Octogen search results"
-description: "Use cursor-based pagination to iterate through all matching products in an Octogen search, page by page, without missing or duplicating results."
+title: "Paginate through large StoreRouter search results"
+description: "Use cursor-based pagination to iterate through all matching products in a StoreRouter search, page by page, without missing or duplicating results."
 sidebarTitle: "Pagination"
 ---
 
-The Octogen search endpoint returns results one page at a time. When more products match your query than fit on a single page, the response includes a `nextCursor` field you pass back to fetch the next page. This cursor-based model ensures you can iterate through a full result set consistently, even as the underlying catalog updates.
+The StoreRouter search endpoint returns results one page at a time. When more products match your query than fit on a single page, the response includes a `nextCursor` field you pass back to fetch the next page. This cursor-based model ensures you can iterate through a full result set consistently, even as the underlying catalog updates.
 
 ## How cursor-based pagination works
 

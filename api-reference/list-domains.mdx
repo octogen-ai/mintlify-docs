@@ -1,10 +1,10 @@
 ---
 title: "GET /domains — list covered domains"
-description: "List every domain covered by an active Octogen catalog and cache the result with ETag revalidation."
+description: "List every domain covered by an active StoreRouter catalog and cache the result with ETag revalidation."
 sidebarTitle: "List Covered Domains"
 ---
 
-`GET /domains` returns every normalized host covered by an active crawled catalog. Use this endpoint before Product Lookup to determine whether Octogen covers a product page's domain.
+`GET /domains` returns every normalized host covered by an active crawled catalog. Use this endpoint before Product Lookup to determine whether StoreRouter covers a product page's domain.
 
 The response is read-only and full-corpus. It returns one entry for each `(host, catalog)` pair, sorted by host and catalog.
 

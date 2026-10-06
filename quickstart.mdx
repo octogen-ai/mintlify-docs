@@ -1,16 +1,16 @@
 ---
-title: "Get started with Octogen in minutes"
+title: "Get started with StoreRouter in minutes"
 description: "Go from zero to your first product search result: set up your API key, search active crawled catalogs, and look up a product by URL."
 ---
 
-This guide walks you through making your first calls to the Octogen Platform Catalog API. By the end, you will have searched products and resolved a product page URL to a full product record — using curl, the Python SDK, or the TypeScript SDK.
+This guide walks you through making your first calls to the StoreRouter Platform Catalog API. By the end, you will have searched products and resolved a product page URL to a full product record — using curl, the Python SDK, or the TypeScript SDK.
 
 ## Prerequisites
 
 Before you start, make sure you have:
 
-- A **Developer organization** provisioned by Octogen
-- A **Platform API key** from Octogen Platform (see [Authentication](/authentication))
+- A **Developer organization** provisioned by StoreRouter
+- A **Platform API key** from StoreRouter Platform (see [Authentication](/authentication))
 
 <Steps>
   <Step title="Set your API key">
@@ -61,7 +61,7 @@ Before you start, make sure you have:
                       print(f"- {title} | {brand} | {price}")
                       print(f"  {product.product_url}")
           except OctogenAPIError as exc:
-              print(f"Octogen API error: status={exc.status_code}")
+              print(f"StoreRouter API error: status={exc.status_code}")
               raise
 
       asyncio.run(main())
@@ -89,7 +89,7 @@ Before you start, make sure you have:
         }
       } catch (error) {
         if (error instanceof OctogenAPIError) {
-          console.error(`Octogen API error: status=${String(error.statusCode)}`);
+          console.error(`StoreRouter API error: status=${String(error.statusCode)}`);
         }
         throw error;
       }

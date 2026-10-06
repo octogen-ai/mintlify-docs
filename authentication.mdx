@@ -1,15 +1,15 @@
 ---
-title: "Authenticate with the Octogen Platform API"
+title: "Authenticate with the StoreRouter Platform API"
 description: "Learn how to create a Platform API key, configure OCTO_API_KEY in your environment, and send it as a Bearer token to authenticated endpoints."
 ---
 
-Most requests to the Octogen Platform Catalog API require a valid API key. Keys are issued per organization through Octogen Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+Most requests to the StoreRouter Platform Catalog API require a valid API key. Keys are issued per organization through StoreRouter Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
 
 [`GET /domains`](/api-reference/list-domains), `POST /products/lookup`, and `POST /products/search` also support a limited keyless trial. Include an API key for production workloads, higher limits, and access to the complete `/v1` surface.
 
 ## API key format
 
-Octogen Platform API keys follow this structure:
+StoreRouter Platform API keys follow this structure:
 
 ```
 octo_live_<32-hex-id>_<base64url-secret>
@@ -20,8 +20,8 @@ Keep your key private. Do not commit it to source control or expose it in client
 ## Set up your API key
 
 <Steps>
-  <Step title="Create a key in Octogen Platform">
-    Log in to Octogen Platform and navigate to **API Keys**. Generate a new key and copy it immediately — the secret portion is only shown once.
+  <Step title="Create a key in StoreRouter Platform">
+    Log in to StoreRouter Platform and navigate to **API Keys**. Generate a new key and copy it immediately — the secret portion is only shown once.
   </Step>
   <Step title="Set the environment variable">
     Add your key to your environment so the SDKs can pick it up automatically:
@@ -81,7 +81,7 @@ const client = new OctogenClient({ apiKey: "octo_live_<your-key>" });
 
 ## Rotate and revoke keys
 
-Rotate keys from the **API Keys** section of Octogen Platform. When you deactivate a key, it is revoked immediately — the next request using that key returns a `401` error. Issue a replacement key before deactivating the old one to avoid downtime.
+Rotate keys from the **API Keys** section of StoreRouter Platform. When you deactivate a key, it is revoked immediately — the next request using that key returns a `401` error. Issue a replacement key before deactivating the old one to avoid downtime.
 
 <Warning>
   Deactivating a key takes effect on the next API request. There is no grace period. Always create and deploy a replacement key before revoking the old one.
@@ -91,7 +91,7 @@ Rotate keys from the **API Keys** section of Octogen Platform. When you deactiva
 
 | Status | Meaning | What to do |
 | --- | --- | --- |
-| `401` | The key is missing, malformed, or has been revoked. | Check that `OCTO_API_KEY` is set correctly and that the key has not been deactivated in Octogen Platform. |
+| `401` | The key is missing, malformed, or has been revoked. | Check that `OCTO_API_KEY` is set correctly and that the key has not been deactivated in StoreRouter Platform. |
 | `403` | The key is valid, but your organization is not authorized for this resource. | Inspect `detail` and confirm the key belongs to a Developer organization. |
 
 <Note>

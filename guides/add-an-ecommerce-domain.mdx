@@ -1,10 +1,10 @@
 ---
 title: "Add an ecommerce domain"
-description: "Learn how to add an ecommerce domain to Octogen."
+description: "Learn how to add an ecommerce domain to StoreRouter."
 sidebarTitle: "Add an ecommerce domain"
 ---
 
-Octogen's "Vasco" agent can be auto-trained to understand a new ecommerce domain. Under the hood, Vosco creates a per-site program to read, parse and convert that sites product data to Octogen's format.
+StoreRouter's "Vasco" agent can be auto-trained to understand a new ecommerce domain. Under the hood, Vosco creates a per-site program to read, parse and convert that sites product data to StoreRouter's format.
 
 Rather than do *all* ecommerce domains, we're letting our developers add new sites to Vasco's queue. Vosco is successful roughly 90% of the time, and within ~1.5 hours for the 90th percentile.
 
@@ -59,8 +59,8 @@ curl -sS https://api.octogen.ai/v1/voyage/2026-07-13-09-15-02-example \
 | Status | Meaning |
 | --- | --- |
 | `queued` | The voyage has been accepted and is waiting to start. |
-| `running` | Octogen is crawling the site, building extraction, or publishing the catalog. |
-| `in_review` | Octogen is performing a quality review; no action is needed from you. |
+| `running` | StoreRouter is crawling the site, building extraction, or publishing the catalog. |
+| `in_review` | StoreRouter is performing a quality review; no action is needed from you. |
 | `completed` | The catalog is live and searchable. |
 | `failed` | The voyage could not be completed. The response includes an error. |
-| `cancelled` | Octogen stopped the voyage. |
+| `cancelled` | StoreRouter stopped the voyage. |

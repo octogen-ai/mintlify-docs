@@ -1,12 +1,12 @@
 ---
 title: "Coverage API - URL Lists"
-description: "URL Lists provide detailed access to Octogen catalog data via BigQuery"
+description: "URL Lists provide detailed access to StoreRouter catalog data via BigQuery"
 sidebarTitle: "Coverage URL Lists"
 ---
 
 A **URL list** is a set of product URLs you own and edit through the API. Each
 list automatically gets its own BigQuery listing, refreshed daily with the
-full product records for every URL Octogen covers — so instead of looking up
+full product records for every URL StoreRouter covers — so instead of looking up
 URLs one at a time or subscribing to whole catalogs and joining on your side,
 you upload the URLs you care about and read the answer in BigQuery.
 
@@ -16,7 +16,7 @@ you upload the URLs you care about and read the answer in BigQuery.
   <Step title="Create a list">
     One API call. A BigQuery listing is provisioned automatically — typically
     within a minute — and shared with the BigQuery Readers you've already
-    registered with Octogen.
+    registered with StoreRouter.
   </Step>
   <Step title="Add and remove URLs any time">
     Batch calls, up to 1,000 URLs each. Re-sending URLs that are already there
@@ -113,7 +113,7 @@ console.log(result.urlCount, "URLs;", result.rejected.length, "rejected");
 
 `POST .../urls/contains` tells you whether URLs are **in your list** (added by
 you), applying the same normalization as adds. Coverage results — whether
-Octogen's catalogs match those URLs — live in BigQuery, below.
+StoreRouter's catalogs match those URLs — live in BigQuery, below.
 
 ```bash curl
 curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
@@ -169,7 +169,7 @@ URL in your list, saying whether it matched:
 | Column | Meaning |
 | --- | --- |
 | `url` | The URL as you submitted it |
-| `normalized_url` | Octogen's normalized form of it |
+| `normalized_url` | StoreRouter's normalized form of it |
 | `covered` | `TRUE` if the export matched at least one product |
 | `exported_at` | The snapshot timestamp |
 
@@ -193,7 +193,7 @@ WHERE NOT covered
 
 ## Behavior worth knowing
 
-- **You don't need to clean your URLs.** Octogen normalizes them — tracking
+- **You don't need to clean your URLs.** StoreRouter normalizes them — tracking
   parameters, `http/https`, and host-case differences won't cause misses or
   duplicates, and meaningful query parameters are preserved.
 - **Matching is page-level.** URLs that differ only in query parameters

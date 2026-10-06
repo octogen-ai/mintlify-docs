@@ -1,16 +1,16 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "Octogen",
+  "name": "StoreRouter",
   "theme": "luma",
   "logo": {
-    "light": "/images/octogen-logo-light.svg",
-    "dark": "/images/octogen-logo-dark.svg"
+    "light": "/images/storerouter-logo-light.svg",
+    "dark": "/images/storerouter-logo-dark.svg"
   },
-  "favicon": "https://media.brand.dev/6c319a44-8606-481f-a8e7-e8cd409c68e3.jpg",
+  "favicon": "/images/storerouter-icon.svg",
   "colors": {
-    "primary": "#1c1c1c",
-    "light": "#848484",
-    "dark": "#dbdbdb"
+    "primary": "#315BFF",
+    "light": "#315BFF",
+    "dark": "#8EA5FF"
   },
   "navbar": {
     "primary": {
@@ -136,5 +136,10 @@
   },
   "fonts": {
     "family": "Geist"
+  },
+  "seo": {
+    "metatags": {
+      "canonical": "https://storerouter.ai/docs"
+    }
   }
 }
