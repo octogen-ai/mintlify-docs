@@ -4,13 +4,14 @@
   "theme": "luma",
   "logo": {
     "light": "/images/storerouter-logo-light.svg",
-    "dark": "/images/storerouter-logo-dark.svg"
+    "dark": "/images/storerouter-logo-dark.svg",
+    "href": "https://storerouter.ai"
   },
   "favicon": "/images/storerouter-icon.svg",
   "colors": {
-    "primary": "#315BFF",
-    "light": "#315BFF",
-    "dark": "#8EA5FF"
+    "primary": "#D01F5C",
+    "light": "#EC6483",
+    "dark": "#D01F5C"
   },
   "navbar": {
     "primary": {
@@ -140,6 +141,12 @@
   "seo": {
     "metatags": {
       "canonical": "https://storerouter.ai/docs"
+    }
+  },
+  "background": {
+    "color": {
+      "light": "#EFF2F6",
+      "dark": "#0A0A0A"
     }
   }
 }

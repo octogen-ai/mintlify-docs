@@ -33,7 +33,7 @@ Requests that can use on-demand resolution also accept `onDemandCachePolicy`:
 <CodeGroup>
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/products/lookup \
+curl -sS https://api.storerouter.ai/v1/products/lookup \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -50,7 +50,7 @@ from octogen_ai_sdk import OctogenClient
 
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         result = await client.lookup_product(
             "https://example.com/products/blue-linen-dress",
             resolution_mode="auto",
@@ -71,7 +71,7 @@ asyncio.run(main())
 ```typescript typescript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const result = await client.lookupProduct(
   "https://example.com/products/blue-linen-dress",
   {

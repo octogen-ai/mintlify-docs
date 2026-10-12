@@ -11,7 +11,7 @@ Use this endpoint for related product rails, substitutions, recommendation modul
 ## Request
 
 ```http
-POST https://api.octogen.ai/v1/products/more-like-this
+POST https://api.storerouter.ai/v1/products/more-like-this
 Authorization: Bearer <your-platform-api-key>
 Content-Type: application/json
 ```
@@ -81,7 +81,7 @@ Content-Type: application/json
 ### Example
 
 ```bash
-curl -sS https://api.octogen.ai/v1/products/more-like-this \
+curl -sS https://api.storerouter.ai/v1/products/more-like-this \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -212,7 +212,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         page = await client.more_like_this_products(
             source_url="https://warrenlotas.com/products/black-hoodie",
             catalogs=["warrenlotas"],
@@ -228,7 +228,7 @@ asyncio.run(main())
 ```typescript TypeScript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const page = await client.moreLikeThisProducts({
   source: { url: "https://warrenlotas.com/products/black-hoodie" },
   catalogs: ["warrenlotas"],

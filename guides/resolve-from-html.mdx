@@ -32,13 +32,13 @@ Two rules make captures reliable:
 <Warning>
 Your platform API key is an organization-scoped, server-to-server secret. Never embed it in client-side code — a page, an extension, or any code that runs on your users' devices. Send the capture from your client to **your own backend**, and have your backend call StoreRouter:
 
-`user's browser → your backend → api.octogen.ai`
+`user's browser → your backend → api.storerouter.ai`
 </Warning>
 
 Your backend then forwards the capture unchanged:
 
 ```bash
-curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+curl -sS https://api.storerouter.ai/v1/products/resolve-from-html \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d "$(jq -n --arg html "$CAPTURED_HTML" --arg url "$CAPTURED_URL" '{html: $html, url: $url}')"

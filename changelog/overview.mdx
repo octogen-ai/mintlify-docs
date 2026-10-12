@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="October 12, 2026" description="StoreRouter service domains">
+
+## Updates
+
+**Connect through StoreRouter domains.** API examples use `https://api.storerouter.ai/v1`, standard MCP clients use `https://mcp.storerouter.ai/mcp`, and Codex CLI uses `https://codex-mcp.storerouter.ai/mcp`. The published OpenAPI contract is available at `https://cdn.storerouter.ai/openapi/platform/v1/openapi.json`.
+
+SDK and CLI examples set the service URLs explicitly so they work with package releases that predate the migration. Package names, API key variables, and catalog grants stay the same. The Codex compatibility proxy retains its existing token audience; see the [Codex CLI guide](/mcp/codex-cli).
+
+Examples in earlier changelog entries below also use the current service URLs.
+
+</Update>
+
 <Update label="August 12, 2026" description="Resolve products from your own HTML">
 
 ## New features
@@ -95,7 +107,7 @@ The TypeScript SDK exposes `moreLikeThisProducts(...)`, and the Python SDK expos
 # From a clone of github.com/octogen-ai/octogen-dev:
 uv sync --project sdks/python --extra bigquery
 uv run --project sdks/python --extra bigquery octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
-uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
+uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --mcp-url https://mcp.storerouter.ai/mcp/ --mcp-token-endpoint https://auth.storerouter.ai/oauth2/token --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
 ```
 
 See the [BigQuery subscribe guide](/guides/bigquery-subscribe) to get started.
@@ -124,8 +136,8 @@ See the [API reference overview](/api-reference/overview) for endpoint details a
 
 ## Updates
 
-**Codex CLI now uses a dedicated MCP endpoint.** Codex CLI users should point their client at `https://codex-mcp.octogen.ai/mcp` instead of the standard MCP base URL. The compatibility endpoint handles OAuth discovery in the format Codex expects, while issued tokens still target the canonical MCP audience — tools, response shapes, and catalog grants are unchanged.
+**Codex CLI now uses a dedicated MCP endpoint.** Codex CLI users should point their client at `https://codex-mcp.storerouter.ai/mcp` instead of the standard MCP base URL. The compatibility endpoint handles OAuth discovery in the format Codex expects, while issued tokens still target the canonical MCP audience — tools, response shapes, and catalog grants are unchanged.
 
-If you set up Codex CLI before this week, update your registration following the [Codex CLI guide](/mcp/codex-cli). All other clients continue to use `https://mcp.octogen.ai/mcp`.
+If you set up Codex CLI before this week, update your registration following the [Codex CLI guide](/mcp/codex-cli). All other clients continue to use `https://mcp.storerouter.ai/mcp`.
 
 </Update>

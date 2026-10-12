@@ -44,20 +44,23 @@ If neither is set, the constructor raises `MissingAPIKeyError` immediately — b
 from octogen_ai_sdk import OctogenClient
 
 # From environment variable (recommended)
-client = OctogenClient()
+client = OctogenClient(base_url="https://api.storerouter.ai/v1")
 
 # Explicit key
-client = OctogenClient(api_key="octo_live_...")
+client = OctogenClient(api_key="octo_live_...", base_url="https://api.storerouter.ai/v1")
 ```
 
 ## Client constructor
+
+These examples set the StoreRouter base URL explicitly, including when you use
+an SDK release that predates the domain migration.
 
 `OctogenClient` accepts the following keyword-only arguments:
 
 | Parameter     | Type                              | Default                          | Description                                                     |
 | ------------- | --------------------------------- | -------------------------------- | --------------------------------------------------------------- |
 | `api_key`     | `str \| None`                     | `None` (reads `OCTO_API_KEY`)    | Your Platform API key.                                          |
-| `base_url`    | `str`                             | `https://api.octogen.ai/v1`      | Override the API base URL (useful for testing).                 |
+| `base_url`    | `str`                             | Set explicitly above             | Override the API base URL (useful for testing).                 |
 | `timeout`     | `float \| httpx.Timeout`          | `30.0`                           | Request timeout in seconds, or a full `httpx.Timeout` object.  |
 | `http_client` | `httpx.AsyncClient \| None`       | `None` (SDK creates one)         | Supply your own `httpx.AsyncClient` to reuse connections or configure proxies. |
 
@@ -70,7 +73,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         results = await client.search_products(q="shirt", limit=1)
         print(results.items)
 
@@ -217,7 +220,7 @@ from octogen_ai_sdk import OctogenAPIError, OctogenClient
 
 async def main() -> None:
     try:
-        async with OctogenClient() as client:
+        async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
             results = await client.search_products(
                 q="women's linen summer dresses",
                 limit=5,
@@ -251,7 +254,7 @@ Use `Facet` objects to filter by brand, gender, color, category, and other attri
 ```python
 from octogen_ai_sdk import Facet, FacetName, OctogenClient
 
-async with OctogenClient() as client:
+async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
     results = await client.search_products(
         q="summer dress",
         facets=[

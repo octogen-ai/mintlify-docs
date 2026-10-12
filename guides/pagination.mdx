@@ -52,7 +52,7 @@ async def fetch_all_products(
 ) -> list[MerchantProductListItem]:
     all_items: list[MerchantProductListItem] = []
 
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         cursor: str | None = None
 
         while True:
@@ -86,7 +86,7 @@ import type { MerchantProductListItem } from "@octogen-ai/sdk";
 async function fetchAllProducts(
   query: string,
 ): Promise<MerchantProductListItem[]> {
-  const client = new OctogenClient();
+  const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
   const allItems: MerchantProductListItem[] = [];
   let cursor: string | undefined;
 

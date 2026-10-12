@@ -36,7 +36,7 @@ Keep your key private. Do not commit it to source control or expose it in client
     Confirm the key works with a small product search:
 
     ```bash
-    curl -sS https://api.octogen.ai/v1/products/search \
+    curl -sS https://api.storerouter.ai/v1/products/search \
       -H "Authorization: Bearer $OCTO_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"q":"shirt","limit":1}'
@@ -63,7 +63,7 @@ If you use the Python or TypeScript SDK, authentication is handled for you. The 
 from octogen_ai_sdk import OctogenClient
 
 # Reads OCTO_API_KEY from the environment automatically
-client = OctogenClient()
+client = OctogenClient(base_url="https://api.storerouter.ai/v1")
 
 # Or pass the key directly
 client = OctogenClient(api_key="octo_live_<your-key>")
@@ -73,7 +73,7 @@ client = OctogenClient(api_key="octo_live_<your-key>")
 import { OctogenClient } from "@octogen-ai/sdk";
 
 // Reads OCTO_API_KEY from the environment automatically
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 
 // Or pass the key directly
 const client = new OctogenClient({ apiKey: "octo_live_<your-key>" });

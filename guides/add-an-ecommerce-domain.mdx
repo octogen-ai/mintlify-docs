@@ -10,7 +10,7 @@ Rather than do *all* ecommerce domains, we're letting our developers add new sit
 
 There are two ways to add a new site to Vasco's queue:
 
-1. Use the "Voyager" UI in the [Platform Console](https://platform.octogen.ai).
+1. Use the "Voyager" UI in the [Platform Console](https://platform.storerouter.ai).
 2. Use the [Voyager API](#voyager-api).
 
 ## Voyager API
@@ -25,7 +25,7 @@ up its products.
 Send the domain or a full URL to `POST /v1/voyage`:
 
 ```bash
-curl -sS https://api.octogen.ai/v1/voyage \
+curl -sS https://api.storerouter.ai/v1/voyage \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"domain": "example.com"}'
@@ -52,7 +52,7 @@ Use the returned `taskId` to check progress. Poll every five minutes or
 slower:
 
 ```bash
-curl -sS https://api.octogen.ai/v1/voyage/2026-07-13-09-15-02-example \
+curl -sS https://api.storerouter.ai/v1/voyage/2026-07-13-09-15-02-example \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
 ```
 

@@ -33,7 +33,7 @@ you upload the URLs you care about and read the answer in BigQuery.
 ## The API at a glance
 
 Same base URL and API key as the rest of the platform API
-(`https://api.octogen.ai/v1`). See the
+(`https://api.storerouter.ai/v1`). See the
 [Coverage API reference](/api-reference/create-url-list) for complete schemas.
 
 | Endpoint | What it does |
@@ -52,12 +52,12 @@ Same base URL and API key as the rest of the platform API
 <CodeGroup>
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/coverage/url-lists \
+curl -sS https://api.storerouter.ai/v1/coverage/url-lists \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "q3-campaign"}'
 
-curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls \
+curl -sS https://api.storerouter.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"urls": [
@@ -71,7 +71,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         url_list = await client.create_coverage_url_list(name="q3-campaign")
         result = await client.add_coverage_url_list_urls(
             url_list.url_list_id,
@@ -88,7 +88,7 @@ asyncio.run(main())
 ```typescript typescript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const urlList = await client.createCoverageUrlList("q3-campaign");
 const result = await client.addCoverageUrlListUrls(urlList.urlListId, [
   "https://shop.example/products/dress?utm_source=newsletter",
@@ -116,7 +116,7 @@ you), applying the same normalization as adds. Coverage results — whether
 StoreRouter's catalogs match those URLs — live in BigQuery, below.
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
+curl -sS https://api.storerouter.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"urls": ["https://shop.example/products/dress"]}'

@@ -11,7 +11,7 @@ The StoreRouter Platform Catalog API v1 is a server-to-server REST API for Devel
 All requests go to:
 
 ```http
-https://api.octogen.ai/v1
+https://api.storerouter.ai/v1
 ```
 
 Every request body and response body uses `application/json`. Set `Content-Type: application/json` on requests that include a body.
@@ -39,7 +39,7 @@ API keys are organization-scoped and currently usable only by Developer organiza
 The machine-readable contract is published at every platform deploy:
 
 ```text
-https://cdn.octogen.ai/openapi/platform/v1/openapi.json
+https://cdn.storerouter.ai/openapi/platform/v1/openapi.json
 ```
 
 The document includes server URLs, operation IDs such as `listDomains`, `getMe`, `searchProducts`, `moreLikeThisProducts`, `lookupProduct`, `resolveProductFromHtml`, `startVoyage`, `getVoyage`, `listVoyages`, `createUrlList`, `listUrlLists`, `getUrlList`, `deleteUrlList`, `addUrlListUrls`, `removeUrlListUrls`, `checkUrlListUrls`, and `listUrlListUrls`, full request and response schemas, and example error bodies. Most ecosystems can generate a typed client from it - for example `openapi-generator`, `openapi-typescript`, or `oapi-codegen`.

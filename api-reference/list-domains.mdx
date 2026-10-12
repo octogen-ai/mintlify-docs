@@ -11,7 +11,7 @@ The response is read-only and full-corpus. It returns one entry for each `(host,
 ## Request
 
 ```http
-GET https://api.octogen.ai/v1/domains
+GET https://api.storerouter.ai/v1/domains
 Authorization: Bearer <your-platform-api-key>
 ```
 
@@ -20,7 +20,7 @@ The `Authorization` header is optional for this endpoint. Requests without a key
 ### Example
 
 ```bash
-curl -sS https://api.octogen.ai/v1/domains \
+curl -sS https://api.storerouter.ai/v1/domains \
   -H "Authorization: Bearer $OCTO_API_KEY"
 ```
 
@@ -68,7 +68,7 @@ Normalize a product URL's host before matching it against the response: lowercas
 A successful response includes a strong `ETag` and `Cache-Control: max-age=300`. Store the response and send its `ETag` in `If-None-Match` when revalidating:
 
 ```bash
-curl -i https://api.octogen.ai/v1/domains \
+curl -i https://api.storerouter.ai/v1/domains \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H 'If-None-Match: "<etag-from-the-previous-response>"'
 ```
