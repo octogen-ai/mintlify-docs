@@ -170,7 +170,7 @@ from octogen_ai_sdk import (
 )
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         try:
             result = await client.lookup_product(
                 "https://warrenlotas.com/products/black-hoodie"
@@ -216,7 +216,7 @@ import {
   OctogenAPIError,
 } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 
 try {
   const result = await client.lookupProduct(

@@ -9,13 +9,13 @@ sidebarTitle: "Resolve from HTML"
 Extraction is the same deterministic pass the on-demand lookup path uses: JSON-LD `schema.org/Product` first, then Open Graph tags, then plain HTML meta. There is no JavaScript rendering and no inference — capture the live DOM rather than the raw server response. See the [guide](/guides/resolve-from-html) for capture mechanics and timing.
 
 <Warning>
-Call this endpoint from your backend only. Your platform API key is an organization-scoped secret — never embed it in code that runs on your users' devices. Relay captures through your own server: `user's browser → your backend → api.octogen.ai`.
+Call this endpoint from your backend only. Your platform API key is an organization-scoped secret — never embed it in code that runs on your users' devices. Relay captures through your own server: `user's browser → your backend → api.storerouter.ai`.
 </Warning>
 
 ## Request
 
 ```http
-POST https://api.octogen.ai/v1/products/resolve-from-html
+POST https://api.storerouter.ai/v1/products/resolve-from-html
 Authorization: Bearer <your-platform-api-key>
 Content-Type: application/json
 ```
@@ -33,7 +33,7 @@ Content-Type: application/json
 ### Example
 
 ```bash
-curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+curl -sS https://api.storerouter.ai/v1/products/resolve-from-html \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -56,7 +56,7 @@ To build the request body from a saved HTML file (for example, while testing), l
 
 ```bash
 jq -Rs --arg url "https://example.com/products/blue-linen-dress" '{html: ., url: $url}' page.html \
-  | curl -sS https://api.octogen.ai/v1/products/resolve-from-html \
+  | curl -sS https://api.storerouter.ai/v1/products/resolve-from-html \
       -H "Authorization: Bearer $OCTO_API_KEY" \
       -H "Content-Type: application/json" \
       --data @-

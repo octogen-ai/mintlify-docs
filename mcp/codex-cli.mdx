@@ -7,7 +7,7 @@ sidebarTitle: "Codex CLI"
 Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rather than the standard MCP base URL. This endpoint handles OAuth discovery and token minting in a way that is compatible with how Codex implements the OAuth 2.1 flow. Everything else — the tools, the response shapes, and the catalog grants — is identical to other clients.
 
 <Note>
-  Always use `https://codex-mcp.octogen.ai/mcp` with Codex CLI. Do not substitute the standard `https://mcp.octogen.ai/mcp` URL — authentication will not complete correctly.
+  Always use `https://codex-mcp.storerouter.ai/mcp` with Codex CLI. Do not substitute the standard `https://mcp.storerouter.ai/mcp` URL — authentication will not complete correctly.
 </Note>
 
 <Steps>
@@ -15,7 +15,7 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
     Run the following command in your terminal:
 
     ```bash
-    codex mcp add octogen --url https://codex-mcp.octogen.ai/mcp
+    codex mcp add octogen --url https://codex-mcp.storerouter.ai/mcp
     ```
 
     This registers a server named `octogen` in your Codex configuration.
@@ -24,7 +24,7 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
 
     ```toml
     [mcp_servers.octogen]
-    url = "https://codex-mcp.octogen.ai/mcp"
+    url = "https://codex-mcp.storerouter.ai/mcp"
     ```
   </Step>
 
@@ -35,7 +35,7 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
     codex mcp login octogen
     ```
 
-    Codex opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
+    Codex opens a browser tab with the StoreRouter sign-in page. Complete the sign-in flow:
 
     1. Enter the email that belongs to your Developer organization.
     2. Authenticate using your organization's configured method (password, SSO, or magic link).
@@ -56,13 +56,13 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
     codex mcp get octogen
     ```
 
-    The output should show `url = "https://codex-mcp.octogen.ai/mcp"`. If the URL differs, remove the entry and re-run step 1.
+    The output should show `url = "https://codex-mcp.storerouter.ai/mcp"`. If the URL differs, remove the entry and re-run step 1.
   </Step>
 </Steps>
 
 ## Why a separate URL?
 
-The Codex CLI uses a different OAuth discovery path than other MCP clients. The compatibility endpoint at `https://codex-mcp.octogen.ai` advertises OAuth resource indicator support and handles the `authorize` and `token` requests in the format Codex expects. Internally, it attaches the canonical MCP resource identifier (`https://mcp.octogen.ai`) before forwarding the request to Octogen AuthKit, so the access token it issues is audience-bound to the same resource as every other client. The separate hostname is purely a compatibility shim — your catalog grants, tool calls, and response shapes are identical regardless of which endpoint you authenticated through.
+The Codex CLI uses a different OAuth discovery path than other MCP clients. The compatibility endpoint at `https://codex-mcp.storerouter.ai` advertises OAuth resource indicator support and handles the `authorize` and `token` requests in the format Codex expects. It attaches the existing compatibility audience (`https://mcp.octogen.ai`) before forwarding to `https://auth.storerouter.ai`. This audience is a token identifier, not the hostname you connect to. Standard clients on `mcp.storerouter.ai` use `https://mcp.storerouter.ai` as their audience. Your catalog grants, tool calls, and response shapes are identical on both hosts.
 
 ## What your agent can do
 

@@ -19,7 +19,7 @@ Pass a free-text string as `q` to search by keyword. Omit `q` entirely to browse
 <CodeGroup>
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/products/search \
+curl -sS https://api.storerouter.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -33,7 +33,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         results = await client.search_products(
             q="black hoodie",
             limit=10,
@@ -47,7 +47,7 @@ asyncio.run(main())
 ```typescript typescript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const results = await client.searchProducts({
   q: "black hoodie",
   limit: 10,
@@ -82,7 +82,7 @@ Facet values are **case-insensitive** and phrase values may contain spaces. You 
 <CodeGroup>
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/products/search \
+curl -sS https://api.storerouter.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -101,7 +101,7 @@ from octogen_ai_sdk import OctogenClient
 from octogen_ai_sdk.models import Facet, FacetName
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         results = await client.search_products(
             facets=[
                 Facet(name=FacetName.COLOR, values=["black"]),
@@ -120,7 +120,7 @@ asyncio.run(main())
 ```typescript typescript
 import { OctogenClient, FacetName } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const results = await client.searchProducts({
   facets: [
     { name: FacetName.COLOR, values: ["black"] },
@@ -145,7 +145,7 @@ Use `price_min` and `price_max` to restrict results to a price range. Both bound
 <CodeGroup>
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/products/search \
+curl -sS https://api.storerouter.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -160,7 +160,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         results = await client.search_products(
             q="hoodie",
             price_min=100,
@@ -175,7 +175,7 @@ asyncio.run(main())
 ```typescript typescript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const results = await client.searchProducts({
   q: "hoodie",
   priceMin: 100,
@@ -196,7 +196,7 @@ You can combine `q`, `facets`, and price filters in a single request. All active
 <CodeGroup>
 
 ```bash curl
-curl -sS https://api.octogen.ai/v1/products/search \
+curl -sS https://api.storerouter.ai/v1/products/search \
   -H "Authorization: Bearer $OCTO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -217,7 +217,7 @@ from octogen_ai_sdk import OctogenClient
 from octogen_ai_sdk.models import Facet, FacetName
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         results = await client.search_products(
             q="graphic tee",
             facets=[
@@ -239,7 +239,7 @@ asyncio.run(main())
 ```typescript typescript
 import { OctogenClient, FacetName } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const results = await client.searchProducts({
   q: "graphic tee",
   facets: [

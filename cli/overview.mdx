@@ -22,14 +22,14 @@ The `domains`, `lookup`, and `search` commands also support a limited keyless tr
 You can run the CLI without installing it globally:
 
 ```bash
-npx -y @octogen-ai/cli@next domains --check https://www.macys.com/shop/product/x
+npx -y @octogen-ai/cli@next domains --base-url https://api.storerouter.ai/v1 --check https://www.macys.com/shop/product/x
 ```
 
 To authenticate, set your API key in the environment:
 
 ```bash
 export OCTOGEN_PLATFORM_API_KEY=octo_live_...
-npx -y @octogen-ai/cli@next status
+npx -y @octogen-ai/cli@next status --base-url https://api.storerouter.ai/v1
 ```
 
 The CLI also accepts a key from `--api-key-stdin`, `--api-key-file`, or a `.env` file between your current directory and the nearest Git repository root. It does not provide a `--api-key` argument because command-line arguments can appear in shell history and process listings.
@@ -39,15 +39,15 @@ The CLI also accepts a key from `--api-key-stdin`, `--api-key-file`, or a `.env`
 ### Look up a product
 
 ```bash
-npx -y @octogen-ai/cli@next lookup \
+npx -y @octogen-ai/cli@next lookup --base-url https://api.storerouter.ai/v1 \
   https://lagence.com/products/akiya-satin-maxi-dress-merlot-red
 ```
 
 ### Search products
 
 ```bash
-npx -y @octogen-ai/cli@next search "paisley jackets" --limit 3
-npx -y @octogen-ai/cli@next search dress \
+npx -y @octogen-ai/cli@next search --base-url https://api.storerouter.ai/v1 "paisley jackets" --limit 3
+npx -y @octogen-ai/cli@next search --base-url https://api.storerouter.ai/v1 dress \
   --facet color=red,blue \
   --price-max 300 \
   --catalog macys
@@ -56,22 +56,22 @@ npx -y @octogen-ai/cli@next search dress \
 ### Find similar products
 
 ```bash
-npx -y @octogen-ai/cli@next similar \
+npx -y @octogen-ai/cli@next similar --base-url https://api.storerouter.ai/v1 \
   https://lagence.com/products/akiya-satin-maxi-dress-merlot-red
 ```
 
 ### Check domain coverage
 
 ```bash
-npx -y @octogen-ai/cli@next domains --check \
+npx -y @octogen-ai/cli@next domains --base-url https://api.storerouter.ai/v1 --check \
   https://www.macys.com/shop/product/x
 ```
 
 ### Start and monitor a voyage
 
 ```bash
-npx -y @octogen-ai/cli@next voyage https://newmerchant.example --wait
-npx -y @octogen-ai/cli@next voyage status task_01H...
+npx -y @octogen-ai/cli@next voyage --base-url https://api.storerouter.ai/v1 https://newmerchant.example --wait
+npx -y @octogen-ai/cli@next voyage status --base-url https://api.storerouter.ai/v1 task_01H...
 ```
 
 Other commands include `resolve` and the low-level `api` escape hatch. See the [CLI source and complete command reference](https://github.com/octogen-ai/octogen-dev/tree/main/cli) for every option.
@@ -81,7 +81,7 @@ Other commands include `resolve` and the low-level `api` escape hatch. See the [
 The CLI automatically emits one-line JSON when stdout is not a TTY. Use `--json` to force JSON or `--no-json` to force human-readable output.
 
 ```bash
-npx -y @octogen-ai/cli@next search "blue denim dress" --limit 3 --json
+npx -y @octogen-ai/cli@next search --base-url https://api.storerouter.ai/v1 "blue denim dress" --limit 3 --json
 ```
 
 Diagnostics go to stderr, while stdout contains only the result. Use `--quiet` to silence diagnostics or `--verbose` to include timing and allow-listed response headers.

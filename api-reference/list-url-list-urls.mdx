@@ -10,7 +10,7 @@ in stable insertion order.
 ## Request
 
 ```http
-GET https://api.octogen.ai/v1/coverage/url-lists/{urlListId}/urls
+GET https://api.storerouter.ai/v1/coverage/url-lists/{urlListId}/urls
 Authorization: Bearer <your-platform-api-key>
 ```
 
@@ -33,7 +33,7 @@ Authorization: Bearer <your-platform-api-key>
 ### Example
 
 ```bash
-curl -sS "https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls?limit=100" \
+curl -sS "https://api.storerouter.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls?limit=100" \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
 ```
 
@@ -80,7 +80,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         cursor = None
         while True:
             page = await client.list_coverage_url_list_urls(
@@ -98,7 +98,7 @@ asyncio.run(main())
 ```typescript TypeScript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 let cursor: string | undefined;
 do {
   const page = await client.listCoverageUrlListUrls(

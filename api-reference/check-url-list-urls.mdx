@@ -14,7 +14,7 @@ whether StoreRouter's catalogs cover it; coverage results live in the list's
 ## Request
 
 ```http
-POST https://api.octogen.ai/v1/coverage/url-lists/{urlListId}/urls/contains
+POST https://api.storerouter.ai/v1/coverage/url-lists/{urlListId}/urls/contains
 Authorization: Bearer <your-platform-api-key>
 Content-Type: application/json
 ```
@@ -34,7 +34,7 @@ Content-Type: application/json
 ### Example
 
 ```bash
-curl -sS https://api.octogen.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
+curl -sS https://api.storerouter.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"urls": ["https://shop.example/products/dress", "https://shop.example/products/coat"]}'
@@ -84,7 +84,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         response = await client.check_coverage_url_list_urls(
             "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
             urls=["https://shop.example/products/dress"],
@@ -98,7 +98,7 @@ asyncio.run(main())
 ```typescript TypeScript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const response = await client.checkCoverageUrlListUrls(
   "cul_01KZAC9QSY5RWSTZ63FGBS50F2",
   ["https://shop.example/products/dress"],

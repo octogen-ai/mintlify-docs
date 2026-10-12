@@ -138,12 +138,14 @@ The command performs one idempotent sync pass:
 
 ```bash
 octogen-mcp-login \
+  --authkit-domain https://auth.storerouter.ai \
+  --resource https://mcp.storerouter.ai \
   --client-id-file /secure/octogen-mcp.client-id \
   --redirect-uri-file /secure/octogen-mcp.redirect-uri \
   --refresh-token-file /secure/octogen-mcp.refresh
 ```
 
-The login command opens Octogen AuthKit in your browser, registers a public MCP OAuth client if needed, requests an MCP-audience refresh token, and writes the client id, registered redirect URI, and rotating refresh token to the requested files. It does not print the refresh token.
+The login command opens StoreRouter AuthKit in your browser, registers a public MCP OAuth client if needed, requests an MCP-audience refresh token, and writes the client id, registered redirect URI, and rotating refresh token to the requested files. It does not print the refresh token.
 
 ### Dry run
 
@@ -151,6 +153,8 @@ The login command opens Octogen AuthKit in your browser, registers a public MCP 
 OCTOGEN_MCP_CLIENT_ID_FILE=/secure/octogen-mcp.client-id \
 OCTOGEN_MCP_REFRESH_TOKEN_FILE=/secure/octogen-mcp.refresh \
 octogen-bq-autosubscribe \
+  --mcp-url https://mcp.storerouter.ai/mcp/ \
+  --mcp-token-endpoint https://auth.storerouter.ai/oauth2/token \
   --project my-gcp-project \
   --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com \
   --json
@@ -159,7 +163,7 @@ octogen-bq-autosubscribe \
 ### Apply from cron
 
 ```cron
-*/15 * * * * cd /path/to/octogen-dev && OCTOGEN_MCP_CLIENT_ID_FILE=/secure/octogen-mcp.client-id OCTOGEN_MCP_REFRESH_TOKEN_FILE=/secure/octogen-mcp.refresh uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
+*/15 * * * * cd /path/to/octogen-dev && OCTOGEN_MCP_CLIENT_ID_FILE=/secure/octogen-mcp.client-id OCTOGEN_MCP_REFRESH_TOKEN_FILE=/secure/octogen-mcp.refresh uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --mcp-url https://mcp.storerouter.ai/mcp/ --mcp-token-endpoint https://auth.storerouter.ai/oauth2/token --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
 ```
 
 `OCTOGEN_MCP_REFRESH_TOKEN_FILE` should contain a StoreRouter MCP OAuth refresh token. If the identity provider rotates that refresh token during exchange, the command writes the replacement back to the same file while holding a sibling `.lock` file, so overlapping cron runs do not overwrite the same rotating token at once.
@@ -174,7 +178,7 @@ octogen-bq-autosubscribe \
 | `--friendly-name` | No | Derived per dataset | Friendly name for created linked datasets. |
 | `--apply` | No | Off | Register and subscribe. Without it, the command reports what would happen. |
 | `--json` | No | Off | Emit JSON output. |
-| `--mcp-url` | No | `https://mcp.octogen.ai/mcp/` | StoreRouter MCP endpoint. |
+| `--mcp-url` | No | Set explicitly above | `https://mcp.storerouter.ai/mcp/`, the StoreRouter MCP endpoint. |
 | `--mcp-client-id-file` | No | `OCTOGEN_MCP_CLIENT_ID_FILE` | File containing the public OAuth client id from `octogen-mcp-login`. |
 | `--mcp-refresh-token-file` | No | `OCTOGEN_MCP_REFRESH_TOKEN_FILE` | File containing the rotating MCP refresh token. |
 | `--mcp-token-command` | No | `OCTOGEN_MCP_TOKEN_COMMAND` | Command that prints a short-lived MCP access token. |

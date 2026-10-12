@@ -10,7 +10,7 @@ newest first, with cursor pagination.
 ## Request
 
 ```http
-GET https://api.octogen.ai/v1/coverage/url-lists
+GET https://api.storerouter.ai/v1/coverage/url-lists
 Authorization: Bearer <your-platform-api-key>
 ```
 
@@ -27,7 +27,7 @@ Authorization: Bearer <your-platform-api-key>
 ### Example
 
 ```bash
-curl -sS "https://api.octogen.ai/v1/coverage/url-lists?limit=10" \
+curl -sS "https://api.storerouter.ai/v1/coverage/url-lists?limit=10" \
   -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
 ```
 
@@ -58,7 +58,7 @@ import asyncio
 from octogen_ai_sdk import OctogenClient
 
 async def main() -> None:
-    async with OctogenClient() as client:
+    async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         page = await client.list_coverage_url_lists(limit=10)
         for url_list in page.items:
             print(url_list.name, url_list.status, url_list.url_count)
@@ -69,7 +69,7 @@ asyncio.run(main())
 ```typescript TypeScript
 import { OctogenClient } from "@octogen-ai/sdk";
 
-const client = new OctogenClient();
+const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const page = await client.listCoverageUrlLists({ limit: 10 });
 for (const urlList of page.items) {
   console.log(urlList.name, urlList.status, urlList.urlCount);
