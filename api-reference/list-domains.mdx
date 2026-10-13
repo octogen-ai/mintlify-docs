@@ -15,7 +15,7 @@ GET https://api.storerouter.ai/v1/domains
 Authorization: Bearer <your-platform-api-key>
 ```
 
-The `Authorization` header is optional for this endpoint. Requests without a key use the keyless trial's lower per-IP allowance. Include your Platform API key for production workloads and your organization's rate-limit allowance.
+This endpoint requires a Platform API key in the `Authorization` header.
 
 ### Example
 
@@ -79,8 +79,7 @@ The API returns `304 Not Modified` with an empty body when the covered-domain se
 
 | Status | `detail` | Meaning |
 | --- | --- | --- |
-| `401` | `"Invalid API key"` | The supplied API key is malformed or invalid. Omit it to use the keyless trial, or replace it with a valid key. |
+| `401` | `"Invalid API key"` | The supplied API key is malformed or invalid. Replace it with a valid key. |
 | `403` | `"api_key_org_type_forbidden"` | The key belongs to an organization that may not use `/v1`. |
 | `429` | `"rate_limit_exceeded"` | Your organization exceeded its request-rate limit. |
-| `429` | `detail.code: "keyless_trial_exhausted"` | The keyless trial's per-IP allowance is exhausted. Wait for the rolling allowance to refill or add an API key. |
 | `503` | `"catalog_registry_unavailable"` | The catalog registry is temporarily unavailable. Retry with backoff. |
