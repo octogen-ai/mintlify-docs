@@ -48,20 +48,19 @@
       },
       {
         "tab": "API Reference",
-        "groups": [
+        "pages": [
+          "api-reference/overview",
           {
             "group": "Catalog API",
             "pages": [
-              "api-reference/overview",
-              "api-reference/list-catalogs",
+              "api-reference/search-products",
               "api-reference/lookup-product",
-              "api-reference/search-products"
+              "api-reference/more-like-this"
             ]
           },
           {
             "group": "Data Models",
             "pages": [
-              "api-reference/models/catalog",
               "api-reference/models/product"
             ]
           }
@@ -80,16 +79,12 @@
     "Structured error model with typed exceptions per status code"
   ],
   "publicApiSurface": [
-    "GET /v1/catalogs — list granted catalogs",
     "POST /v1/products/lookup — resolve a product URL",
     "POST /v1/products/search — search products by query and facets",
-    "OctogenClient.list_catalogs() — Python SDK",
     "OctogenClient.lookup_product(url) — Python SDK",
     "OctogenClient.search_products(...) — Python SDK",
-    "OctogenClient.listCatalogs() — TypeScript SDK",
     "OctogenClient.lookupProduct(url) — TypeScript SDK",
     "OctogenClient.searchProducts(params) — TypeScript SDK",
-    "MCP tool: list_catalogs()",
     "MCP tool: lookup_product(product_url, catalogs?)",
     "MCP tool: search_products(catalog, query?, limit?, cursor?)"
   ]
