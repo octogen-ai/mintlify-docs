@@ -18,7 +18,7 @@ Every request body and response body uses `application/json`. Set `Content-Type:
 
 ## Authentication
 
-Send your Platform API key as a Bearer token on authenticated requests:
+Send your Platform API key as a Bearer token on every request:
 
 ```http
 Authorization: Bearer octo_live_<32-hex-id>_<base64url-secret>
@@ -26,8 +26,6 @@ Content-Type: application/json
 ```
 
 API keys are organization-scoped and currently usable only by Developer organizations. A key can search and browse every active crawled catalog, including catalogs activated later, and can never access merchant catalogs. Rotate or deactivate keys in StoreRouter Platform; deactivation takes effect on the next request.
-
-`GET /domains`, `POST /products/lookup`, and `POST /products/search` also support a limited keyless trial. Include an API key for production workloads and access to the complete `/v1` surface.
 
 <Warning>
   Never expose your Platform API key in client-side code or public repositories.

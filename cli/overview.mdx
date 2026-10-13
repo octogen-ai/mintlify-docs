@@ -13,19 +13,11 @@ The CLI is currently a pre-release. Install it from the `next` npm dist-tag whil
 ## Requirements
 
 - Node.js 20 or later
-- An StoreRouter API key for authenticated commands
-
-The `domains`, `lookup`, and `search` commands also support a limited keyless trial.
+- A StoreRouter API key
 
 ## Run the CLI
 
-You can run the CLI without installing it globally:
-
-```bash
-npx -y @octogen-ai/cli@next domains --base-url https://api.storerouter.ai/v1 --check https://www.macys.com/shop/product/x
-```
-
-To authenticate, set your API key in the environment:
+You can run the CLI without installing it globally. Set your API key in the environment before running commands:
 
 ```bash
 export OCTOGEN_PLATFORM_API_KEY=octo_live_...
@@ -100,9 +92,3 @@ Diagnostics go to stderr, while stdout contains only the result. Use `--quiet` t
 | `7` | Partial success or an unfinished wait |
 
 Exit code `6` never represents throttling. This distinction lets an agent tell an empty result apart from an unavailable or exhausted service.
-
-## Keyless trial
-
-Without an API key, `domains`, `lookup`, and `search` use the keyless trial. The trial allows 30 requests per IP address per day and returns complete payloads. Other commands require authentication.
-
-Shared networks can exhaust the trial before your first request. A keyless limit returns exit code `5`, not `6`.
