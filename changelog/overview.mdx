@@ -15,18 +15,6 @@ Examples in earlier changelog entries below also use the current service URLs.
 
 </Update>
 
-<Update label="August 12, 2026" description="Resolve products from your own HTML">
-
-## New features
-
-**Turn the product page your user is viewing into a product object.** The new `POST /v1/products/resolve-from-html` endpoint accepts a product page's HTML (up to 5 MiB) plus its URL, and returns the same response envelope as Product Lookup with a new `source: "client_html"` value. Octogen never fetches the page, never reads its index, and never stores what you send — extraction is the same deterministic JSON-LD → Open Graph → HTML meta pass the on-demand lookup path uses, applied to your bytes.
-
-Capture the live DOM from your client application while your user is on the product page (`document.documentElement.outerHTML` + `location.href`), relay it through your backend, and resolve exactly what the user saw — including storefronts that block server-side fetching entirely, and the precise variant and price state of the session. Live-DOM captures are already rendered, so storefronts that inject their JSON-LD client-side extract at full fidelity. For URLs on covered domains, Product Lookup remains the richer call.
-
-See the [Resolve from HTML guide](/guides/resolve-from-html) and [API reference](/api-reference/resolve-product-from-html).
-
-</Update>
-
 <Update label="August 7, 2026" description="Per-URL coverage view for URL Lists">
 
 ## New features
@@ -83,7 +71,7 @@ See the [Product Lookup guide](/guides/product-lookup) and [API reference](/api-
 
 **Developers can search and browse every active crawled catalog.** This policy automatically includes catalogs activated later and always excludes merchant catalogs. Catalog-specific BigQuery listing access remains separately managed by Octogen.
 
-**Catalog enumeration has been retired for Developers.** The REST `GET /v1/catalogs` endpoint, MCP `list_catalogs` tool, SDK listing methods, and catalog summary response model are no longer available. Omit the optional `catalog` field to search all active crawled catalogs, or pass a known active crawled catalog key to scope a request.
+Omit the optional `catalog` field to search all active crawled catalogs, or pass a known active crawled catalog key to scope a request.
 
 </Update>
 
@@ -126,11 +114,11 @@ See the [BigQuery subscribe guide](/guides/bigquery-subscribe) to get started.
 
 ## New features
 
-**Developer MCP server is live.** Connect any MCP-compatible AI agent — Claude Code, Claude Desktop, Codex CLI, and others — directly to your granted Octogen catalogs over OAuth 2.1 + PKCE. The initial product tools mirror the REST API: `list_catalogs`, `lookup_product`, and `search_products`. Tokens are scoped to your organization and refresh automatically until your sign-in session expires.
+**Developer MCP server is live.** Connect any MCP-compatible AI agent — Claude Code, Claude Desktop, Codex CLI, and others — directly to your granted Octogen catalogs over OAuth 2.1 + PKCE. The initial product tools mirror the REST API: `lookup_product` and `search_products`. Tokens are scoped to your organization and refresh automatically until your sign-in session expires.
 
 See the [MCP overview](/mcp/overview) to choose a client and get started.
 
-**Platform Catalog API v1 (REST) is generally available.** Backends and batch jobs can now hit the same catalog data over HTTPS with an `octo_live_...` API key. Endpoints include `GET /v1/catalogs`, `POST /v1/products/lookup`, and `POST /v1/products/search`, with cursor-based pagination and facet support.
+**Platform Catalog API v1 (REST) is generally available.** Backends and batch jobs can now hit the same catalog data over HTTPS with an `octo_live_...` API key. Endpoints include `POST /v1/products/search` and `POST /v1/products/lookup`, with cursor-based pagination and facet support.
 
 See the [API reference overview](/api-reference/overview) for endpoint details and the [authentication guide](/authentication) for key setup.
 

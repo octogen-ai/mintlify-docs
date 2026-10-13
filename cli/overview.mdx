@@ -1,6 +1,6 @@
 ---
 title: "StoreRouter CLI"
-description: "Use StoreRouter's product lookup, search, similarity, coverage, and voyage APIs from a terminal or an agent workflow."
+description: "Use StoreRouter's product lookup, search, similarity, and coverage APIs from a terminal or an agent workflow."
 sidebarTitle: "Overview"
 ---
 
@@ -21,7 +21,7 @@ You can run the CLI without installing it globally. Set your API key in the envi
 
 ```bash
 export OCTOGEN_PLATFORM_API_KEY=octo_live_...
-npx -y @octogen-ai/cli@next status --base-url https://api.storerouter.ai/v1
+npx -y @octogen-ai/cli@next search --base-url https://api.storerouter.ai/v1 "shirt" --limit 1
 ```
 
 The CLI also accepts a key from `--api-key-stdin`, `--api-key-file`, or a `.env` file between your current directory and the nearest Git repository root. It does not provide a `--api-key` argument because command-line arguments can appear in shell history and process listings.
@@ -52,21 +52,7 @@ npx -y @octogen-ai/cli@next similar --base-url https://api.storerouter.ai/v1 \
   https://lagence.com/products/akiya-satin-maxi-dress-merlot-red
 ```
 
-### Check domain coverage
-
-```bash
-npx -y @octogen-ai/cli@next domains --base-url https://api.storerouter.ai/v1 --check \
-  https://www.macys.com/shop/product/x
-```
-
-### Start and monitor a voyage
-
-```bash
-npx -y @octogen-ai/cli@next voyage --base-url https://api.storerouter.ai/v1 https://newmerchant.example --wait
-npx -y @octogen-ai/cli@next voyage status --base-url https://api.storerouter.ai/v1 task_01H...
-```
-
-Other commands include `resolve` and the low-level `api` escape hatch. See the [CLI source and complete command reference](https://github.com/octogen-ai/octogen-dev/tree/main/cli) for every option.
+Use the low-level `api` command for requests outside these examples. See the [CLI source and complete command reference](https://github.com/octogen-ai/octogen-dev/tree/main/cli) for every option.
 
 ## Output for agents
 
