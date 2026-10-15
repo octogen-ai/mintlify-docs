@@ -3,6 +3,33 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="October 14, 2026" description="Redesigned product search and SDK 0.5.0">
+
+## Updates
+
+**One control per intent on product search.** `POST /v1/products/search` now gives each field one job. `q` says what to find and is understood by default: StoreRouter rewrites it for retrieval and derives category, gender, color, brand, price, and attribute filters from it. `facets`, `exclude_facets`, and the bounds say what to keep, and `catalogs` says where to look. A request that combines fields in a contradictory way, or sends an unknown field, now returns a `422` instead of being resolved silently.
+
+New request fields:
+
+- `understand: false` matches `q` as written and filters only by what you send.
+- `exclude_facets` removes products that match any listed value.
+- `omit_generated_facets` drops an understood facet that is wrong when you have no value of your own for it. A facet you send in `facets` already replaces the understood facet of the same name.
+- `brand_quality_min` and `brand_quality_max` bound brand quality from 1 (very poor) to 6 (exceptional). `similar_to_brands` ranks results toward the style of 1 to 10 brands without filtering.
+
+`relax` and `debug` are now documented. `relax: true` drops understood filters in stages when an understood `q` returns nothing; facets you send are never dropped. `debug: true` adds `effectiveQuery`, the search that actually ran, with each facet tagged `source: "caller"` or `"generated"`. It is a report, not a request fragment to send back.
+
+**Breaking changes:**
+
+- `catalog`, `text_search_query`, and `diversity` now return a `422` whose message names the replacement. Send `catalogs: ["<key>"]` instead of `catalog`. Send `q` with `understand: false`, and put filters in `facets` and `exclude_facets`, instead of `text_search_query`. Omit `diversity`; it was never applied.
+- Each facet has one public spelling. Send taxonomy attribute handles by their bare name, such as `fit`: `attribute_facets.fit` now returns a `422`. The attribute named `color` is the one exception and stays `attribute_facets.color`. A facet name may appear only once in `facets` or `exclude_facets`.
+- Cursors are strict. Pass back exactly the `nextCursor` the previous page returned, with the same request body. An unusable cursor returns `400` with `detail: "invalid cursor"`; restart from page 1 without `cursor`.
+
+**SDK 0.5.0.** The Python (`octogen-ai-sdk`) and TypeScript (`@octogen-ai/sdk`) SDKs match the new contract. `search_products` and `searchProducts` accept the new fields and return `ProgrammaticProductSearchPage`, which adds `requestId` and a typed `effectiveQuery`. The SDKs check the contradictions the API would refuse before sending a request. `catalog` and `text_search_query` / `textSearchQuery`, deprecated in 0.4.0, are removed.
+
+The MCP `search_products` tool and More Like This are unchanged. See the [Search Products reference](/api-reference/search-products), the [Catalog search guide](/guides/catalog-search), and the [Python](/sdks/python) and [TypeScript](/sdks/typescript) SDK references for migration examples.
+
+</Update>
+
 <Update label="October 12, 2026" description="StoreRouter service domains">
 
 ## Updates

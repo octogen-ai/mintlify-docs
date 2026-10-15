@@ -46,7 +46,7 @@ The Catalog API reference documents these endpoints.
 
 | Method | Path | Operation | Description |
 | --- | --- | --- | --- |
-| `POST` | `/products/search` | `searchProducts` | Searches products across all active crawled catalogs, or within one catalog when `catalog` is provided. |
+| `POST` | `/products/search` | `searchProducts` | Searches products across every catalog your key can access, or only the catalogs listed in `catalogs`. |
 | `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a full product record. |
 | `POST` | `/products/more-like-this` | `moreLikeThisProducts` | Finds products similar to a source product URL or UUID. |
 
