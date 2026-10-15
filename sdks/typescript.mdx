@@ -4,23 +4,23 @@ description: "Install the TypeScript SDK for StoreRouter, set your API key, and 
 sidebarTitle: "TypeScript SDK"
 ---
 
-The StoreRouter TypeScript SDK gives you a fully typed, async client for the StoreRouter commerce API. Install it from npm, configure your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
+The StoreRouter TypeScript SDK gives you a fully typed, async client for the StoreRouter commerce API. Install it from npm, configure your `OCTOGEN_PLATFORM_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all with complete TypeScript interfaces so your editor catches mistakes before they reach production.
 
 ## Installation
 
 <Steps>
   <Step title="Install the package">
-    Requires Node.js 20 or later. The SDK ships as ESM only.
+    Requires Node.js 20 or later. The SDK ships as ESM only. This page documents version 0.5.0.
 
     ```bash
     npm install @octogen-ai/sdk
     ```
   </Step>
   <Step title="Set your API key">
-    The client reads your key from the `OCTO_API_KEY` environment variable automatically.
+    The client reads your key from the `OCTOGEN_PLATFORM_API_KEY` environment variable automatically.
 
     ```bash
-    export OCTO_API_KEY=octo_live_...
+    export OCTOGEN_PLATFORM_API_KEY=octo_live_...
     ```
 
     You can also pass `apiKey:` in the constructor options if you prefer to manage secrets yourself (see [Authentication](#authentication) below).
@@ -32,9 +32,10 @@ The StoreRouter TypeScript SDK gives you a fully typed, async client for the Sto
 `OctogenClient` resolves your API key in this order:
 
 1. The `apiKey` option passed to the constructor, if provided.
-2. The `OCTO_API_KEY` environment variable (`process.env.OCTO_API_KEY`).
+2. The `OCTOGEN_PLATFORM_API_KEY` environment variable (`process.env.OCTOGEN_PLATFORM_API_KEY`).
+3. The deprecated `OCTO_API_KEY` environment variable. Reading it warns once, and support will be removed. Set `OCTOGEN_PLATFORM_API_KEY` instead.
 
-If neither is set, the constructor throws `MissingAPIKeyError` immediately — before any network request is made. Every request then sends the key as `Authorization: Bearer <api-key>`.
+If none of these is set, the constructor throws `MissingAPIKeyError` immediately — before any network request is made. Every request then sends the key as `Authorization: Bearer <api-key>`.
 
 ```typescript
 import { OctogenClient } from "@octogen-ai/sdk";
@@ -55,7 +56,7 @@ an SDK release that predates the domain migration.
 
 | Option      | Type                      | Default                        | Description                                                           |
 | ----------- | ------------------------- | ------------------------------ | --------------------------------------------------------------------- |
-| `apiKey`    | `string`                  | `process.env.OCTO_API_KEY`     | Your Platform API key.                                                |
+| `apiKey`    | `string`                  | `process.env.OCTOGEN_PLATFORM_API_KEY` | Your Platform API key.                                                |
 | `baseUrl`   | `string`                  | Set explicitly below           | Override the API base URL (useful for testing).                       |
 | `timeoutMs` | `number`                  | `30000`                        | Request timeout in milliseconds.                                      |
 | `fetch`     | `FetchLike`               | `globalThis.fetch`             | Custom fetch function — useful for edge runtimes or test mocks.       |
@@ -107,31 +108,98 @@ if (result.source === "indexed") {
 ### `searchProducts`
 
 ```typescript
-async searchProducts(params: SearchProductsParams): Promise<MerchantProductListPage>
+async searchProducts(params: SearchProductsParams): Promise<ProgrammaticProductSearchPage>
 ```
 
-Searches products across all authorized catalogs by default. Pass `catalog` only when you want to restrict search to one catalog.
+Searches every catalog your key can access, or only the catalogs in `catalogs`. Each field controls one thing and is sent under its snake_case wire name (for example, `excludeFacets` as `exclude_facets`). See [`POST /products/search`](/api-reference/search-products) for the full field semantics.
 
 **`SearchProductsParams` fields:**
 
-| Field       | Type              | Default | Description                                                             |
-| ----------- | ----------------- | ------- | ----------------------------------------------------------------------- |
-| `catalog`   | `string`          | —       | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
-| `q`         | `string`          | —       | Keyword search query.                                                   |
-| `facets`    | `Facet[]`         | —       | List of facet filters to apply. See [Faceted search](#faceted-search).  |
-| `priceMin`  | `number`          | —       | Minimum price filter (inclusive).                                       |
-| `priceMax`  | `number`          | —       | Maximum price filter (inclusive).                                       |
-| `cursor`    | `string`          | —       | Pagination cursor from a previous response's `nextCursor`.              |
-| `limit`     | `number`          | `50`    | Number of results per page. Must be an integer between 1 and 100.       |
+| Field                 | Type                | Default | Description |
+| --------------------- | ------------------- | ------- | ----------- |
+| `q`                   | `string`            | —       | Free-text query, understood by default. Omit to browse by filters alone. |
+| `understand`          | `boolean`           | `true`  | `false` matches `q` as written and filters only by what you send. Requires `q`. |
+| `facets`              | `Facet[]`           | —       | Filters a product must match. Replaces any understood facet of the same name. See [Faceted search](#faceted-search). |
+| `excludeFacets`       | `Facet[]`           | —       | Filters a product must not match. |
+| `omitGeneratedFacets` | `string[]`          | —       | Names of understood facets to drop. Use the names `effectiveQuery` reports. Requires an understood `q`. |
+| `priceMin`            | `number`            | —       | Inclusive minimum price, at least `0`. |
+| `priceMax`            | `number`            | —       | Inclusive maximum price, at least `priceMin`. |
+| `brandQualityMin`     | `number`            | —       | Inclusive minimum brand quality, from `1` (very poor) to `6` (exceptional). |
+| `brandQualityMax`     | `number`            | —       | Inclusive maximum brand quality, from `1` to `6`. |
+| `similarToBrands`     | `string[]`          | —       | 1 to 10 brand names whose style to favor. Ranks, does not filter. |
+| `catalogs`            | `readonly string[]` | —       | 1 to 500 catalog keys. Omit to search every catalog your key can access. |
+| `limit`               | `number`            | `50`    | Number of results per page. Must be an integer between 1 and 100. |
+| `cursor`              | `string`            | —       | The `nextCursor` from the previous page, passed back verbatim with the same params. |
+| `relax`               | `boolean`           | `false` | Drop understood filters in stages when an understood `q` returns nothing. Requires an understood `q`. |
+| `debug`               | `boolean`           | `false` | Include `effectiveQuery`, the search that actually ran. |
 
-**Returns:** `Promise<MerchantProductListPage>`
+**Returns:** `Promise<ProgrammaticProductSearchPage>`. `ProgrammaticProductSearchPage` extends `MerchantProductListPage`, so code typed against the old return type still compiles.
 
-| Field        | Type                           | Description                                            |
-| ------------ | ------------------------------ | ------------------------------------------------------ |
-| `items`      | `MerchantProductListItem[]`    | Products on this page.                                 |
-| `nextCursor` | `string \| null`               | Pass as `cursor` in your next call to get the next page. `null` means no more results. |
+| Field            | Type                                              | Description |
+| ---------------- | ------------------------------------------------- | ----------- |
+| `items`          | `MerchantProductListItem[]`                       | Products on this page. |
+| `nextCursor`     | `string \| null`                                  | Pass as `cursor` in your next call to get the next page. `null` means no more results. |
+| `requestId`      | `string`                                          | Server-generated ID for this request, matching `X-Request-ID`. |
+| `effectiveQuery` | `ProgrammaticProductSearchEffectiveQuery \| null` | Present only when `debug` is `true`. Reports `text`, `understood`, `facets` and `excludeFacets` (each facet tagged `source: "caller"` or `"generated"`), the price and brand-quality bounds, `similarToBrands`, `catalogs`, and `relaxation` (`rounds`, `droppedFacets`, `declinedRounds`). It is a report, not a request fragment. |
 
 Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `imageUrl`, `images`, `rating`, `isActive`, optional match scores, and `updatedAt`.
+
+```typescript
+const page = await client.searchProducts({
+  q: "black hoodie",
+  catalogs: ["warrenlotas"], // omit to search every catalog your key can access
+  facets: [{ name: "color", values: ["black"] }],
+  excludeFacets: [{ name: "brand_name", values: ["acme"] }],
+  priceMin: 50,
+  priceMax: 300,
+  brandQualityMin: 4,
+  relax: true,
+  debug: true,
+});
+
+for (const facet of page.effectiveQuery?.facets ?? []) {
+  console.log(facet.name, facet.values, facet.source); // "caller" | "generated"
+}
+```
+
+#### Local validation
+
+The SDK checks the contradictions the API would refuse and throws a `TypeError` before sending a request:
+
+- `understand: false`, `relax`, or a non-empty `omitGeneratedFacets` without `q`. `relax` and `omitGeneratedFacets` also require `understand` to stay on.
+- A facet name repeated within `facets` or `excludeFacets`, or a name in both `facets` and `omitGeneratedFacets`.
+- More than 50 entries in `facets`, `excludeFacets`, or `omitGeneratedFacets`.
+- A negative price or `priceMin > priceMax`.
+- Brand quality outside 1–6, or `brandQualityMin > brandQualityMax`.
+- `similarToBrands` that is empty, has more than 10 names, or has a blank name.
+
+An empty `catalogs` list or a blank key also throws a `TypeError`. The server remains the source of truth for everything else, such as unknown facet names.
+
+#### Removed in 0.5.0
+
+These fields were deprecated in 0.4.0 and are gone in 0.5.0, because the API now rejects them with a `422`. Passing `catalog`, `textSearchQuery`, or `diversity` from JavaScript, or past the types, throws a `TypeError` that names the replacement.
+
+| Removed | Use instead |
+| --- | --- |
+| `catalog: "macys"` | `catalogs: ["macys"]` |
+| `textSearchQuery: {...}` and the `TextSearchQuery` and `TextSearchQueryPayload` types | `q` with `understand: false`, your filters in `facets` and `excludeFacets` (formerly `exclusionFacets`), and the bounds and brands as top-level `priceMin`, `priceMax`, `brandQualityMin`, `brandQualityMax`, and `similarToBrands` |
+
+```typescript
+// 0.4.0
+await client.searchProducts({ catalog: "macys", q: "linen dress" });
+
+// 0.5.0
+await client.searchProducts({ catalogs: ["macys"], q: "linen dress" });
+await client.searchProducts({
+  q: "linen dress",
+  understand: false,
+  facets: [{ name: "color_family", values: ["blue"] }],
+  excludeFacets: [{ name: "brand_name", values: ["acme"] }],
+  priceMax: 200,
+});
+```
+
+`textSearchQuery`'s retrieval tuning (`searchId`, `rankingText`, embedding columns, similarity weights, `searchAfter`, `browseMenuUuid`, `compactMode`) has no replacement on `/v1` search.
 
 ---
 
@@ -141,12 +209,12 @@ Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `tit
 async moreLikeThisProducts(params: MoreLikeThisProductsParams): Promise<MoreLikeThisProductsResponse>
 ```
 
-Finds products similar to a source product URL or UUID. Omit `catalog` to search all active crawled catalogs, or pass a catalog key to keep the results within one catalog.
+Finds products similar to a source product URL or UUID. Omit `catalogs` to search all active crawled catalogs, or pass 1–100 catalog keys to keep the results within those catalogs.
 
 ```typescript
 const page = await client.moreLikeThisProducts({
   source: { url: "https://warrenlotas.com/products/black-hoodie" },
-  catalog: "warrenlotas",
+  catalogs: ["warrenlotas"],
   pricePreference: "any",
   limit: 12,
 });
@@ -157,7 +225,7 @@ const page = await client.moreLikeThisProducts({
 | Field             | Type                         | Default | Description |
 | ----------------- | ---------------------------- | ------- | ----------- |
 | `source`          | `{ url?: string; uuid?: string }` | —   | Source product identifier. Exactly one of `url` or `uuid` is required. |
-| `catalog`         | `string`                     | —       | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
+| `catalogs`        | `readonly string[]`          | —       | Optional allowlist of 1–100 catalog keys. Omit to search all active crawled catalogs. |
 | `includeFacets`   | `Facet[]`                    | —       | Extra include facets appended after server-generated audience facets. |
 | `excludeFacets`   | `Facet[]`                    | —       | Facets to exclude from similar-product results. |
 | `pricePreference` | `"lower" \| "any" \| "higher"` | `"any"` | Relative price behavior compared with the source product. |
@@ -226,7 +294,7 @@ const results = await client.searchProducts({
   q: "summer dress",
   facets: [
     { name: FacetName.GENDER, values: ["female"] },
-    { name: FacetName.COLOR_FAMILY, values: ["Blue", "Green"] },
+    { name: FacetName.COLOR_FAMILY, values: ["blue", "green"] },
   ],
   priceMax: 150,
   limit: 20,
@@ -238,12 +306,12 @@ for (const product of results.items) {
 ```
 
 <Tip>
-  `FacetName` is a const object with string values for all built-in facet fields: `BRAND_NAME`, `GENDER`, `AGE_GROUPS`, `COLOR`, `COLOR_FAMILY`, `IS_ACTIVEWEAR`, `PRODUCT_TYPE`, `CATEGORY_PATH_DEPTH_0` through `CATEGORY_PATH_DEPTH_6`, and more. You can also pass any custom attribute facet name as a plain string.
+  `FacetName` is a const object with string values for all built-in facet fields: `BRAND_NAME`, `GENDER`, `AGE_GROUPS`, `COLOR`, `COLOR_FAMILY`, `IS_ACTIVEWEAR`, `PRODUCT_TYPE`, `CATEGORY_PATH_DEPTH_0` through `CATEGORY_PATH_DEPTH_6`, and more. You can also pass a taxonomy attribute handle, such as `fit`, as a plain string. Use the bare handle: `attribute_facets.fit` is rejected. Facet values are canonical lowercase handles. See [Facet names](/api-reference/search-products#facet-names).
 </Tip>
 
 ## Pagination
 
-When `nextCursor` is not `null` in a response, pass it as `cursor` in your next call to retrieve the following page:
+When `nextCursor` is not `null` in a response, pass it back verbatim as `cursor`, with the same other params, to retrieve the following page. A cursor the API cannot use returns `400` with `detail` `"invalid cursor"`; restart from page 1 without `cursor`. A product can repeat across pages, so de-duplicate by `uuid`.
 
 ```typescript
 let cursor: string | undefined;
@@ -270,7 +338,7 @@ All SDK errors extend `OctogenError`. HTTP errors extend `OctogenAPIError`, whic
 
 <AccordionGroup>
   <Accordion title="OctogenAuthenticationError — 401">
-    Thrown when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in StoreRouter Platform.
+    Thrown when your API key is missing, malformed, or has been revoked. Check that `OCTOGEN_PLATFORM_API_KEY` is set correctly and that the key is still active in StoreRouter Platform.
   </Accordion>
   <Accordion title="OctogenForbiddenError — 403">
     Thrown when a valid key attempts an action it is not authorized for — for example, accessing a catalog that has not been granted to your organization.
@@ -279,7 +347,7 @@ All SDK errors extend `OctogenError`. HTTP errors extend `OctogenAPIError`, whic
     Thrown when a catalog or product URL cannot be found. For `lookupProduct`, verify the URL belongs to a catalog your key can access.
   </Accordion>
   <Accordion title="OctogenValidationError — 422">
-    Thrown when the API rejects a request due to invalid parameters. The `detail` property contains the validation error list from the API.
+    Thrown when the API rejects a request due to invalid parameters. The `detail` property contains the validation error list from the API. `searchProducts` catches many invalid combinations locally and throws a `TypeError` before sending a request.
   </Accordion>
   <Accordion title="OctogenConnectionError">
     Thrown when the SDK cannot reach the API — for example, due to a network timeout or DNS failure. Does not have a `statusCode`.
@@ -299,7 +367,7 @@ try {
   const results = await client.searchProducts({ q: "dress" });
 } catch (error) {
   if (error instanceof OctogenAuthenticationError) {
-    console.error("Check your OCTO_API_KEY.");
+    console.error("Check your OCTOGEN_PLATFORM_API_KEY.");
   } else if (error instanceof OctogenAPIError) {
     console.error(`API error ${String(error.statusCode)}:`, error.detail);
   } else if (error instanceof OctogenConnectionError) {
@@ -311,5 +379,5 @@ try {
 ```
 
 <Warning>
-  `MissingAPIKeyError` is thrown by the constructor, not by a network call. It will surface at client creation time if neither `apiKey` nor `OCTO_API_KEY` is present.
+  `MissingAPIKeyError` is thrown by the constructor, not by a network call. It will surface at client creation time if neither `apiKey` nor an API key environment variable is present.
 </Warning>

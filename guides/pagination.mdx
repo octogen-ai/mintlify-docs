@@ -1,6 +1,6 @@
 ---
 title: "Paginate through large StoreRouter search results"
-description: "Use cursor-based pagination to iterate through all matching products in a StoreRouter search, page by page, without missing or duplicating results."
+description: "Use cursor-based pagination to iterate through all matching products in a StoreRouter search, page by page, and de-duplicate products that repeat across pages."
 sidebarTitle: "Pagination"
 ---
 
@@ -16,8 +16,12 @@ Each `POST /v1/products/search` response contains:
 To advance to the next page, send the same request again with the `nextCursor` value passed as `cursor`. Keep repeating until `nextCursor` is `null`.
 
 <Warning>
-  Cursors are opaque. Do not parse, decode, or construct them manually. Their internal format may change between API versions. Always pass the cursor value through verbatim. A malformed cursor is silently treated as a first-page request, which means you will restart iteration from the beginning rather than receiving an error.
+  Cursors are opaque. Do not parse, decode, or construct them manually. Their internal format may change between API versions. Pass back exactly the `nextCursor` the previous page returned, with the same request body. A cursor that is malformed, was issued under a different cursor version, or no longer maps onto the current query returns `400` with `{"detail": "invalid cursor"}`. Restart from page 1 by omitting `cursor`.
 </Warning>
+
+<Note>
+  Page 1 is ranked by relevance. Later pages continue in quality-score order from page 1's last result, so a product can repeat across pages. De-duplicate by `uuid` when you concatenate pages.
+</Note>
 
 ## The pagination pattern
 
@@ -29,7 +33,7 @@ To advance to the next page, send the same request again with the `nextCursor` v
     If `nextCursor` is `null`, the response is the only (or last) page — you are done. If `nextCursor` is a non-null string, there are more results.
   </Step>
   <Step title="Send the next request with cursor">
-    Repeat the same request, passing the `nextCursor` value as `cursor`. Keep all other parameters — including `catalog` if you provided one — identical to the original request.
+    Repeat the same request, passing the `nextCursor` value as `cursor`. Keep the rest of the request body — including `catalogs`, `facets`, and `relax` if you sent them — identical to the original request.
   </Step>
   <Step title="Repeat until nextCursor is null">
     Continue sending requests until `nextCursor` is `null`. That response contains the final page of results.
@@ -38,19 +42,19 @@ To advance to the next page, send the same request again with the `nextCursor` v
 
 ## Complete pagination loop
 
-The examples below collect all matching products into a list. For large catalogs, consider processing each page as it arrives rather than accumulating everything in memory.
+The examples below collect all matching products into a list, de-duplicated by `uuid`. For large catalogs, consider processing each page as it arrives rather than accumulating everything in memory.
 
 <CodeGroup>
 
 ```python python
 import asyncio
 from octogen_ai_sdk import OctogenClient
-from octogen_ai_sdk.models import Facet, FacetName, MerchantProductListItem
+from octogen_ai_sdk.models import MerchantProductListItem
 
 async def fetch_all_products(
     query: str,
 ) -> list[MerchantProductListItem]:
-    all_items: list[MerchantProductListItem] = []
+    by_uuid: dict[str, MerchantProductListItem] = {}
 
     async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         cursor: str | None = None
@@ -61,13 +65,14 @@ async def fetch_all_products(
                 cursor=cursor,
                 limit=50,
             )
-            all_items.extend(page.items)
+            for item in page.items:
+                by_uuid.setdefault(item.uuid, item)  # a product can repeat across pages
 
             if page.next_cursor is None:
                 break  # reached the last page
             cursor = page.next_cursor
 
-    return all_items
+    return list(by_uuid.values())
 
 
 async def main() -> None:
@@ -87,7 +92,7 @@ async function fetchAllProducts(
   query: string,
 ): Promise<MerchantProductListItem[]> {
   const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
-  const allItems: MerchantProductListItem[] = [];
+  const byUuid = new Map<string, MerchantProductListItem>();
   let cursor: string | undefined;
 
   while (true) {
@@ -97,7 +102,9 @@ async function fetchAllProducts(
       limit: 50,
     });
 
-    allItems.push(...page.items);
+    for (const item of page.items) {
+      if (!byUuid.has(item.uuid)) byUuid.set(item.uuid, item); // a product can repeat across pages
+    }
 
     if (page.nextCursor == null) {
       break; // reached the last page
@@ -105,7 +112,7 @@ async function fetchAllProducts(
     cursor = page.nextCursor;
   }
 
-  return allItems;
+  return [...byUuid.values()];
 }
 
 const products = await fetchAllProducts("hoodie");

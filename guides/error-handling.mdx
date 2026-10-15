@@ -23,9 +23,9 @@ StoreRouter API errors fall into two categories:
   <Accordion title="400 — Bad request">
     **SDK exception:** `OctogenAPIError` with `status_code` (Python) / `statusCode` (TypeScript) equal to `400`
 
-    The request was syntactically valid JSON but could not be accepted for the requested operation.
+    The request was syntactically valid JSON but could not be accepted for the requested operation. On search, `detail: "invalid cursor"` means the `cursor` is malformed, was issued under a different cursor version, or no longer maps onto the current query.
 
-    **Recovery:** Inspect the response details, correct the request, and retry.
+    **Recovery:** Inspect the response details, correct the request, and retry. For `"invalid cursor"`, restart from page 1 by omitting `cursor`.
   </Accordion>
 
   <Accordion title="401 — Authentication error">
@@ -68,13 +68,13 @@ StoreRouter API errors fall into two categories:
     - `"catalog_not_found"` — The catalog key you passed does not identify an active crawled catalog available to this organization.
     - `"product_not_found"` — The Product Lookup sources selected by `resolutionMode` did not return a useful product. For `index_only`, no granted active catalog matched the URL.
 
-    **Recovery:** Retry with a known active crawled catalog key, or omit the optional `catalog` field for policy-wide search. For Product Lookup, confirm the URL is a product page and choose the appropriate [resolution mode](/guides/product-lookup#choose-a-resolution-mode).
+    **Recovery:** Retry with a known active crawled catalog key. On search, a `catalogs` key your key cannot access matches nothing instead of returning `404`; omit `catalogs` to search every catalog your key can access. For Product Lookup, confirm the URL is a product page and choose the appropriate [resolution mode](/guides/product-lookup#choose-a-resolution-mode).
   </Accordion>
 
   <Accordion title="422 — Validation error">
     **SDK exception:** `OctogenValidationError`
 
-    The request body failed schema validation. Product Lookup can also return `detail: "invalid_product_url"` for a malformed or unsupported URL, or `detail: "unsafe_url"` when the target fails outbound safety checks.
+    The request body failed schema validation. On search, an unknown or removed field (`catalog`, `text_search_query`, `diversity`) or a contradictory combination of fields also returns `422`. See [search validation rules](/api-reference/search-products#validation-rules). Product Lookup can also return `detail: "invalid_product_url"` for a malformed or unsupported URL, or `detail: "unsafe_url"` when the target fails outbound safety checks.
 
     For field validation, the response body contains a `detail` array where each entry identifies the invalid field:
 

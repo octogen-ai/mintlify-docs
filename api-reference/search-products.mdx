@@ -1,10 +1,12 @@
 ---
 title: "POST /products/search — search catalog products"
-description: "Searches products across all active crawled catalogs, or within one catalog when scoped, using free-text queries, structured facet filters, price ranges, and cursor-based pagination."
+description: "Searches products across every catalog your key can access, or a catalog allowlist, using free-text queries with query understanding, facet filters, price and brand-quality bounds, and cursor-based pagination."
 sidebarTitle: "Search Products"
 ---
 
-`POST /products/search` lets Developers search and browse products across all active crawled catalogs. To restrict search to one catalog, include `catalog` in the request body. You can combine a free-text query (`q`) with structured facet filters, price range bounds, and a pagination cursor. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
+`POST /products/search` searches indexed products by free text, filters, or both. Results span every catalog your key can access unless `catalogs` narrows them. The response returns a page of `MerchantProductListItem` objects and an opaque `nextCursor` for advancing through results.
+
+Each field controls one thing. `q` says what to find. `facets`, `exclude_facets`, and the bounds say what to keep. `catalogs` says where to look. `limit` and `cursor` page through results. A request that combines fields in a contradictory way returns a `422` instead of being resolved silently.
 
 If you already have a source product and want similar products, use [`POST /products/more-like-this`](/api-reference/more-like-this).
 
@@ -18,42 +20,103 @@ Content-Type: application/json
 
 ### Body parameters
 
-<ParamField body="catalog" type="string">
-  Optional key of an active crawled catalog to search. When omitted, search runs across all active crawled catalogs. When provided, use a known active crawled catalog key.
-</ParamField>
+Every field is optional. Unknown fields return a `422`.
 
 <ParamField body="q" type="string">
-  Free-text keyword query. Omit or set to `null` to browse without keyword filtering. Can be combined with `facets` and price filters.
+  Free-text query, up to 1,000 characters. Omit it, or send a blank string, to browse by filters alone. By default, `q` is understood: StoreRouter rewrites it for retrieval and derives category, gender, color, brand, price, and attribute filters from it.
+</ParamField>
+
+<ParamField body="understand" type="boolean" default="true">
+  Set to `false` to match `q` as written and filter only by the facets and bounds you send. Requires `q`.
 </ParamField>
 
 <ParamField body="facets" type="Facet[]">
-  Array of structured facet filters. Each facet has a `name` and a `values` array. Multiple facets are ANDed; multiple values within a facet are ORed.
+  Filters a product must match. A product must match every facet, and any value within a facet. Each facet has a `name` and a `values` array.
 
   ```json
   [
-    {"name": "color_family", "values": ["Black", "Gray"]},
+    {"name": "color_family", "values": ["black", "gray"]},
     {"name": "gender", "values": ["female"]}
   ]
   ```
 
-  See [Facet names](#facet-names) below for the full list of supported names.
+  A facet you send replaces any understood facet of the same name and is never relaxed. A color facet replaces both understood color facets. Each name may appear at most once, and the list takes at most 50 entries. See [Facet names](#facet-names) for the supported names.
+</ParamField>
+
+<ParamField body="exclude_facets" type="Facet[]">
+  Filters a product must not match. Products with any listed value of any listed facet are removed. Each name may appear at most once, and the list takes at most 50 entries.
+</ParamField>
+
+<ParamField body="omit_generated_facets" type="string[]">
+  Names of understood facets to drop before searching. Use it for a derived filter that is wrong when you have no value of your own for it. To replace a derived filter instead, send a facet of that name in `facets`.
+
+  Use the names that `effectiveQuery` reports. Color is omitted per axis (`color` or `color_family`). Requires an understood `q`. A name may not also appear in `facets`. The list takes at most 50 entries.
 </ParamField>
 
 <ParamField body="price_min" type="number">
-  Inclusive minimum price filter. Only products with `currentPrice >= price_min` are returned.
+  Inclusive minimum price, at least `0`. Combined with any understood minimum by keeping the higher one.
 </ParamField>
 
 <ParamField body="price_max" type="number">
-  Inclusive maximum price filter. Only products with `currentPrice <= price_max` are returned.
+  Inclusive maximum price, at least `0`. Combined with any understood maximum by keeping the lower one. Must be greater than or equal to `price_min`.
 </ParamField>
 
-<ParamField body="cursor" type="string">
-  Opaque pagination cursor from a previous response's `nextCursor` field. Pass this value — unmodified — along with the same filters to retrieve the next page. Omit on the first request.
+<ParamField body="brand_quality_min" type="number">
+  Inclusive minimum brand quality score, from `1` (very poor) to `6` (exceptional). Combined with any understood bound by keeping the stricter one.
+</ParamField>
+
+<ParamField body="brand_quality_max" type="number">
+  Inclusive maximum brand quality score, from `1` to `6`. Combined with any understood bound by keeping the stricter one. Must be greater than or equal to `brand_quality_min`.
+</ParamField>
+
+<ParamField body="similar_to_brands" type="string[]">
+  1 to 10 non-empty brand names whose style to favor. Ranks products by similarity to these brands' aesthetic; it does not filter. Replaces any brands understood from `q`.
+</ParamField>
+
+<ParamField body="catalogs" type="string[]">
+  1 to 500 catalog keys to search. Omit it to search every catalog your key can access. Keys your key cannot access match nothing.
 </ParamField>
 
 <ParamField body="limit" type="integer" default="50">
-  Number of products to return per page. Accepted range: 1–100. Defaults to 50.
+  Maximum results per page. Accepted range: 1–100.
 </ParamField>
+
+<ParamField body="cursor" type="string">
+  The `nextCursor` from the previous page, passed back verbatim with the same request body. Omit it on the first request. See [Pagination](#pagination).
+</ParamField>
+
+<ParamField body="relax" type="boolean" default="false">
+  When an understood `q` returns nothing, retry with understood filters dropped in stages and return the first stage with results. Inferred brand attributes are dropped first, then attributes, then color and deep categories. Facets you send are never dropped. Requires an understood `q`. A relaxed page's cursor continues the same relaxed results.
+</ParamField>
+
+<ParamField body="debug" type="boolean" default="false">
+  Adds `effectiveQuery` to the response: the text, filters, and bounds that actually ran, with each facet's origin. See [Effective query](#effective-query).
+</ParamField>
+
+### Validation rules
+
+The API rejects these requests with a `422`:
+
+- `understand: false` without `q`.
+- `relax` or `omit_generated_facets` without an understood `q` (a `q` with `understand` left on).
+- A facet name repeated within `facets` or within `exclude_facets`. Put every accepted value in one facet.
+- A name in both `facets` and `omit_generated_facets`. A facet you send already replaces the understood one.
+- More than 50 entries in `facets`, `exclude_facets`, or `omit_generated_facets`.
+- A negative price, or `price_min` greater than `price_max`.
+- Brand quality outside 1–6, or `brand_quality_min` greater than `brand_quality_max`.
+- `similar_to_brands` that is empty, has more than 10 names, or has a blank name.
+- `catalogs` that is empty or has more than 500 keys.
+- An unknown facet name, or an unknown field anywhere in the body.
+
+### Removed fields
+
+`catalog`, `text_search_query`, and `diversity` are no longer accepted. A request that sends any of them returns a `422` whose message names the replacement:
+
+| Removed field | Replacement |
+| --- | --- |
+| `catalog` | Send `catalogs` with a list of catalog keys, for example `"catalogs": ["warrenlotas"]`. |
+| `text_search_query` | Send `q` with `understand: false`, and put filters in `facets`, `exclude_facets`, and the price and brand-quality bounds. |
+| `diversity` | Omit it. It was never applied. |
 
 ### Example
 
@@ -63,10 +126,8 @@ curl -sS https://api.storerouter.ai/v1/products/search \
   -H "Content-Type: application/json" \
   -d '{
     "q": "black hoodie",
-    "facets": [
-      {"name": "color_family", "values": ["Black"]},
-      {"name": "gender", "values": ["male", "unisex"]}
-    ],
+    "catalogs": ["warrenlotas"],
+    "facets": [{"name": "color", "values": ["black"]}],
     "price_min": 50,
     "price_max": 300,
     "limit": 25
@@ -130,7 +191,15 @@ curl -sS https://api.storerouter.ai/v1/products/search \
 </ResponseField>
 
 <ResponseField name="nextCursor" type="string | null">
-  Opaque cursor for the next page of results. Pass as `cursor` on your next request with the same filters. `null` when you have reached the last page.
+  Opaque cursor for the next page of results. Pass it back verbatim as `cursor` with the same request body. `null` when you have reached the last page.
+</ResponseField>
+
+<ResponseField name="requestId" type="string" required>
+  Server-generated UUID for this execution, matching `X-Request-ID`. Each invocation or page gets a fresh ID, even when you reuse `X-Request-ID`.
+</ResponseField>
+
+<ResponseField name="effectiveQuery" type="object | null">
+  Present only when `debug` is `true`. The search that actually ran. See [Effective query](#effective-query).
 </ResponseField>
 
 ### Example response
@@ -153,23 +222,114 @@ curl -sS https://api.storerouter.ai/v1/products/search \
       "updatedAt": "2026-05-19T18:04:10Z"
     }
   ],
-  "nextCursor": "eyJzZWFyY2hBZnRlciI6Wy4uLl19"
+  "nextCursor": "eyJzZWFyY2hBZnRlciI6Wy4uLl19",
+  "requestId": "3f2c0a52-5d8e-4a57-9a61-0c9f1f7b2d11"
 }
 ```
 
+## Effective query
+
+Send `"debug": true` to add `effectiveQuery` to the response. It reports the search that actually ran, in the request's own vocabulary.
+
+<ResponseField name="effectiveQuery" type="object">
+  <Expandable title="effectiveQuery properties">
+    <ResponseField name="text" type="string" required>
+      Text matched against products: the understood rewrite of `q`, `q` itself with `understand: false`, or empty when browsing.
+    </ResponseField>
+
+    <ResponseField name="understood" type="boolean" required>
+      Whether query understanding ran.
+    </ResponseField>
+
+    <ResponseField name="facets" type="EffectiveFacet[] | null">
+      Filters that ran. Each entry has `name`, `values`, and `source`: `caller` for a facet you sent, or `generated` for one understood from `q`. You can pass a `generated` name in `omit_generated_facets`.
+    </ResponseField>
+
+    <ResponseField name="excludeFacets" type="EffectiveFacet[] | null">
+      Exclusion filters that ran, in the same shape as `facets`.
+    </ResponseField>
+
+    <ResponseField name="priceMin" type="number | null">
+      Minimum price bound that ran.
+    </ResponseField>
+
+    <ResponseField name="priceMax" type="number | null">
+      Maximum price bound that ran.
+    </ResponseField>
+
+    <ResponseField name="brandQualityMin" type="number | null">
+      Minimum brand quality bound that ran.
+    </ResponseField>
+
+    <ResponseField name="brandQualityMax" type="number | null">
+      Maximum brand quality bound that ran.
+    </ResponseField>
+
+    <ResponseField name="similarToBrands" type="string[] | null">
+      Brands used to rank results.
+    </ResponseField>
+
+    <ResponseField name="catalogs" type="string[] | null">
+      The `catalogs` allowlist as received, normalized and deduplicated.
+    </ResponseField>
+
+    <ResponseField name="relaxation" type="object | null">
+      Present with `relax: true`. `rounds` is the number of stages applied to produce this page (`0` if none). `droppedFacets` lists the understood facets dropped to produce this page. `declinedRounds` counts stages tried that still returned nothing.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Warning>
+  `effectiveQuery` is a report, not a request fragment. Understood facets of one name can AND together, which a request cannot express. Don't send it back as a request body.
+</Warning>
+
+```json
+{
+  "items": [],
+  "nextCursor": "eyJzZWFyY2hBZnRlciI6Wy4uLl19",
+  "requestId": "3f2c0a52-5d8e-4a57-9a61-0c9f1f7b2d11",
+  "effectiveQuery": {
+    "text": "black hoodie",
+    "understood": true,
+    "facets": [
+      {"name": "color", "values": ["black"], "source": "caller"},
+      {"name": "product_type", "values": ["hoodie"], "source": "generated"}
+    ],
+    "excludeFacets": [],
+    "priceMin": null,
+    "priceMax": 300,
+    "brandQualityMin": null,
+    "brandQualityMax": null,
+    "similarToBrands": null,
+    "catalogs": ["warrenlotas"],
+    "relaxation": {
+      "rounds": 1,
+      "droppedFacets": [
+        {"name": "fit", "values": ["oversized"], "source": "generated"}
+      ],
+      "declinedRounds": 0
+    }
+  }
+}
+```
+
+This example omits the `items` array contents for brevity.
+
 ## Facet names
 
-Use these values for the `name` field in each facet object. Facet values should be lowercase; phrase values may contain spaces.
+Use these values for the `name` field in each facet object. Each facet has one public spelling, and unknown names return a `422`. Facet values are canonical lowercase handles and may contain spaces.
 
 | Facet name | Description |
 | --- | --- |
-| `brand_name` | Canonical brand display name. |
+| `brand_name` | Canonical brand display name. Query understanding emits `brand_name`, so only a `brand_name` facet replaces an understood brand. |
 | `brand_slug` | URL-safe brand identifier. |
+| `raw_brand_name` | Brand string as the merchant lists it. |
 | `product_type` | Product type classification (e.g. `"hoodie"`, `"sneaker"`). |
 | `gender` | Target gender: `male`, `female`, or `unisex`. |
 | `age_groups` | Target age group: `infant`, `toddler`, `kids`, or `adult`. |
 | `color` | Specific color label as indexed from the merchant. |
-| `color_family` | Normalized color family: `Black`, `Blue`, `Brown`, `Gray`, `Green`, `Orange`, `Pink`, `Purple`, `Red`, `White`, `Yellow`. |
+| `color_family` | Normalized color family, such as `black`, `blue`, or `green`. |
+| `is_activewear` | Whether the product is activewear. |
 | `category_path.depth_0` | Top-level category. |
 | `category_path.depth_1` | Second-level category. |
 | `category_path.depth_2` | Third-level category. |
@@ -178,7 +338,7 @@ Use these values for the `name` field in each facet object. Facet values should 
 | `category_path.depth_5` | Sixth-level category. |
 | `category_path.depth_6` | Seventh-level category. |
 
-You can also filter on dynamic product attribute facets by passing the bare attribute key (e.g. `fit`) or its fully qualified form (e.g. `attribute_facets.fit`).
+You can also filter on brand profile facets, such as `brand_origin_country`, and on taxonomy attribute handles by their bare name, such as `fit`. Don't add the `attribute_facets.` prefix: `attribute_facets.fit` returns a `422`. The one exception is the attribute named `color`, which you send as `attribute_facets.color` because `color` already names the facet above.
 
 ## Pagination
 
@@ -186,22 +346,25 @@ You can also filter on dynamic product attribute facets by passing the bare attr
   For a detailed walkthrough of cursor-based pagination, see [Pagination guide](/guides/pagination).
 </Note>
 
-Advance through pages by repeating your request with the same filters and the `cursor` value from the previous response:
+Advance through pages by repeating your request with the same body and the `cursor` value from the previous response:
 
 1. Send your initial search request with the desired filters and an optional `limit`.
 2. If `nextCursor` is non-null in the response, send a new request with `cursor` set to that value and all other fields unchanged.
 3. Repeat until `nextCursor` is `null`.
 
-Cursors are opaque — do not parse or construct them. They encode internal continuation state and may change shape across releases.
+Page 1 is ranked by relevance. Later pages continue in quality-score order from page 1's last result, so a product can repeat across pages. De-duplicate by `uuid` when you concatenate pages.
+
+Cursors are opaque — don't parse or construct them. Pass back exactly the `nextCursor` the previous page returned. A cursor that is malformed, was issued under a different cursor version, or no longer maps onto the current query returns `400` with `{"detail": "invalid cursor"}`. Restart from page 1 by omitting `cursor`.
 
 ## SDK equivalents
+
+The Python and TypeScript SDKs expose this endpoint as `search_products` and `searchProducts`. Both check most of the [validation rules](#validation-rules) locally and fail before sending a request. See the [Python SDK](/sdks/python) and [TypeScript SDK](/sdks/typescript) references.
 
 <CodeGroup>
 
 ```python Python
 import asyncio
 from octogen_ai_sdk import OctogenClient
-from octogen_ai_sdk.models import Facet
 
 async def main() -> None:
     async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
@@ -209,10 +372,8 @@ async def main() -> None:
         while True:
             page = await client.search_products(
                 q="black hoodie",
-                facets=[
-                    Facet(name="color_family", values=["Black"]),
-                    Facet(name="gender", values=["male", "unisex"]),
-                ],
+                catalogs=["warrenlotas"],
+                facets=[{"name": "color", "values": ["black"]}],
                 price_min=50,
                 price_max=300,
                 limit=25,
@@ -236,10 +397,8 @@ let cursor: string | undefined;
 while (true) {
   const page = await client.searchProducts({
     q: "black hoodie",
-    facets: [
-      { name: "color_family", values: ["Black"] },
-      { name: "gender", values: ["male", "unisex"] },
-    ],
+    catalogs: ["warrenlotas"],
+    facets: [{ name: "color", values: ["black"] }],
     priceMin: 50,
     priceMax: 300,
     limit: 25,

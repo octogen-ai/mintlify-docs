@@ -19,7 +19,7 @@ Before you start, make sure you have:
   </Step>
 
   <Step title="Search products">
-    Search every active crawled catalog using a keyword query.
+    Search every catalog your key can access using a keyword query. To search specific catalogs, add `catalogs` with a list of catalog keys.
 
     <CodeGroup>
       ```bash curl
@@ -91,7 +91,7 @@ Before you start, make sure you have:
       ```
     </CodeGroup>
 
-    The response includes an `items` array and a `nextCursor` field for pagination. When `nextCursor` is non-null, pass it as `cursor` in your next request (with the same filters) to fetch the next page.
+    The response includes an `items` array and a `nextCursor` field for pagination. When `nextCursor` is non-null, pass it back verbatim as `cursor` in your next request, with the same request body, to fetch the next page.
   </Step>
 
   <Step title="Look up a product by URL">
@@ -146,7 +146,7 @@ Before you start, make sure you have:
 
 ## Next steps
 
-- **Filter searches** — use `facets`, `price_min`, and `price_max` to narrow results. See [Catalog search](/guides/catalog-search).
+- **Filter searches** — use `catalogs`, `facets`, `exclude_facets`, `price_min`, and `price_max` to narrow results, and `debug` to see the filters StoreRouter derived from your query. See [Catalog search](/guides/catalog-search).
 - **Find similar products** — use a product URL or UUID as the source for More Like This recommendations. See [More Like This](/guides/more-like-this).
 - **Paginate results** — use the `nextCursor` field to fetch subsequent pages. See [Pagination](/guides/pagination).
 - **Handle errors** — understand `401`, `402`, `403`, `404`, and `422` responses. See [Error handling](/guides/error-handling).

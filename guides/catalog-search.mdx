@@ -4,11 +4,15 @@ description: "Learn how to search products across active crawled catalogs, filte
 sidebarTitle: "Catalog Search"
 ---
 
-The StoreRouter search endpoint lets you find products across all active crawled catalogs using free-text queries, structured facet filters, and price range constraints — in any combination. Omit `catalog` to search every active crawled catalog. Include `catalog` only when you want to restrict search to one known active crawled catalog.
+The StoreRouter search endpoint lets you find products across every catalog your key can access using free-text queries, structured facet filters, and price range constraints — in any combination. Omit `catalogs` to search every catalog your key can access. Send `catalogs` with a list of catalog keys when you want to restrict search to those catalogs.
 
 ## How search works
 
-When you call `POST /v1/products/search`, StoreRouter runs the query against all active crawled catalogs by default, or one active crawled catalog when `catalog` is provided. The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
+When you call `POST /v1/products/search`, StoreRouter runs the query against every catalog your key can access, or only the catalogs listed in `catalogs`. Each field controls one thing, and a request that combines fields in a contradictory way returns a `422`. See the [validation rules](/api-reference/search-products#validation-rules).
+
+By default, StoreRouter understands `q`: it rewrites the text for retrieval and derives filters such as category, gender, color, brand, and price from it. See [Control query understanding](#control-query-understanding) to inspect or override those derived filters.
+
+The response returns a page of matching items and an opaque `nextCursor` you use to fetch subsequent pages. Each item in `items` is a lightweight product record — enough to render a card or feed a ranking model — while the full canonical record is available via [product lookup](/guides/product-lookup).
 
 If you already have a source product and want similar items, use [More Like This](/guides/more-like-this) instead of inventing a keyword query.
 
@@ -62,22 +66,24 @@ for (const product of results.items) {
 
 ## Faceted filtering
 
-Facets let you filter by structured product attributes. Each facet is an object with a `name` and a `values` array. You can apply multiple facets in a single request — the filters are combined with AND logic, so each additional facet narrows the result set.
+Facets let you filter by structured product attributes. Each facet is an object with a `name` and a `values` array. You can apply multiple facets in a single request — the filters are combined with AND logic, so each additional facet narrows the result set. A product matches a facet when it has any of the listed values. Each facet name may appear only once in `facets`.
 
-The `FacetName` enum defines the supported facet keys:
+Commonly used facet names:
 
 | Facet name | Description |
 | --- | --- |
-| `brand_name` | Canonical brand name (e.g. `"Warren Lotas"`) |
+| `brand_name` | Canonical brand name |
 | `brand_slug` | URL-safe brand identifier (e.g. `"warren-lotas"`) |
 | `product_type` | Product category type (e.g. `"hoodie"`, `"sneaker"`) |
 | `gender` | `male`, `female`, or `unisex` |
 | `age_groups` | `infant`, `toddler`, `kids`, or `adult` |
 | `color` | Specific color label (e.g. `"black"`, `"vintage white"`) |
-| `color_family` | Broad color family: `Black`, `Blue`, `Green`, `Gray`, `Pink`, `Purple`, `Red`, `Orange`, `Brown`, `Yellow`, `White` |
+| `color_family` | Broad color family (e.g. `"black"`, `"blue"`, `"green"`) |
 | `category_path.depth_0` – `depth_6` | Hierarchical category path at a given depth |
 
-Facet values are **case-insensitive** and phrase values may contain spaces. You can also pass dynamic attribute keys directly (e.g. `fit`, or its fully-qualified form `attribute_facets.fit`).
+Facet values are canonical lowercase handles and may contain spaces. You can also filter on taxonomy attribute handles by their bare name, such as `fit`. The `attribute_facets.` prefix is not accepted, except for `attribute_facets.color`. See [Facet names](/api-reference/search-products#facet-names) for the full list.
+
+To remove products instead, send the same facet shape in `exclude_facets`. For example, `"exclude_facets": [{"name": "brand_name", "values": ["acme"]}]` drops one brand.
 
 <CodeGroup>
 
@@ -202,7 +208,7 @@ curl -sS https://api.storerouter.ai/v1/products/search \
   -d '{
     "q": "graphic tee",
     "facets": [
-      {"name": "color_family", "values": ["Black"]},
+      {"name": "color_family", "values": ["black"]},
       {"name": "gender", "values": ["unisex"]}
     ],
     "price_min": 50,
@@ -221,7 +227,7 @@ async def main() -> None:
         results = await client.search_products(
             q="graphic tee",
             facets=[
-                Facet(name=FacetName.COLOR_FAMILY, values=["Black"]),
+                Facet(name=FacetName.COLOR_FAMILY, values=["black"]),
                 Facet(name=FacetName.GENDER, values=["unisex"]),
             ],
             price_min=50,
@@ -243,7 +249,7 @@ const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const results = await client.searchProducts({
   q: "graphic tee",
   facets: [
-    { name: FacetName.COLOR_FAMILY, values: ["Black"] },
+    { name: FacetName.COLOR_FAMILY, values: ["black"] },
     { name: FacetName.GENDER, values: ["unisex"] },
   ],
   priceMin: 50,
@@ -260,14 +266,122 @@ for (const product of results.items) {
 
 </CodeGroup>
 
+## Restrict search to catalogs
+
+Send `catalogs` with 1 to 500 catalog keys to search only those catalogs. Keys your key cannot access match nothing. Omit `catalogs` to search every catalog your key can access.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.storerouter.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "black hoodie",
+    "catalogs": ["warrenlotas"],
+    "limit": 10
+  }'
+```
+
+```python python
+results = await client.search_products(
+    q="black hoodie",
+    catalogs=["warrenlotas"],
+    limit=10,
+)
+```
+
+```typescript typescript
+const results = await client.searchProducts({
+  q: "black hoodie",
+  catalogs: ["warrenlotas"],
+  limit: 10,
+});
+```
+
+</CodeGroup>
+
+<Note>
+  The single-valued `catalog` field was removed and now returns a `422`. Send `catalogs: ["<key>"]` instead.
+</Note>
+
+## Control query understanding
+
+By default, StoreRouter understands `q` and derives filters from it. These fields let you inspect and adjust that behavior:
+
+- `debug: true` adds `effectiveQuery` to the response. It reports the text, facets, and bounds that actually ran. Each facet carries `source: "caller"` for one you sent, or `source: "generated"` for one understood from `q`.
+- A facet you send in `facets` replaces any understood facet of the same name.
+- `omit_generated_facets` drops an understood facet that is wrong when you have no value of your own for it. Use the names `effectiveQuery` reports.
+- `understand: false` matches `q` as written and filters only by what you send.
+- `relax: true` drops understood filters in stages when an understood `q` returns nothing. Facets you send are never dropped.
+- `brand_quality_min` and `brand_quality_max` bound brand quality from `1` (very poor) to `6` (exceptional). `similar_to_brands` ranks results toward the style of up to 10 brands without filtering.
+
+<CodeGroup>
+
+```bash curl
+curl -sS https://api.storerouter.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "black hoodie",
+    "omit_generated_facets": ["fit"],
+    "relax": true,
+    "debug": true
+  }'
+```
+
+```python python
+page = await client.search_products(
+    q="black hoodie",
+    omit_generated_facets=["fit"],
+    relax=True,
+    debug=True,
+)
+if page.effective_query is not None:
+    for facet in page.effective_query.facets or []:
+        print(facet.name, facet.values, facet.source)
+```
+
+```typescript typescript
+const page = await client.searchProducts({
+  q: "black hoodie",
+  omitGeneratedFacets: ["fit"],
+  relax: true,
+  debug: true,
+});
+for (const facet of page.effectiveQuery?.facets ?? []) {
+  console.log(facet.name, facet.values, facet.source);
+}
+```
+
+</CodeGroup>
+
+<Warning>
+  `effectiveQuery` is a report, not a request fragment. Don't send it back as a request body: understood facets of one name can AND together, which a request cannot express.
+</Warning>
+
+To match text exactly as written with your own filters, send `q` with `understand: false`. This replaces the removed `text_search_query` field:
+
+```json
+{
+  "q": "linen dress",
+  "understand": false,
+  "facets": [{"name": "color_family", "values": ["blue"]}],
+  "exclude_facets": [{"name": "brand_name", "values": ["acme"]}],
+  "price_max": 200
+}
+```
+
 ## Understanding results
 
-Each search response contains two top-level fields:
+Each search response contains these top-level fields:
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `items` | array | List of product records matching the query. |
 | `nextCursor` | string \| null | Pagination cursor. Non-null means more pages are available. See [Pagination](/guides/pagination). |
+| `requestId` | string | Server-generated ID for this request. |
+| `effectiveQuery` | object \| null | The search that actually ran. Present only with `debug: true`. |
 
 Each item in `items` contains the following fields:
 

@@ -4,27 +4,25 @@ description: "Install the async Python SDK for StoreRouter, set your API key, an
 sidebarTitle: "Python SDK"
 ---
 
-The StoreRouter Python SDK gives you an async, type-safe client for the StoreRouter commerce API. Install it with uv, point it at your `OCTO_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
+The StoreRouter Python SDK gives you an async, type-safe client for the StoreRouter commerce API. Install it from PyPI, point it at your `OCTOGEN_PLATFORM_API_KEY`, and you can search products by keyword and facet, find products similar to a source product, and look up any product by URL — all backed by Pydantic models so your IDE can autocomplete every field.
 
 ## Installation
 
 <Steps>
   <Step title="Install the package">
-    Requires Python 3.11 or later. The SDK ships from the public [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository and is managed with [uv](https://docs.astral.sh/uv/). Clone the repository and sync the `sdks/python` project:
+    Requires Python 3.11 or later. Install `octogen-ai-sdk` from PyPI. This page documents version 0.5.0.
 
     ```bash
-    git clone https://github.com/octogen-ai/octogen-dev.git
-    cd octogen-dev
-    uv sync --project sdks/python
+    pip install octogen-ai-sdk
     ```
 
-    Run your code against the synced environment with `uv run --project sdks/python python your_script.py`, or activate it with `source sdks/python/.venv/bin/activate`.
+    To work on the SDK itself, clone the public [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository and run `uv sync` in `sdks/python`.
   </Step>
   <Step title="Set your API key">
-    The client reads your key from the `OCTO_API_KEY` environment variable automatically.
+    The client reads your key from the `OCTOGEN_PLATFORM_API_KEY` environment variable automatically.
 
     ```bash
-    export OCTO_API_KEY=octo_live_...
+    export OCTOGEN_PLATFORM_API_KEY=octo_live_...
     ```
 
     You can also pass `api_key=` directly to the constructor if you prefer to manage secrets yourself (see [Authentication](#authentication) below).
@@ -36,9 +34,10 @@ The StoreRouter Python SDK gives you an async, type-safe client for the StoreRou
 `OctogenClient` resolves your API key in this order:
 
 1. The `api_key` constructor argument, if provided.
-2. The `OCTO_API_KEY` environment variable.
+2. The `OCTOGEN_PLATFORM_API_KEY` environment variable.
+3. The deprecated `OCTO_API_KEY` environment variable. Reading it raises a `DeprecationWarning` once, and support will be removed. Set `OCTOGEN_PLATFORM_API_KEY` instead.
 
-If neither is set, the constructor raises `MissingAPIKeyError` immediately — before any network request is made. Every request then sends the key as `Authorization: Bearer <api-key>`.
+If none of these is set, the constructor raises `MissingAPIKeyError` immediately — before any network request is made. Every request then sends the key as `Authorization: Bearer <api-key>`.
 
 ```python
 from octogen_ai_sdk import OctogenClient
@@ -59,7 +58,7 @@ an SDK release that predates the domain migration.
 
 | Parameter     | Type                              | Default                          | Description                                                     |
 | ------------- | --------------------------------- | -------------------------------- | --------------------------------------------------------------- |
-| `api_key`     | `str \| None`                     | `None` (reads `OCTO_API_KEY`)    | Your Platform API key.                                          |
+| `api_key`     | `str \| None`                     | `None` (reads `OCTOGEN_PLATFORM_API_KEY`) | Your Platform API key.                                          |
 | `base_url`    | `str`                             | Set explicitly above             | Override the API base URL (useful for testing).                 |
 | `timeout`     | `float \| httpx.Timeout`          | `30.0`                           | Request timeout in seconds, or a full `httpx.Timeout` object.  |
 | `http_client` | `httpx.AsyncClient \| None`       | `None` (SDK creates one)         | Supply your own `httpx.AsyncClient` to reuse connections or configure proxies. |
@@ -125,36 +124,110 @@ else:
 ```python
 async def search_products(
     *,
-    catalog: str | None = None,
     q: str | None = None,
+    understand: bool | None = None,
     facets: Sequence[Facet | dict] | None = None,
+    exclude_facets: Sequence[Facet | dict] | None = None,
+    omit_generated_facets: Sequence[str] | None = None,
     price_min: float | None = None,
     price_max: float | None = None,
-    cursor: str | None = None,
+    brand_quality_min: float | None = None,
+    brand_quality_max: float | None = None,
+    similar_to_brands: Sequence[str] | None = None,
+    catalogs: Sequence[str] | None = None,
     limit: int = 50,
-) -> MerchantProductListPage
+    cursor: str | None = None,
+    relax: bool | None = None,
+    debug: bool | None = None,
+) -> ProgrammaticProductSearchPage
 ```
 
-Searches products across all authorized catalogs by default. Pass `catalog` only when you want to restrict search to one catalog.
+Searches every catalog your key can access, or only the catalogs in `catalogs`. Each keyword controls one thing and is sent under the same wire name. See [`POST /products/search`](/api-reference/search-products) for the full field semantics.
 
-| Parameter   | Type                             | Default | Description                                                          |
-| ----------- | -------------------------------- | ------- | -------------------------------------------------------------------- |
-| `catalog`   | `str \| None`                    | `None`  | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
-| `q`         | `str \| None`                    | `None`  | Keyword search query.                                                |
-| `facets`    | `Sequence[Facet \| dict] \| None`| `None`  | List of facet filters to apply. See [Faceted search](#faceted-search). |
-| `price_min` | `float \| None`                  | `None`  | Minimum price filter (inclusive).                                    |
-| `price_max` | `float \| None`                  | `None`  | Maximum price filter (inclusive).                                    |
-| `cursor`    | `str \| None`                    | `None`  | Pagination cursor from a previous response's `next_cursor`.          |
-| `limit`     | `int`                            | `50`    | Number of results per page. Must be between 1 and 100.               |
+| Parameter               | Type                              | Default | Description |
+| ----------------------- | --------------------------------- | ------- | ----------- |
+| `q`                     | `str \| None`                     | `None`  | Free-text query, understood by default. Omit to browse by filters alone. |
+| `understand`            | `bool \| None`                    | `None`  | `False` matches `q` as written and filters only by what you send. Requires `q`. The server default is `True`. |
+| `facets`                | `Sequence[Facet \| dict] \| None` | `None`  | Filters a product must match. Replaces any understood facet of the same name. See [Faceted search](#faceted-search). |
+| `exclude_facets`        | `Sequence[Facet \| dict] \| None` | `None`  | Filters a product must not match. |
+| `omit_generated_facets` | `Sequence[str] \| None`           | `None`  | Names of understood facets to drop. Use the names `effective_query` reports. Requires an understood `q`. |
+| `price_min`             | `float \| None`                   | `None`  | Inclusive minimum price, at least `0`. |
+| `price_max`             | `float \| None`                   | `None`  | Inclusive maximum price, at least `0`. |
+| `brand_quality_min`     | `float \| None`                   | `None`  | Inclusive minimum brand quality, from `1` (very poor) to `6` (exceptional). |
+| `brand_quality_max`     | `float \| None`                   | `None`  | Inclusive maximum brand quality, from `1` to `6`. |
+| `similar_to_brands`     | `Sequence[str] \| None`           | `None`  | 1 to 10 brand names whose style to favor. Ranks, does not filter. |
+| `catalogs`              | `Sequence[str] \| None`           | `None`  | 1 to 500 catalog keys. Omit to search every catalog your key can access. |
+| `limit`                 | `int`                             | `50`    | Number of results per page. Must be between 1 and 100. |
+| `cursor`                | `str \| None`                     | `None`  | The `next_cursor` from the previous page, passed back verbatim with the same arguments. |
+| `relax`                 | `bool \| None`                    | `None`  | Drop understood filters in stages when an understood `q` returns nothing. Requires an understood `q`. |
+| `debug`                 | `bool \| None`                    | `None`  | Include `effective_query`, the search that actually ran. |
 
-**Returns:** `MerchantProductListPage`
+**Returns:** `ProgrammaticProductSearchPage`, a `MerchantProductListPage` subclass.
 
-| Field         | Type                          | Description                                           |
-| ------------- | ----------------------------- | ----------------------------------------------------- |
-| `items`       | `list[MerchantProductListItem]` | Products on this page.                              |
-| `next_cursor` | `str \| None`                 | Pass as `cursor` in your next call to get the next page. `None` means no more results. |
+| Field             | Type                                             | Description |
+| ----------------- | ------------------------------------------------ | ----------- |
+| `items`           | `list[MerchantProductListItem]`                  | Products on this page. |
+| `next_cursor`     | `str \| None`                                    | Pass as `cursor` in your next call to get the next page. `None` means no more results. |
+| `request_id`      | `str \| None`                                    | Server-generated ID for this request. |
+| `effective_query` | `ProgrammaticProductSearchEffectiveQuery \| None` | Present only when `debug` is `True`. Reports `text`, `understood`, `facets` and `exclude_facets` (each facet with `source` `"caller"` or `"generated"`), the price and brand-quality bounds, `similar_to_brands`, `catalogs`, and `relaxation` (`rounds`, `dropped_facets`, `declined_rounds`). It is a report, not a request fragment. |
 
 Each `MerchantProductListItem` includes `uuid`, `catalog_key`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `image_url`, `images`, `rating`, `is_active`, optional match scores, and `updated_at`.
+
+```python
+page = await client.search_products(
+    q="black hoodie",
+    catalogs=["warrenlotas"],  # omit to search every catalog your key can access
+    facets=[{"name": "color", "values": ["black"]}],
+    exclude_facets=[{"name": "brand_name", "values": ["acme"]}],
+    price_min=50,
+    price_max=300,
+    brand_quality_min=4,
+    relax=True,
+    debug=True,
+)
+if page.effective_query is not None:
+    for facet in page.effective_query.facets or []:
+        print(facet.name, facet.values, facet.source)  # "caller" | "generated"
+```
+
+#### Local validation
+
+The SDK checks the contradictions the API would refuse and raises `pydantic.ValidationError` before sending a request:
+
+- `understand=False`, `relax=True`, or a non-empty `omit_generated_facets` without `q`. `relax` and `omit_generated_facets` also require `understand` to stay on.
+- A facet name repeated within `facets` or `exclude_facets`, or a name in both `facets` and `omit_generated_facets`.
+- More than 50 entries in `facets`, `exclude_facets`, or `omit_generated_facets`.
+- A negative price or `price_min > price_max`.
+- Brand quality outside 1–6, or `brand_quality_min > brand_quality_max`.
+- `similar_to_brands` that is empty, has more than 10 names, or has a blank name.
+
+An empty `catalogs` list or a blank key raises `ValueError`, and a bare string raises `TypeError`. The server remains the source of truth for everything else, such as unknown facet names.
+
+#### Removed in 0.5.0
+
+These keywords were deprecated in 0.4.0 and are gone in 0.5.0, because the API now rejects them with a `422`. Passing one to `search_products` raises `TypeError`.
+
+| Removed | Use instead |
+| --- | --- |
+| `catalog="macys"` | `catalogs=["macys"]` |
+| `text_search_query={...}` and the `TextSearchQuery` model | `q` with `understand=False`, your filters in `facets` and `exclude_facets` (formerly `exclusion_facets`), and the bounds and brands as top-level `price_min`, `price_max`, `brand_quality_min`, `brand_quality_max`, and `similar_to_brands` |
+
+```python
+# 0.4.0
+await client.search_products(catalog="macys", q="linen dress")
+
+# 0.5.0
+await client.search_products(catalogs=["macys"], q="linen dress")
+await client.search_products(
+    q="linen dress",
+    understand=False,
+    facets=[{"name": "color_family", "values": ["blue"]}],
+    exclude_facets=[{"name": "brand_name", "values": ["acme"]}],
+    price_max=200,
+)
+```
+
+`text_search_query`'s retrieval tuning (`search_id`, `ranking_text`, embedding columns, similarity weights, `search_after`, `browse_menu_uuid`, `compact_mode`) has no replacement on `/v1` search.
 
 ---
 
@@ -165,7 +238,7 @@ async def more_like_this_products(
     *,
     source_url: str | None = None,
     source_uuid: str | None = None,
-    catalog: str | None = None,
+    catalogs: Sequence[str] | None = None,
     include_facets: Sequence[Facet | dict] | None = None,
     exclude_facets: Sequence[Facet | dict] | None = None,
     price_preference: PricePreference | str = PricePreference.ANY,
@@ -175,12 +248,12 @@ async def more_like_this_products(
 ) -> ProgrammaticMoreLikeThisResponse
 ```
 
-Finds products similar to a source product URL or UUID. Provide exactly one of `source_url` or `source_uuid`. Omit `catalog` to search all active crawled catalogs, or pass a catalog key to keep the results within one catalog.
+Finds products similar to a source product URL or UUID. Provide exactly one of `source_url` or `source_uuid`. Omit `catalogs` to search all active crawled catalogs, or pass 1–100 catalog keys to keep the results within those catalogs.
 
 ```python
 page = await client.more_like_this_products(
     source_url="https://warrenlotas.com/products/black-hoodie",
-    catalog="warrenlotas",
+    catalogs=["warrenlotas"],
     price_preference="any",
     limit=12,
 )
@@ -190,7 +263,7 @@ page = await client.more_like_this_products(
 | ------------------ | ---------------------------------- | ------- | ----------- |
 | `source_url`       | `str \| None`                      | `None`  | Canonical product URL to use as the source. |
 | `source_uuid`      | `str \| None`                      | `None`  | Indexed product UUID to use as the source. |
-| `catalog`          | `str \| None`                      | `None`  | Optional known active crawled catalog key. Omit to search all active crawled catalogs. |
+| `catalogs`         | `Sequence[str] \| None`            | `None`  | Optional allowlist of 1–100 catalog keys. Omit to search all active crawled catalogs. |
 | `include_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Extra include facets appended after server-generated audience facets. |
 | `exclude_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Facets to exclude from similar-product results. |
 | `price_preference` | `PricePreference \| str`           | `any`   | `lower`, `any`, or `higher` relative to the source product. |
@@ -259,7 +332,7 @@ async with OctogenClient(base_url="https://api.storerouter.ai/v1") as client:
         q="summer dress",
         facets=[
             Facet(name=FacetName.GENDER, values=["female"]),
-            Facet(name=FacetName.COLOR_FAMILY, values=["Blue", "Green"]),
+            Facet(name=FacetName.COLOR_FAMILY, values=["blue", "green"]),
         ],
         price_max=150.0,
         limit=20,
@@ -273,17 +346,17 @@ You can also pass plain dicts instead of `Facet` instances — the SDK coerces t
 ```python
 facets=[
     {"name": "gender", "values": ["female"]},
-    {"name": "color_family", "values": ["Blue", "Green"]},
+    {"name": "color_family", "values": ["blue", "green"]},
 ]
 ```
 
 <Tip>
-  `FacetName` is a `StrEnum` with constants for all built-in facet fields: `BRAND_NAME`, `GENDER`, `AGE_GROUPS`, `COLOR`, `COLOR_FAMILY`, `IS_ACTIVEWEAR`, `PRODUCT_TYPE`, `CATEGORY_PATH_DEPTH_0` through `CATEGORY_PATH_DEPTH_6`, and more. You can also pass any custom attribute facet name as a plain string.
+  `FacetName` is a `StrEnum` with constants for all built-in facet fields: `BRAND_NAME`, `GENDER`, `AGE_GROUPS`, `COLOR`, `COLOR_FAMILY`, `IS_ACTIVEWEAR`, `PRODUCT_TYPE`, `CATEGORY_PATH_DEPTH_0` through `CATEGORY_PATH_DEPTH_6`, and more. You can also pass a taxonomy attribute handle, such as `fit`, as a plain string. Use the bare handle: `attribute_facets.fit` is rejected. Facet values are canonical lowercase handles. See [Facet names](/api-reference/search-products#facet-names).
 </Tip>
 
 ## Pagination
 
-When `next_cursor` is not `None` in a response, pass it as `cursor` in your next call to retrieve the following page:
+When `next_cursor` is not `None` in a response, pass it back verbatim as `cursor`, with the same other arguments, to retrieve the following page. A cursor the API cannot use returns `400` with `detail` `"invalid cursor"`; restart from page 1 without `cursor`. A product can repeat across pages, so de-duplicate by `uuid`.
 
 ```python
 cursor = None
@@ -306,7 +379,7 @@ All SDK errors inherit from `OctogenError`. HTTP errors inherit from `OctogenAPI
 
 <AccordionGroup>
   <Accordion title="OctogenAuthenticationError — 401">
-    Raised when your API key is missing, malformed, or has been revoked. Check that `OCTO_API_KEY` is set correctly and that the key is still active in StoreRouter Platform.
+    Raised when your API key is missing, malformed, or has been revoked. Check that `OCTOGEN_PLATFORM_API_KEY` is set correctly and that the key is still active in StoreRouter Platform.
   </Accordion>
   <Accordion title="OctogenForbiddenError — 403">
     Raised when a valid key attempts an action it is not authorized for — for example, accessing a catalog that has not been granted to your organization.
@@ -315,7 +388,7 @@ All SDK errors inherit from `OctogenError`. HTTP errors inherit from `OctogenAPI
     Raised when a catalog or product URL cannot be found. For `lookup_product`, verify the URL belongs to a catalog your key can access.
   </Accordion>
   <Accordion title="OctogenValidationError — 422">
-    Raised when the API rejects a request due to invalid parameters. The `detail` attribute contains the validation error list from the API.
+    Raised when the API rejects a request due to invalid parameters. The `detail` attribute contains the validation error list from the API. `search_products` catches many invalid combinations locally and raises `pydantic.ValidationError` before sending a request.
   </Accordion>
   <Accordion title="OctogenConnectionError">
     Raised when the SDK cannot reach the API — for example, due to a network timeout or DNS failure. Does not have a `status_code`.
@@ -334,7 +407,7 @@ from octogen_ai_sdk import (
 try:
     results = await client.search_products(q="dress")
 except OctogenAuthenticationError:
-    print("Check your OCTO_API_KEY.")
+    print("Check your OCTOGEN_PLATFORM_API_KEY.")
 except OctogenAPIError as exc:
     print(f"API error {exc.status_code}: {exc.detail}")
 except OctogenConnectionError as exc:
@@ -342,24 +415,24 @@ except OctogenConnectionError as exc:
 ```
 
 <Warning>
-  `MissingAPIKeyError` is raised by the constructor, not by a network call. It will surface at client creation time if neither `api_key` nor `OCTO_API_KEY` is present.
+  `MissingAPIKeyError` is raised by the constructor, not by a network call. It will surface at client creation time if neither `api_key` nor an API key environment variable is present.
 </Warning>
 
 ## BigQuery subscribe (optional)
 
 If StoreRouter shares a catalog with you over [BigQuery Analytics Hub](https://cloud.google.com/bigquery/docs/analytics-hub-introduction), the SDK can subscribe to the listing and create a linked dataset in your own Google Cloud project, so you can query the catalog with SQL. See the [Subscribe to a catalog in BigQuery](/guides/bigquery-subscribe) guide for the full walkthrough.
 
-This helper uses your **Google Cloud** Application Default Credentials — not your `OCTO_API_KEY` — so it lives behind an optional `bigquery` extra. Sync it from the [`octogen-dev`](https://github.com/octogen-ai/octogen-dev) repository:
+This helper uses your **Google Cloud** Application Default Credentials — not your `OCTOGEN_PLATFORM_API_KEY` — so it lives behind an optional `bigquery` extra:
 
 ```bash
-uv sync --project sdks/python --extra bigquery
+pip install "octogen-ai-sdk[bigquery]"
 gcloud auth application-default login
 ```
 
 This installs the `octogen-bq-subscribe` CLI (dry-run by default; `--apply` to subscribe) and the `octogen-bq-autosubscribe` cron helper for keeping linked datasets current as new listings become available:
 
 ```bash
-uv run --project sdks/python --extra bigquery octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
+octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
 ```
 
 ### `subscribe_to_listing`
