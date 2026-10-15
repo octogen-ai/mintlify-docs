@@ -171,7 +171,14 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `request_id`      | `str \| None`                                    | Server-generated ID for this request. |
 | `effective_query` | `ProgrammaticProductSearchEffectiveQuery \| None` | Present only when `debug` is `True`. Reports `text`, `understood`, `facets` and `exclude_facets` (each facet with `source` `"caller"` or `"generated"`), the price and brand-quality bounds, `similar_to_brands`, `catalogs`, and `relaxation` (`rounds`, `dropped_facets`, `declined_rounds`). It is a report, not a request fragment. |
 
-Each `MerchantProductListItem` includes `uuid`, `catalog_key`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `image_url`, `images`, `rating`, `is_active`, optional match scores, and `updated_at`.
+Each `MerchantProductListItem` includes `uuid`, `catalog_key`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `primary_image`, `images`, `rating`, `is_active`, optional match scores, and `updated_at`. It also carries the deprecated `image_url`.
+
+`primary_image` and each entry in `images` are [`MerchantProductImageMetadataView`](/api-reference/models/product#merchantproductimagemetadataview) models with `url`, `cdn_url`, `width`, `height`, `size_bytes`, and `mime_type`. Prefer the hosted copy and fall back to the merchant URL:
+
+```python
+image = product.primary_image
+src = (image.cdn_url or image.url) if image else None
+```
 
 ```python
 page = await client.search_products(

@@ -12,10 +12,10 @@ Before you start, make sure you have:
     Export your API key so it's available to all three methods below:
 
     ```bash
-    export OCTO_API_KEY="octo_live_<your-key>"
+    export OCTOGEN_PLATFORM_API_KEY="octo_live_<your-key>"
     ```
 
-    The Python and TypeScript SDKs read `OCTO_API_KEY` from the environment automatically. You can also pass the key directly to the client constructor — see [Authentication](/authentication) for details.
+    The Python and TypeScript SDKs read `OCTOGEN_PLATFORM_API_KEY` from the environment automatically. You can also pass the key directly to the client constructor — see [Authentication](/authentication) for details.
   </Step>
 
   <Step title="Search products">
@@ -24,7 +24,7 @@ Before you start, make sure you have:
     <CodeGroup>
       ```bash curl
       curl -sS https://api.storerouter.ai/v1/products/search \
-        -H "Authorization: Bearer $OCTO_API_KEY" \
+        -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
           "q": "women'\''s linen summer dresses",
@@ -100,7 +100,7 @@ Before you start, make sure you have:
     <CodeGroup>
       ```bash curl
       curl -sS https://api.storerouter.ai/v1/products/lookup \
-        -H "Authorization: Bearer $OCTO_API_KEY" \
+        -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
         -H "Content-Type: application/json" \
         -d '{"url": "https://warrenlotas.com/products/black-hoodie"}'
       ```

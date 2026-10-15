@@ -24,7 +24,7 @@ Pass a free-text string as `q` to search by keyword. Omit `q` entirely to browse
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/search \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "q": "black hoodie",
@@ -89,7 +89,7 @@ To remove products instead, send the same facet shape in `exclude_facets`. For e
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/search \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "facets": [
@@ -152,7 +152,7 @@ Use `price_min` and `price_max` to restrict results to a price range. Both bound
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/search \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "q": "hoodie",
@@ -203,7 +203,7 @@ You can combine `q`, `facets`, and price filters in a single request. All active
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/search \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "q": "graphic tee",
@@ -274,7 +274,7 @@ Send `catalogs` with 1 to 500 catalog keys to search only those catalogs. Keys y
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/search \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "q": "black hoodie",
@@ -320,7 +320,7 @@ By default, StoreRouter understands `q` and derives filters from it. These field
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/search \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "q": "black hoodie",
@@ -394,8 +394,9 @@ Each item in `items` contains the following fields:
 | `brand` | object \| null | Brand with `name` and optional `slug`, `url`, `description`. |
 | `currentPrice` | number \| null | Current selling price. |
 | `originalPrice` | number \| null | Pre-discount price, if available. |
-| `imageUrl` | string \| null | Primary product image URL. |
-| `images` | string[] | All product image URLs. |
+| `primaryImage` | object \| null | The product's display [image object](/api-reference/models/product#merchantproductimagemetadataview). Read `cdnUrl` and fall back to `url`. |
+| `images` | object[] | All product [image objects](/api-reference/models/product#merchantproductimagemetadataview) in display order. |
+| `imageUrl` | string \| null | Deprecated. The primary image's hosted CDN URL. Read `primaryImage` instead. |
 | `rating` | object \| null | Average rating and review count, if available. |
 | `isActive` | boolean | Whether the product is active in the current index. |
 | `updatedAt` | string \| null | ISO 8601 timestamp of the last catalog update. |

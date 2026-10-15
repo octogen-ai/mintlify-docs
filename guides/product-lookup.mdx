@@ -34,7 +34,7 @@ Requests that can use on-demand resolution also accept `onDemandCachePolicy`:
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/lookup \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com/products/blue-linen-dress",
@@ -111,6 +111,8 @@ Both sources return `product: MerchantProductView`, but some fields have differe
 | `normalizedUrl` | The matched product's StoreRouter-normalized stable URL | `null` |
 | `resolvedUrl` | `null` | Final URL after redirects |
 | `canonicalUrl` | `null` | Canonical URL declared by the product page (falls back to the final fetched URL when the page declares none) |
+| `product.primaryImage`, `product.images` | Merchant `url` plus hosted `cdnUrl` when available | Merchant `url` only; `cdnUrl` and size fields are `null` |
+| `product.imageUrl` (deprecated) | Hosted CDN URL of the primary image | `null` |
 | Other product fields | Full indexed record when available | Populated only when supported by page evidence |
 
 For follow-up lookups, use `normalizedUrl` on indexed results and
@@ -141,8 +143,25 @@ On-demand results are ephemeral. StoreRouter does not add them to your catalogs 
     "brand": {"name": "Example"},
     "currentPrice": 128,
     "currency": "USD",
-    "imageUrl": "https://example.com/images/blue-linen-dress.jpg",
-    "images": ["https://example.com/images/blue-linen-dress.jpg"],
+    "imageUrl": null,
+    "primaryImage": {
+      "url": "https://example.com/images/blue-linen-dress.jpg",
+      "cdnUrl": null,
+      "width": null,
+      "height": null,
+      "sizeBytes": null,
+      "mimeType": null
+    },
+    "images": [
+      {
+        "url": "https://example.com/images/blue-linen-dress.jpg",
+        "cdnUrl": null,
+        "width": null,
+        "height": null,
+        "sizeBytes": null,
+        "mimeType": null
+      }
+    ],
     "isActive": null
   },
   "resolution": {

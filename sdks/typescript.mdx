@@ -142,7 +142,13 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `requestId`      | `string`                                          | Server-generated ID for this request, matching `X-Request-ID`. |
 | `effectiveQuery` | `ProgrammaticProductSearchEffectiveQuery \| null` | Present only when `debug` is `true`. Reports `text`, `understood`, `facets` and `excludeFacets` (each facet tagged `source: "caller"` or `"generated"`), the price and brand-quality bounds, `similarToBrands`, `catalogs`, and `relaxation` (`rounds`, `droppedFacets`, `declinedRounds`). It is a report, not a request fragment. |
 
-Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `imageUrl`, `images`, `rating`, `isActive`, optional match scores, and `updatedAt`.
+Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `primaryImage`, `images`, `rating`, `isActive`, optional match scores, and `updatedAt`. It also carries the deprecated `imageUrl`.
+
+`primaryImage` and each entry in `images` are [`MerchantProductImageMetadataView`](/api-reference/models/product#merchantproductimagemetadataview) objects with `url`, `cdnUrl`, `width`, `height`, `sizeBytes`, and `mimeType`. Prefer the hosted copy and fall back to the merchant URL:
+
+```typescript
+const src = product.primaryImage?.cdnUrl ?? product.primaryImage?.url;
+```
 
 ```typescript
 const page = await client.searchProducts({

@@ -53,12 +53,16 @@ Returned as elements of the `items` array in [`POST /products/search`](/api-refe
   Pre-discount price. `null` when no markdown or promotion applies.
 </ResponseField>
 
-<ResponseField name="imageUrl" type="string | null">
-  Primary product image URL.
+<ResponseField name="primaryImage" type="MerchantProductImageMetadataView | null">
+  The product's display image as an [image object](#merchantproductimagemetadataview). Its `url` is the merchant source URL, and `cdnUrl` carries the StoreRouter-hosted copy when one exists. `null` when the product has no images.
 </ResponseField>
 
-<ResponseField name="images" type="string[]">
-  All product image URLs, including the primary image. May be empty if no images are indexed.
+<ResponseField name="images" type="MerchantProductImageMetadataView[]">
+  All product images as [image objects](#merchantproductimagemetadataview), in display order. Includes the primary image. Empty when no images are indexed.
+</ResponseField>
+
+<ResponseField name="imageUrl" type="string | null" deprecated>
+  Deprecated. The primary image's hosted CDN URL, kept populated during migration. Read `primaryImage` instead. On-demand lookup results (`source: "on_demand"`) always return `null` here because StoreRouter hosts no copy of their images. Read their images from `primaryImage.url` and `images[].url`.
 </ResponseField>
 
 <ResponseField name="rating" type="object | null">
@@ -102,8 +106,33 @@ Returned as elements of the `items` array in [`POST /products/search`](/api-refe
   },
   "currentPrice": 180,
   "originalPrice": null,
-  "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
-  "images": ["https://cdn.example.com/black-hoodie.jpg"],
+  "imageUrl": "https://cdn.example.com/black-hoodie.webp",
+  "primaryImage": {
+    "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+    "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+    "width": 1600,
+    "height": 2000,
+    "sizeBytes": 148230,
+    "mimeType": "image/webp"
+  },
+  "images": [
+    {
+      "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+      "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+      "width": 1600,
+      "height": 2000,
+      "sizeBytes": 148230,
+      "mimeType": "image/webp"
+    },
+    {
+      "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie-back.jpg",
+      "cdnUrl": null,
+      "width": null,
+      "height": null,
+      "sizeBytes": null,
+      "mimeType": null
+    }
+  ],
   "rating": null,
   "isActive": true,
   "updatedAt": "2026-05-19T18:04:10Z"
@@ -172,7 +201,7 @@ Returned as the `product` field in [`POST /products/lookup`](/api-reference/look
       Whether this specific variant is in stock.
     </ResponseField>
     <ResponseField name="imageUrl" type="string | null">
-      Image URL specific to this variant.
+      Image URL specific to this variant. Unlike product images, this is a plain URL string, not an image object.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -260,8 +289,33 @@ Returned as the `product` field in [`POST /products/lookup`](/api-reference/look
   },
   "currentPrice": 180,
   "originalPrice": null,
-  "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
-  "images": ["https://cdn.example.com/black-hoodie.jpg"],
+  "imageUrl": "https://cdn.example.com/black-hoodie.webp",
+  "primaryImage": {
+    "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+    "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+    "width": 1600,
+    "height": 2000,
+    "sizeBytes": 148230,
+    "mimeType": "image/webp"
+  },
+  "images": [
+    {
+      "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+      "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+      "width": 1600,
+      "height": 2000,
+      "sizeBytes": 148230,
+      "mimeType": "image/webp"
+    },
+    {
+      "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie-back.jpg",
+      "cdnUrl": null,
+      "width": null,
+      "height": null,
+      "sizeBytes": null,
+      "mimeType": null
+    }
+  ],
   "rating": null,
   "updatedAt": "2026-05-19T18:04:10Z",
   "description": "Heavyweight cotton hoodie with screen-printed graphics.",
@@ -307,12 +361,63 @@ Returned as the `product` field in [`POST /products/lookup`](/api-reference/look
 }
 ```
 
+## MerchantProductImageMetadataView
+
+One product image. `primaryImage` and every entry in `images` use this shape, on both `MerchantProductListItem` and `MerchantProductView`.
+
+<ResponseField name="url" type="string" required>
+  Original image URL on the merchant storefront. Always present.
+</ResponseField>
+
+<ResponseField name="cdnUrl" type="string | null">
+  StoreRouter-hosted CDN copy of the image. `null` when no hosted copy exists yet. Prefer it and fall back to `url`.
+</ResponseField>
+
+<ResponseField name="width" type="integer | null">
+  Pixel width of the hosted image.
+</ResponseField>
+
+<ResponseField name="height" type="integer | null">
+  Pixel height of the hosted image.
+</ResponseField>
+
+<ResponseField name="sizeBytes" type="integer | null">
+  File size of the hosted image in bytes.
+</ResponseField>
+
+<ResponseField name="mimeType" type="string | null">
+  Image format of the hosted copy, predominantly `image/webp`.
+</ResponseField>
+
+To display a product image, read the hosted copy first and fall back to the merchant URL:
+
+<CodeGroup>
+
+```python Python
+image = product.primary_image
+src = (image.cdn_url or image.url) if image else None
+```
+
+```typescript TypeScript
+const src = product.primaryImage?.cdnUrl ?? product.primaryImage?.url;
+```
+
+</CodeGroup>
+
 ## SDK types
 
 <CodeGroup>
 
 ```python Python
 # octogen_ai_sdk.models
+class MerchantProductImageMetadataView(_ResponseModel):
+    url: str
+    cdn_url: str | None        # JSON alias: "cdnUrl"
+    width: int | None
+    height: int | None
+    size_bytes: int | None     # JSON alias: "sizeBytes"
+    mime_type: str | None      # JSON alias: "mimeType"
+
 class MerchantProductListItem(_ResponseModel):
     uuid: str
     product_url: str           # JSON alias: "productUrl"
@@ -320,8 +425,9 @@ class MerchantProductListItem(_ResponseModel):
     brand: BrandView | None
     current_price: float | None  # JSON alias: "currentPrice"
     original_price: float | None  # JSON alias: "originalPrice"
-    image_url: str | None      # JSON alias: "imageUrl"
-    images: list[str]
+    image_url: str | None      # JSON alias: "imageUrl" (deprecated)
+    primary_image: MerchantProductImageMetadataView | None  # JSON alias: "primaryImage"
+    images: list[MerchantProductImageMetadataView]
     rating: RatingView | None
     updated_at: datetime | None  # JSON alias: "updatedAt"
 
@@ -345,6 +451,15 @@ class MerchantProductView(MerchantProductListItem):
 
 ```typescript TypeScript
 // @octogen-ai/sdk: models
+interface MerchantProductImageMetadataView {
+  url: string;
+  cdnUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
+  sizeBytes?: number | null;
+  mimeType?: string | null;
+}
+
 interface MerchantProductListItem {
   uuid: string;
   productUrl: string;
@@ -352,8 +467,10 @@ interface MerchantProductListItem {
   brand?: BrandView | null;
   currentPrice?: number | null;
   originalPrice?: number | null;
+  /** @deprecated Read primaryImage instead. */
   imageUrl?: string | null;
-  images?: string[];
+  primaryImage?: MerchantProductImageMetadataView | null;
+  images?: MerchantProductImageMetadataView[];
   rating?: RatingView | null;
   updatedAt?: string | null;
 }

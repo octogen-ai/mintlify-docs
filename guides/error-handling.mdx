@@ -33,7 +33,7 @@ StoreRouter API errors fall into two categories:
 
     The API key is missing, malformed, or has been revoked. Common causes:
 
-    - `OCTO_API_KEY` environment variable is not set
+    - `OCTOGEN_PLATFORM_API_KEY` environment variable is not set
     - The key string was truncated or contains extra whitespace
     - The key was deactivated in StoreRouter Platform
 
@@ -139,7 +139,7 @@ All SDK exceptions inherit from `OctogenError`. The full hierarchy:
 
 ```
 OctogenError
-├── MissingAPIKeyError          # OCTO_API_KEY not set and no api_key argument passed
+├── MissingAPIKeyError          # OCTOGEN_PLATFORM_API_KEY not set and no api_key argument passed
 ├── OctogenConnectionError      # Network-level failure (timeout, DNS, connection reset)
 └── OctogenAPIError             # Non-2xx HTTP response
     ├── OctogenAuthenticationError   # 401
@@ -179,7 +179,7 @@ async def main() -> None:
 
         except OctogenAuthenticationError:
             # 401 — rotate or replace the API key
-            print("Invalid API key. Check OCTO_API_KEY and rotate if needed.")
+            print("Invalid API key. Check OCTOGEN_PLATFORM_API_KEY and rotate if needed.")
 
         except OctogenForbiddenError as exc:
             # 403 — org does not have access
@@ -226,7 +226,7 @@ try {
 } catch (error) {
   if (error instanceof OctogenAuthenticationError) {
     // 401 — rotate or replace the API key
-    console.error("Invalid API key. Check OCTO_API_KEY and rotate if needed.");
+    console.error("Invalid API key. Check OCTOGEN_PLATFORM_API_KEY and rotate if needed.");
   } else if (error instanceof OctogenForbiddenError) {
     // 403 — org does not have access
     console.error("Access denied:", error.detail);

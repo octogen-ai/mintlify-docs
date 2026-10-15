@@ -14,7 +14,7 @@ Use `POST /v1/products/more-like-this` when you already have a product and want 
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/more-like-this \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "source": {
@@ -96,7 +96,7 @@ Use `include_facets` to pin extra requirements and `exclude_facets` to remove un
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/products/more-like-this \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "source": {

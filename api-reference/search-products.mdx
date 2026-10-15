@@ -168,12 +168,16 @@ curl -sS https://api.storerouter.ai/v1/products/search \
       Pre-discount price. `null` when no discount is active.
     </ResponseField>
 
-    <ResponseField name="imageUrl" type="string | null">
-      Primary product image URL.
+    <ResponseField name="primaryImage" type="MerchantProductImageMetadataView | null">
+      The product's display [image object](/api-reference/models/product#merchantproductimagemetadataview). `url` is the merchant source URL, and `cdnUrl` is the hosted copy when one exists. Prefer `cdnUrl` and fall back to `url`.
     </ResponseField>
 
-    <ResponseField name="images" type="string[]">
-      All product image URLs.
+    <ResponseField name="images" type="MerchantProductImageMetadataView[]">
+      All product [image objects](/api-reference/models/product#merchantproductimagemetadataview) in display order, including the primary image.
+    </ResponseField>
+
+    <ResponseField name="imageUrl" type="string | null" deprecated>
+      Deprecated. The primary image's hosted CDN URL, kept populated during migration. Read `primaryImage` instead.
     </ResponseField>
 
     <ResponseField name="rating" type="object | null">
@@ -212,8 +216,25 @@ curl -sS https://api.storerouter.ai/v1/products/search \
       "catalogKey": "warrenlotas",
       "title": "Black Hoodie",
       "productUrl": "https://warrenlotas.com/products/black-hoodie",
-      "imageUrl": "https://cdn.example.com/black-hoodie.jpg",
-      "images": ["https://cdn.example.com/black-hoodie.jpg"],
+      "imageUrl": "https://cdn.example.com/black-hoodie.webp",
+      "primaryImage": {
+        "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+        "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+        "width": 1600,
+        "height": 2000,
+        "sizeBytes": 148230,
+        "mimeType": "image/webp"
+      },
+      "images": [
+        {
+          "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+          "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+          "width": 1600,
+          "height": 2000,
+          "sizeBytes": 148230,
+          "mimeType": "image/webp"
+        }
+      ],
       "brand": {"name": "Warren Lotas", "slug": "warren-lotas", "url": null},
       "currentPrice": 180,
       "originalPrice": null,
