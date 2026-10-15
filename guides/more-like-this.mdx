@@ -56,16 +56,16 @@ for (const product of page.items) {
 
 </CodeGroup>
 
-## Scope to one catalog
+## Scope to specific catalogs
 
-Omit `catalog` to search across all active crawled catalogs. Pass `catalog` when a related-products rail should stay within the same merchant:
+Omit `catalogs` to search across all active crawled catalogs. Pass `catalogs`, a list of 1–100 catalog keys, to restrict results to those catalogs — for example, a one-entry list when a related-products rail should stay within the same merchant. The source product itself may live outside the list:
 
 ```json
 {
   "source": {
     "url": "https://warrenlotas.com/products/black-hoodie"
   },
-  "catalog": "warrenlotas",
+  "catalogs": ["warrenlotas"],
   "limit": 12
 }
 ```
