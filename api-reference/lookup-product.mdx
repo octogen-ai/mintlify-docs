@@ -32,7 +32,7 @@ Content-Type: application/json
 
 ```bash
 curl -sS https://api.storerouter.ai/v1/products/lookup \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com/products/blue-linen-dress",
@@ -91,11 +91,14 @@ curl -sS https://api.storerouter.ai/v1/products/lookup \
     <ResponseField name="currency" type="string | null">
       Currency code when available. This is especially important for results without catalog currency context.
     </ResponseField>
-    <ResponseField name="imageUrl" type="string | null">
-      Primary product image URL.
+    <ResponseField name="primaryImage" type="MerchantProductImageMetadataView | null">
+      The product's display [image object](/api-reference/models/product#merchantproductimagemetadataview). `url` is the merchant source URL, and `cdnUrl` is the hosted copy when one exists. Prefer `cdnUrl` and fall back to `url`. On-demand results carry only `url`; `cdnUrl` and the size fields are `null`.
     </ResponseField>
-    <ResponseField name="images" type="string[]">
-      Product image URLs.
+    <ResponseField name="images" type="MerchantProductImageMetadataView[]">
+      All product [image objects](/api-reference/models/product#merchantproductimagemetadataview) in display order, including the primary image.
+    </ResponseField>
+    <ResponseField name="imageUrl" type="string | null" deprecated>
+      Deprecated. The primary image's hosted CDN URL, kept populated during migration. Read `primaryImage` instead. Always `null` for an on-demand result.
     </ResponseField>
     <ResponseField name="isActive" type="boolean | null">
       Indexed lifecycle state. `null` for an on-demand result.
@@ -194,6 +197,25 @@ curl -sS https://api.storerouter.ai/v1/products/lookup \
     "title": "Black Hoodie",
     "currentPrice": 180,
     "currency": "USD",
+    "imageUrl": "https://cdn.example.com/black-hoodie.webp",
+    "primaryImage": {
+      "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+      "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+      "width": 1600,
+      "height": 2000,
+      "sizeBytes": 148230,
+      "mimeType": "image/webp"
+    },
+    "images": [
+      {
+        "url": "https://warrenlotas.com/cdn/shop/files/black-hoodie.jpg",
+        "cdnUrl": "https://cdn.example.com/black-hoodie.webp",
+        "width": 1600,
+        "height": 2000,
+        "sizeBytes": 148230,
+        "mimeType": "image/webp"
+      }
+    ],
     "isActive": true
   },
   "resolution": null,
@@ -218,6 +240,25 @@ curl -sS https://api.storerouter.ai/v1/products/lookup \
     "title": "Blue Linen Dress",
     "currentPrice": 128,
     "currency": "USD",
+    "imageUrl": null,
+    "primaryImage": {
+      "url": "https://example.com/images/blue-linen-dress.jpg",
+      "cdnUrl": null,
+      "width": null,
+      "height": null,
+      "sizeBytes": null,
+      "mimeType": null
+    },
+    "images": [
+      {
+        "url": "https://example.com/images/blue-linen-dress.jpg",
+        "cdnUrl": null,
+        "width": null,
+        "height": null,
+        "sizeBytes": null,
+        "mimeType": null
+      }
+    ],
     "isActive": null
   },
   "requestedUrl": "https://example.com/products/blue-linen-dress",

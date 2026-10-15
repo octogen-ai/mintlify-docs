@@ -53,12 +53,12 @@ Same base URL and API key as the rest of the platform API
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/coverage/url-lists \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "q3-campaign"}'
 
 curl -sS https://api.storerouter.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"urls": [
     "https://shop.example/products/dress?utm_source=newsletter",
@@ -117,7 +117,7 @@ StoreRouter's catalogs match those URLs — live in BigQuery, below.
 
 ```bash curl
 curl -sS https://api.storerouter.ai/v1/coverage/url-lists/cul_01KZAC9QSY5RWSTZ63FGBS50F2/urls/contains \
-  -H "Authorization: Bearer $OCTO_API_KEY" \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"urls": ["https://shop.example/products/dress"]}'
 ```
