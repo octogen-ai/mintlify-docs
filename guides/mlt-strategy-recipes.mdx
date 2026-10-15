@@ -34,7 +34,7 @@ Omit the embedding-column parameters and the server picks the strategy: query te
   "source": {
     "uuid": "19daa0d1-8d4a-4cb8-aaa6-11a98b005e10"
   },
-  "catalog": "lagence_merchant",
+  "catalogs": ["lagence_merchant"],
   "limit": 6,
   "debug": true
 }
@@ -70,7 +70,7 @@ Retrieve via the attributes embedding so candidates share concrete product attri
   "source": {
     "url": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-tassil-64262"
   },
-  "catalog": "fashionphile",
+  "catalogs": ["fashionphile"],
   "limit": 6,
   "retrieval_embedding_columns": [
     "attributes_embedding"
@@ -112,7 +112,7 @@ Retrieve via the general-purpose base embedding for wider, discovery-style resul
   "source": {
     "uuid": "19daa0d1-8d4a-4cb8-aaa6-11a98b005e10"
   },
-  "catalog": "lagence_merchant",
+  "catalogs": ["lagence_merchant"],
   "limit": 6,
   "retrieval_embedding_columns": [
     "embedding"
@@ -153,7 +153,7 @@ This is the combination for related-products rails that should respect concrete 
   "source": {
     "url": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-tassil-64262"
   },
-  "catalog": "fashionphile",
+  "catalogs": ["fashionphile"],
   "limit": 6,
   "retrieval_embedding_columns": [
     "attributes_embedding"
@@ -198,7 +198,7 @@ The default strategy constrained to products priced below the source. `"higher"`
   "source": {
     "uuid": "19daa0d1-8d4a-4cb8-aaa6-11a98b005e10"
   },
-  "catalog": "lagence_merchant",
+  "catalogs": ["lagence_merchant"],
   "limit": 6,
   "price_preference": "lower",
   "debug": true
@@ -235,7 +235,7 @@ Any strategy accepts explicit facets. For example, attribute-focused retrieval p
   "source": {
     "url": "https://www.fashionphile.com/products/louis-vuitton-epi-mabillon-backpack-tassil-64262"
   },
-  "catalog": "fashionphile",
+  "catalogs": ["fashionphile"],
   "retrieval_embedding_columns": [
     "attributes_embedding"
   ],
