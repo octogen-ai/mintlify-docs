@@ -4,11 +4,25 @@ description: "Understand StoreRouter's per-organization rate limit, the X-RateLi
 sidebarTitle: "Rate Limits"
 ---
 
-StoreRouter rate limits requests **per organization**. The budget is shared across every Platform API key *and* MCP session in your organization — it keys on your organization, not on an individual key or agent — so all of your automated traffic draws from one pool.
+For API keys and MCP, StoreRouter rate limits requests **per organization**. The budget is shared across every Platform API key *and* MCP session in your organization — it keys on your organization, not on an individual key or agent — so all of your automated traffic draws from one pool.
 
 <Note>
   The limit is a generous safety ceiling set well above normal integration traffic, and it may be tuned over time. It is **not published as a fixed number** — read your current allowance from the `X-RateLimit-Limit` response header rather than hard-coding a value.
 </Note>
+
+## Trial search allowance
+
+Anonymous agents share **50 searches per IP per UTC day**. There is no global
+daily trial quota. Each admitted search request counts, including another
+results page. New registrations and token renewal do not reset the allowance.
+Other service rate limits still apply.
+
+A daily-limit `429` includes `Retry-After` and `detail.retry_after_seconds`,
+`detail.reset_at`, and `detail.signup_url`. Wait until reset or complete the
+[Developer signup](https://platform.storerouter.ai/auth/organization) and use an
+organization API key. See [trial setup](/authentication#automatic-trial-search).
+
+## Organization API-key limits
 
 ## How the limit works
 
@@ -16,7 +30,7 @@ The limiter is a token bucket: it holds up to one minute of requests and refills
 
 ## REST API (`/v1`)
 
-Every REST response reports your current budget in headers:
+Organization API-key REST responses report your current budget in headers:
 
 | Header | Meaning |
 | --- | --- |
