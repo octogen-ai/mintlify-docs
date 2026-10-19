@@ -23,7 +23,7 @@ Every request works with either source form. `debug: true` is included throughou
 | Max attribute matches + closeness of look | Attribute retrieval, style-ranked | retrieval `attributes_embedding`, ranking `style_embedding` |
 | Cheaper (or premium) alternatives | Price-bounded same look | `price_preference: "lower"` / `"higher"` |
 
-Facet matching is automatic in every strategy: when you don't pass `include_facets` or `exclude_facets`, the server derives audience facets from the source product's enrichment. Pass your own facets (for example `color_family`) on top of any strategy when you want explicit control.
+Facet matching is automatic in every strategy: the server derives audience facets from the source product's enrichment. Pass your own `facets` (for example `color_family`) or `exclude_facets` on top of any strategy when you want explicit control. A facet you send replaces the generated facet of the same name and is never relaxed. With `relax` on (the default), a short first page drops generated facets in stages. See [Relaxation](/guides/more-like-this#relaxation).
 
 ## Same look (default)
 
@@ -239,7 +239,7 @@ Any strategy accepts explicit facets. For example, attribute-focused retrieval p
   "retrieval_embedding_columns": [
     "attributes_embedding"
   ],
-  "include_facets": [
+  "facets": [
     {
       "name": "color_family",
       "values": [

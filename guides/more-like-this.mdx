@@ -88,9 +88,20 @@ page = await client.more_like_this_products(
 )
 ```
 
-## Add include or exclude facets
+## Add facets, exclusions, and bounds
 
-Use `include_facets` to pin extra requirements and `exclude_facets` to remove unwanted matches. These filters use the same facet shape as catalog search.
+More Like This takes the same caller controls as [catalog search](/guides/catalog-search):
+
+- `facets` lists filters a product must match. A facet you send replaces the generated facet of the same name, and it is never relaxed.
+- `exclude_facets` removes products that match any listed value.
+- `price_min` / `price_max` bound price. They combine with `price_preference` by keeping the tighter bound.
+- `brand_quality_min` / `brand_quality_max` bound brand quality, from 1 (very poor) to 6 (exceptional).
+
+Each facet name may appear only once in `facets` or `exclude_facets`.
+
+<Warning>
+`facets` replaces `include_facets`. A request that still sends `include_facets` gets a `422` whose message names `facets`. Upgrade to `octogen-ai-sdk` 0.8.0, `@octogen-ai/sdk` 0.6.0, or `@storerouter/cli` 0.4.0. Older releases send `include_facets`.
+</Warning>
 
 <CodeGroup>
 
@@ -102,14 +113,25 @@ curl -sS https://api.storerouter.ai/v1/products/more-like-this \
     "source": {
       "url": "https://warrenlotas.com/products/black-hoodie"
     },
-    "include_facets": [
+    "facets": [
       {"name": "gender", "values": ["unisex"]}
     ],
     "exclude_facets": [
       {"name": "color_family", "values": ["White"]}
     ],
+    "price_max": 250,
     "limit": 12
   }'
+```
+
+```python Python
+page = await client.more_like_this_products(
+    source_url="https://warrenlotas.com/products/black-hoodie",
+    facets=[{"name": "gender", "values": ["unisex"]}],
+    exclude_facets=[{"name": "color_family", "values": ["White"]}],
+    price_max=250,
+    limit=12,
+)
 ```
 
 ```typescript TypeScript
@@ -118,13 +140,34 @@ import { FacetName, OctogenClient } from "@octogen-ai/sdk";
 const client = new OctogenClient({ baseUrl: "https://api.storerouter.ai/v1" });
 const page = await client.moreLikeThisProducts({
   source: { url: "https://warrenlotas.com/products/black-hoodie" },
-  includeFacets: [{ name: FacetName.GENDER, values: ["unisex"] }],
+  facets: [{ name: FacetName.GENDER, values: ["unisex"] }],
   excludeFacets: [{ name: FacetName.COLOR_FAMILY, values: ["White"] }],
+  priceMax: 250,
   limit: 12,
 });
 ```
 
 </CodeGroup>
+
+## Relaxation
+
+More Like This builds its query from facets StoreRouter generates from the source product: category, gender, color, and attributes. When those facets leave page 1 short, `relax` retries with generated facets dropped in stages, least trusted first. It returns the first stage that fills the page.
+
+`relax` defaults to `true` on More Like This. Search defaults to `false`. Both routes follow the same rule: what you send is never silently dropped, but StoreRouter may drop its own inferences.
+
+- On search, the generated facets come from the shopper's words in `q`, so dropping them silently would ignore what the caller said.
+- On More Like This there is no caller text. The generated facets are StoreRouter's inference from the source product.
+
+Your `facets`, `exclude_facets`, and price and brand-quality bounds are never dropped.
+
+When relaxation runs depends on the source:
+
+| Source | Relaxes when |
+| --- | --- |
+| `url` or `uuid` | Page 1 (no `cursor`) has fewer than `min(5, limit)` results and no `nextCursor`. A stage is adopted only if it reaches that floor, or returns anything for an empty page. A rail with 2 items is treated as short. |
+| `image` | Page 1 is empty, as on search. |
+
+Send `relax: false` to keep every generated facet. A relaxed page's `nextCursor` continues the same relaxed results. Sending that cursor with `relax: false` returns `400`.
 
 ## Debug the derived query
 
@@ -140,7 +183,13 @@ Set `debug: true` to inspect the public, server-derived query fields used for re
 }
 ```
 
-The response adds `effectiveQuery` with fields such as `text`, `retrievalEmbeddingColumns`, `facets`, `priceMin`, `priceMax`, and `limit`. Use this for diagnostics and logging, not as a stable replacement for the endpoint itself.
+The response adds `effectiveQuery` with fields such as `text`, `retrievalEmbeddingColumns`, `facets`, `priceMin`, `priceMax`, and `limit`. With `relax: true` (the default), it also carries `relaxation`, in the same shape search uses:
+
+- `rounds`: stages applied to produce this page, `0` if none;
+- `declinedRounds`: stages tried that did not fill the page;
+- `droppedFacets`: the generated facets dropped.
+
+Use this for diagnostics and logging, not as a stable replacement for the endpoint itself.
 
 ## Paginate similar products
 

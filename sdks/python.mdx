@@ -246,9 +246,14 @@ async def more_like_this_products(
     source_url: str | None = None,
     source_uuid: str | None = None,
     catalogs: Sequence[str] | None = None,
-    include_facets: Sequence[Facet | dict] | None = None,
+    facets: Sequence[Facet | dict] | None = None,
     exclude_facets: Sequence[Facet | dict] | None = None,
+    price_min: float | None = None,
+    price_max: float | None = None,
+    brand_quality_min: float | None = None,
+    brand_quality_max: float | None = None,
     price_preference: PricePreference | str = PricePreference.ANY,
+    relax: bool | None = None,
     cursor: str | None = None,
     limit: int = 12,
     debug: bool = False,
@@ -271,9 +276,12 @@ page = await client.more_like_this_products(
 | `source_url`       | `str \| None`                      | `None`  | Canonical product URL to use as the source. |
 | `source_uuid`      | `str \| None`                      | `None`  | Indexed product UUID to use as the source. |
 | `catalogs`         | `Sequence[str] \| None`            | `None`  | Optional allowlist of 1–100 catalog keys. Omit to search all active crawled catalogs. |
-| `include_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Extra include facets appended after server-generated audience facets. |
-| `exclude_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Facets to exclude from similar-product results. |
+| `facets`           | `Sequence[Facet \| dict] \| None`  | `None`  | Filters a product must match. A facet you send replaces the generated facet of the same name and is never relaxed. Replaces `include_facets` (removed in 0.8.0). |
+| `exclude_facets`   | `Sequence[Facet \| dict] \| None`  | `None`  | Filters a product must not match. |
+| `price_min` / `price_max` | `float \| None`             | `None`  | Inclusive price bounds. Never relaxed. |
+| `brand_quality_min` / `brand_quality_max` | `float \| None` | `None` | Inclusive brand-quality bounds, 1 to 6. Never relaxed. |
 | `price_preference` | `PricePreference \| str`           | `any`   | `lower`, `any`, or `higher` relative to the source product. |
+| `relax`            | `bool \| None`                     | `None`  | Omitted unless set; the server defaults it to `True`. Retries a short page 1 with generated facets dropped, never yours. See [Relaxation](/guides/more-like-this#relaxation). |
 | `cursor`           | `str \| None`                      | `None`  | Pagination cursor from a previous response's `next_cursor`. |
 | `limit`            | `int`                              | `12`    | Number of results per page. Must be between 1 and 100. |
 | `debug`            | `bool`                             | `False` | Include the public `effective_query` used for retrieval. |
@@ -285,7 +293,7 @@ page = await client.more_like_this_products(
 | `source`          | `ProgrammaticMoreLikeThisSourceResponse`  | Source product identity. |
 | `items`           | `list[MerchantProductListItem]`           | Similar products on this page. |
 | `next_cursor`     | `str \| None`                             | Pass as `cursor` in your next call to get the next page. |
-| `effective_query` | `ProgrammaticMoreLikeThisEffectiveQuery \| None` | Present only when `debug` is `True`. |
+| `effective_query` | `ProgrammaticMoreLikeThisEffectiveQuery \| None` | Present only when `debug` is `True`. With `relax` on, `relaxation` reports `rounds`, `declined_rounds`, and `dropped_facets`. |
 
 ## Complete example
 
