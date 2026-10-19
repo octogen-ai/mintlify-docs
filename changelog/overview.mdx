@@ -3,6 +3,33 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="October 2026" description="More Like This: facets, relax, and bounds">
+
+## Updates
+
+**More Like This takes the same controls as search.** `POST /v1/products/more-like-this` adds `relax`, `price_min` / `price_max`, and `brand_quality_min` / `brand_quality_max`, with search's semantics. `facets` and `exclude_facets` mean what they mean on search.
+
+**`relax` defaults to `true` on More Like This.** A short page 1 is retried with StoreRouter's generated facets dropped in stages, never the facets or bounds you send.
+
+- A `url` or `uuid` source relaxes a first page with fewer than `min(5, limit)` results and no `nextCursor`.
+- An image source relaxes only an empty page.
+
+Search keeps `relax: false` as its default. The rule is the same on both routes: what you send is never silently dropped, but the server may drop its own inferences. See [Relaxation](/guides/more-like-this#relaxation).
+
+With `debug: true`, `effectiveQuery.relaxation` reports what relaxation did in search's shape. It replaces `relaxationRounds`, `relaxationDroppedFacets`, and `relaxationDeclinedRounds`.
+
+**Breaking change:** `include_facets` is renamed to `facets`. A request that sends `include_facets` gets a `422` whose message names `facets`.
+
+**SDKs and CLI.** These releases send `facets` and `relax`:
+
+- `octogen-ai-sdk` 0.8.0;
+- `@octogen-ai/sdk` 0.6.0;
+- `@storerouter/cli` 0.4.0, whose `similar --facet` sends `facets` and adds `--no-relax`.
+
+Earlier releases send `include_facets`. Upgrade them.
+
+</Update>
+
 <Update label="October 14, 2026" description="Redesigned product search and SDK 0.5.0">
 
 ## Updates

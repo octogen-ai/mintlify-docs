@@ -46,12 +46,43 @@ Content-Type: application/json
   Optional catalog allowlist (1–100 keys) restricting **results** to these catalogs. Retrieval-only: the source product may live outside the allowlist and still resolves. Keys are not validated — an unknown or inaccessible key simply matches nothing. When omitted, search runs across all active crawled catalogs. With `debug: true`, the applied allowlist is echoed as `effectiveQuery.catalogs`. Replaces the former single-valued `catalog` field, which is now rejected with a `422`.
 </ParamField>
 
-<ParamField body="include_facets" type="Facet[]">
-  Additional include facets appended after StoreRouter's server-generated audience facets.
+<ParamField body="facets" type="Facet[]">
+  Filters a product must match: every facet, and any value within a facet. A facet you send replaces every generated facet of the same name. A `color` or `color_family` facet replaces generated facets on both color axes. Values are never unioned, and the other generated facets stay. Never relaxed. Each name may appear at most once, up to 50 facets. Replaces `include_facets`, which is now rejected with a `422` naming `facets`.
 </ParamField>
 
 <ParamField body="exclude_facets" type="Facet[]">
-  Facets to exclude from the similar-products search.
+  Filters a product must not match: products with any listed value of any listed facet are removed. Each name may appear at most once, up to 50 facets.
+</ParamField>
+
+<ParamField body="omit_generated_facets" type="string[]">
+  Names of server-generated facets to drop before search and relaxation. Use it for a generated filter you can see is wrong in `effectiveQuery` and have no value of your own for. A same-name `facets` entry replaces it instead. Unknown names are ignored. `facets` and `exclude_facets` are never affected.
+</ParamField>
+
+<ParamField body="price_min" type="number">
+  Inclusive minimum price, at least 0. Combined with the `price_preference` bound by keeping the higher one. Never relaxed.
+</ParamField>
+
+<ParamField body="price_max" type="number">
+  Inclusive maximum price, at least 0. Combined with the `price_preference` bound by keeping the lower one. Never relaxed.
+</ParamField>
+
+<ParamField body="brand_quality_min" type="number">
+  Inclusive minimum brand-quality score, from 1 (very poor) to 6 (exceptional). Never relaxed.
+</ParamField>
+
+<ParamField body="brand_quality_max" type="number">
+  Inclusive maximum brand-quality score, from 1 to 6. Never relaxed.
+</ParamField>
+
+<ParamField body="relax" type="boolean" default="true">
+  Retry a short page 1 with generated facets dropped in stages, least trusted first, and return the first stage that fills it.
+
+  - For a `url` or `uuid` source, page 1 (no `cursor`) is short when it has fewer than `min(5, limit)` results and no `nextCursor`. A stage is adopted only if it reaches that floor, or returns anything for an empty page.
+  - For an `image` source, only an empty page 1 is relaxed.
+
+  Facets and bounds you send are never dropped. The rule is the same as search's: what you send is never silently dropped, but the server may drop its own inferences. Here the generated facets are StoreRouter's inference from the source product, not words you sent, so `relax` defaults to `true`. Search defaults to `false` because its generated facets come from your `q`.
+
+  A relaxed page's cursor continues the same relaxed results. Sending it with `relax: false` returns `400`.
 </ParamField>
 
 <ParamField body="price_preference" type='"lower" | "any" | "higher"' default="any">
@@ -132,9 +163,9 @@ Send a photo — a product shot, a look to match — and the API generates the s
 Behavior to know:
 
 - **Latency**: the first sight of an image runs generation — expect p50 ≤ 8s, ~11s when relaxation rounds run. **Repeat images are served from a generation cache (24h) in ~0.25s**, and the response's `resolution` field says which happened: `image_query_generation` (pipeline ran) or `cached_image_query` (cached).
-- **Facet relaxation**: every image-derived facet is an inference (including a `brand_name` read off a visible logo), so zero-result searches automatically retry with the least-trusted facet tiers dropped. With `debug: true` the response reports `relaxationRounds` and the released facets. Facets you pass in `include_facets` are never dropped.
+- **Facet relaxation**: every image-derived facet is an inference, including a `brand_name` read off a visible logo. With `relax: true` (the default), a zero-result search retries with the least-trusted facet tiers dropped. With `debug: true` the response reports it in `effectiveQuery.relaxation`. Facets you pass in `facets` are never dropped.
 - **Response shape**: image responses return `sourceImage.hash` and `resolution` instead of the resolved-product `source` stanza. `nextCursor` is a normal opaque cursor — pass it back with the same request body to page through the result set.
-- **`include_facets` / `exclude_facets` / embedding-column overrides** work exactly as for product sources.
+- **`facets` / `exclude_facets` / bounds / embedding-column overrides** work exactly as for product sources.
 
 ## Response
 
@@ -174,7 +205,14 @@ Behavior to know:
 </ResponseField>
 
 <ResponseField name="effectiveQuery" type="object | null">
-  Present only when `debug` is `true`. Contains the public server-derived query fields: `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `priceMin`, `priceMax`, `limit`, and — when a `catalogs` allowlist was sent — `catalogs` (the normalized allowlist as applied). For image sources it additionally carries `generationStages` (per-stage generation timings), `degradedToTextFallback`, and — when relaxation ran — `relaxationRounds` and `relaxationDroppedFacets`.
+  Present only when `debug` is `true`. Contains the public server-derived query fields:
+
+  - `text`, `retrievalEmbeddingColumns`, `rankingEmbeddingColumns`, `facets`, `exclusionFacets`, `limit`;
+  - `priceMin`, `priceMax`, `brandQualityMin`, `brandQualityMax`;
+  - `catalogs`, the normalized allowlist as applied, when you sent one;
+  - `relaxation`, with `relax: true`, in the same shape search uses: `rounds` (stages applied, `0` if none), `declinedRounds` (stages tried that did not fill the page) and `droppedFacets` (the generated facets dropped).
+
+  For image sources it also carries `generationStages` (per-stage generation timings) and `degradedToTextFallback`. `relaxation` replaces the former `relaxationRounds`, `relaxationDroppedFacets`, and `relaxationDeclinedRounds` fields.
 </ResponseField>
 
 ### Example response

@@ -232,9 +232,12 @@ const page = await client.moreLikeThisProducts({
 | ----------------- | ---------------------------- | ------- | ----------- |
 | `source`          | `{ url?: string; uuid?: string }` | —   | Source product identifier. Exactly one of `url` or `uuid` is required. |
 | `catalogs`        | `readonly string[]`          | —       | Optional allowlist of 1–100 catalog keys. Omit to search all active crawled catalogs. |
-| `includeFacets`   | `Facet[]`                    | —       | Extra include facets appended after server-generated audience facets. |
-| `excludeFacets`   | `Facet[]`                    | —       | Facets to exclude from similar-product results. |
+| `facets`          | `Facet[]`                    | —       | Filters a product must match. A facet you send replaces the generated facet of the same name and is never relaxed. Replaces `includeFacets` (removed in 0.6.0). |
+| `excludeFacets`   | `Facet[]`                    | —       | Filters a product must not match. |
+| `priceMin` / `priceMax` | `number`               | —       | Inclusive price bounds. Never relaxed. |
+| `brandQualityMin` / `brandQualityMax` | `number` | —       | Inclusive brand-quality bounds, 1 to 6. Never relaxed. |
 | `pricePreference` | `"lower" \| "any" \| "higher"` | `"any"` | Relative price behavior compared with the source product. |
+| `relax`           | `boolean`                    | —       | Omitted unless set; the server defaults it to `true`. Retries a short page 1 with generated facets dropped, never yours. See [Relaxation](/guides/more-like-this#relaxation). |
 | `cursor`          | `string`                     | —       | Pagination cursor from a previous response's `nextCursor`. |
 | `limit`           | `number`                     | `12`    | Number of results per page. Must be an integer between 1 and 100. |
 | `debug`           | `boolean`                    | `false` | Include the public `effectiveQuery` used for retrieval. |
@@ -246,7 +249,7 @@ const page = await client.moreLikeThisProducts({
 | `source`         | `MoreLikeThisSourceResponse` | Source product identity. |
 | `items`          | `MerchantProductListItem[]`  | Similar products on this page. |
 | `nextCursor`     | `string \| null`             | Pass as `cursor` in your next call to get the next page. |
-| `effectiveQuery` | `object \| null`             | Present only when `debug` is `true`. |
+| `effectiveQuery` | `object \| null`             | Present only when `debug` is `true`. With `relax` on, `relaxation` reports `rounds`, `declinedRounds`, and `droppedFacets`. |
 
 ## Complete example
 
