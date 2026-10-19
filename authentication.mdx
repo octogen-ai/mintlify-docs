@@ -1,9 +1,39 @@
 ---
-title: "API Key Authentication"
+title: "Authentication"
 description: "Learn how to create a Platform API key, configure OCTOGEN_PLATFORM_API_KEY in your environment, and send it as a Bearer token to authenticated endpoints."
 ---
 
-Requests to the StoreRouter Platform Catalog API require a valid API key. Keys are issued per organization through StoreRouter Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+The StoreRouter Platform Catalog API requires a Bearer credential. Agents can use a WorkOS token for trial search. Full API access uses an organization API key. Keys are issued per organization through StoreRouter Platform. Developer API keys can search and browse every active crawled catalog and can never access merchant catalogs. This page explains the key format, how to configure your environment, and what to do when authentication fails.
+
+## Automatic trial search
+
+An agent can start without human signup:
+
+1. Read [auth.md](https://storerouter.ai/auth.md). Follow the anonymous WorkOS registration and token exchange steps. Skip the optional claim ceremony.
+2. Keep the access token in `STOREROUTER_TRIAL_ACCESS_TOKEN`. Do not print or log it.
+3. Call the search endpoint:
+
+```bash
+curl -sS https://api.storerouter.ai/v1/products/search \
+  -H "Authorization: Bearer $STOREROUTER_TRIAL_ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"q":"linen shirt","limit":3}'
+```
+
+Trial tokens allow `POST /v1/products/search` only, with the `products:search`
+permission. They cannot access private or merchant catalogs. Lookup, `/v1/me`,
+and MCP are not part of the trial. Follow `auth.md` to renew the token.
+
+You get **50 trial searches per IP per UTC day**, with **no global daily trial
+limit**. Agents on the same public IP share the allowance. Each admitted request
+counts, including another results page. New registrations and token renewal do
+not reset it. Other service rate limits still apply.
+
+When the daily allowance is exhausted, the API returns `429`, a `Retry-After`
+header, and `detail.reset_at`, `detail.retry_after_seconds`, and `detail.signup_url`.
+Wait until reset or use the [Developer signup](https://platform.storerouter.ai/auth/organization)
+and API-key process below. Trial use creates no customer charge. Signup does not
+transfer trial history or claim the registration.
 
 ## API key format
 
