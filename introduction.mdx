@@ -2,11 +2,6 @@
 title: "Intro for developers"
 ---
 
-For automatic agent setup, use [trial search](/authentication#automatic-trial-search).
-It allows 50 searches per IP per UTC day without human signup. For full API access,
-use a Developer organization and API key.
-
-
 ## What you can do
 
 - **Search products** — query active crawled catalogs by keyword, filter by color, category, brand, price range, and other facets, and paginate through results.
@@ -27,10 +22,10 @@ You can reach the same product data through two fully supported surfaces. Choose
 
 | Surface | Best for | Auth |
 | --- | --- | --- |
-| **REST API** | Backend services, batch jobs, server-to-server | Bearer API key (`octo_live_...`); WorkOS token for trial search |
+| **REST API** | Backend services, batch jobs, server-to-server | Bearer API key (`octo_live_...`) |
 | **MCP server** | Interactive AI agents (Claude Code, Codex, Claude Desktop) | OAuth 2.1 + PKCE |
 
-Developer access covers active crawled catalogs. Private and merchant catalogs are excluded. Trial tokens work on REST search only.
+Both surfaces enforce the same per-organization catalog grants. A grant change takes effect immediately on all access paths.
 
 ## Start here
 
