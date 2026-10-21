@@ -1,0 +1,18 @@
+---
+title: "Get brand top categories"
+description: "Get precomputed category names ranked by active product count."
+---
+
+`GET /brands/{brand}/top-categories` get precomputed category names ranked by active product count.
+
+Send `Authorization: Bearer <your-platform-api-key>` with every request. POST requests also require `Content-Type: application/json`. Use the base URL `https://api.storerouter.ai/v1`.
+
+URL-encode the brand slug or case-insensitive name in `brand`. Optional query parameters: `minLevel` (0–10, default 0), and `limit` (1–20, default 3).
+
+```http
+GET https://api.storerouter.ai/v1/brands/allbirds/top-categories?minLevel=1&limit=3
+```
+
+Returns `brandName` and `topCategories`. Each category has `categoryName` and `categoryLevel`. These are corpus-wide, precomputed category names; the response does not return product counts or promise product availability in your scope. Unknown brands return `404` with `brand_not_found`.
+
+See [Discover brands](/guides/brand-discovery) for brand-versus-store semantics, catalog scope, filter rules, MCP equivalents, and shared authorization, validation, and rate-limit errors.

@@ -59,6 +59,7 @@
             "group": "Guides",
             "pages": [
               "guides/catalog-search",
+              "guides/brand-discovery",
               "guides/product-lookup",
               "guides/more-like-this",
               "guides/mlt-strategy-recipes",
@@ -83,6 +84,17 @@
               "api-reference/search-products",
               "api-reference/lookup-product",
               "api-reference/more-like-this"
+            ]
+          },
+          {
+            "group": "Brands API",
+            "pages": [
+              "api-reference/search-brands",
+              "api-reference/similar-brands",
+              "api-reference/brand-prefix",
+              "api-reference/get-brand",
+              "api-reference/browse-brand-products",
+              "api-reference/brand-top-categories"
             ]
           },
           {
