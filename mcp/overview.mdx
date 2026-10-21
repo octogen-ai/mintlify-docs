@@ -47,6 +47,10 @@ Resolves a product page URL to a full product record, including title, descripti
 
 Searches products inside one active crawled catalog by free-text keyword. Use a known catalog key. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
 
+## Brand discovery tools
+
+Use `search_brands`, `similar_brands`, `brand_prefix`, `get_brand`, `browse_brand_products`, and `get_brand_top_categories` to discover brands and browse their products. Brand identities describe makers and designers; they are distinct from stores and sellers. Discovery metadata is corpus-wide, while product browse respects your catalog scope. See [Discover brands](/guides/brand-discovery) for arguments, response shapes, and examples.
+
 ## BigQuery subscription tools
 
 Developer organizations can also use MCP to automate BigQuery subscriber registration and status refresh:

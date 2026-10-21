@@ -1,0 +1,58 @@
+---
+title: "Discover brands"
+description: "Search canonical brand identities, find similar brands, and browse their products through REST or MCP."
+---
+
+Use brand discovery when you know an aesthetic, a product category, or a reference brand. Brand identities describe who makes or designs a product. They do not identify every store or seller that carries it. A brand's `domain` identifies its primary website; it does not guarantee that the website is an indexed store.
+
+## Search, resolve, then browse
+
+1. Call [`POST /brands/search`](/api-reference/search-brands) with a natural-language `text` query and optional `referenceBrands`.
+2. Use a returned `brandSlug` (or the canonical `brandName` when the slug is null) with [`GET /brands/{brand}`](/api-reference/get-brand).
+3. Browse [`GET /brands/{brand}/products`](/api-reference/browse-brand-products) to find products your organization can access.
+
+```bash
+curl https://api.storerouter.ai/v1/brands/search \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"minimalist footwear made with natural materials","referenceBrands":["Allbirds"],"limit":12}'
+```
+
+Search and similarity responses contain `totalFound` and ranked `results`. Each result includes `brandUuid`, `brandName`, `brandSlug`, `domain`, `brandDescription`, and `directorySubheading`. Optional metadata may be null. These display responses omit internal brand analysis and search strategies.
+
+Use [`GET /brands/prefix`](/api-reference/brand-prefix) for autocomplete and [`POST /brands/similar`](/api-reference/similar-brands) to rank brands by embedding similarity to source brand names. [`GET /brands/{brand}/top-categories`](/api-reference/brand-top-categories) provides precomputed category names, ranked by active product count.
+
+## Access and availability
+
+All six REST operations require your Developer organization API key. Brand search, prefix, details, similarity, and top categories are corpus-wide metadata. They have no catalog dimension. A brand match or top category does not promise available products in your organization's catalog scope.
+
+Product browse filters rows by your authorized catalog scope. Developer organizations can browse active crawled catalog products; merchant catalog products remain excluded. A known brand can therefore return an empty product page. Top categories are metadata, not catalog-scoped product counts.
+
+These routes share the standard per-organization [rate limit](/guides/rate-limits). Validation failures return `422`; missing/invalid credentials return `401`, forbidden organization types return `403`, and unknown brand identifiers return `404` with `brand_not_found`. Search operations can return `503` with `brand_search_unavailable`; retry with backoff. Search can return `400` with `brand_query_unusable` or `brands_have_no_embeddings`; similarity can return `400` with `brands_have_no_embeddings`.
+
+## Brand filters
+
+Search accepts `facets`; similarity accepts `facets` and `exclusionFacets`. Each filter has `name` and string `values`. Use lowercase values. At most 20 facets are accepted, with 1–100 nonblank values per facet, each at most 256 characters. For example:
+
+```json
+{"text":"footwear","facets":[{"name":"facet_price_tier","values":["premium"]}],"limit":12}
+```
+
+Explicit text-search facets override generated facets with the same name. Brand facets are distinct from product inventory filters. Supported base names include `facet_price_tier`, `facet_origin_country`, `facet_styles`, `facet_genders`, and `facet_category_path.depth_0` through `facet_category_path.depth_6`. Product-only names `color`, `color_family`, and `is_activewear`, and the internal `brand_quality_score` name, are rejected.
+
+## Use MCP
+
+The same operations are available through the [StoreRouter MCP connection](/mcp/overview):
+
+| Tool | Inputs |
+| --- | --- |
+| `search_brands` | `request`: the REST search body |
+| `similar_brands` | `request`: the REST similarity body |
+| `brand_prefix` | `prefix`, optional `limit` |
+| `get_brand` | `brand` |
+| `browse_brand_products` | `brand`, optional `limit`, `offset` |
+| `get_brand_top_categories` | `brand`, optional `min_level`, `limit` |
+
+For example, call `search_brands` with `{"request":{"text":"minimalist footwear","limit":12}}`. Successful brand tool responses contain `requestId` and `result`, where `result` has the corresponding REST response shape. Expected service and authorization errors return `requestId`, `error`, and `message`. Invalid tool arguments follow the MCP client's validation/error behavior. Enforced rate limits use the shared MCP rate-limit error with a retry hint.
+
+Developer callers omit `org_id`; the server uses the signed-in organization. Internal super admins must select a target organization with `org_id`. Selecting a target never expands the authenticated caller's product catalog scope.
