@@ -1,87 +1,57 @@
 ---
-title: "Use StoreRouter with Claude Desktop via MCP"
-description: "Bridge Claude Desktop to the StoreRouter MCP server using the mcp-remote adapter — edit one config file, restart the app, and sign in once."
+title: "Use StoreRouter with Claude Desktop and claude.ai via MCP"
+description: "Add StoreRouter to Claude as a custom connector with one URL, then sign in once to give Claude access to products, brands, and stores."
 sidebarTitle: "Claude Desktop"
 ---
 
-Claude Desktop loads MCP servers over stdio rather than HTTP. To connect it to the StoreRouter MCP server, you use the open-source [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) adapter, which bridges stdio to the StoreRouter streamable HTTP endpoint. The setup requires editing a single JSON config file and restarting the application.
+Claude Desktop and claude.ai connect to remote MCP servers natively through custom connectors. You add StoreRouter once with its URL, and the connector is available in both apps for your Claude account. No config files, adapters, or API keys are required.
 
 <Steps>
-  <Step title="Locate your Claude Desktop config file">
-    The config file path depends on your operating system:
-
-    <Tabs>
-      <Tab title="macOS">
-        ```text
-        ~/Library/Application Support/Claude/claude_desktop_config.json
-        ```
-      </Tab>
-      <Tab title="Windows">
-        ```text
-        %APPDATA%\Claude\claude_desktop_config.json
-        ```
-      </Tab>
-      <Tab title="Linux">
-        ```text
-        ~/.config/Claude/claude_desktop_config.json
-        ```
-      </Tab>
-    </Tabs>
-
-    If the file does not exist yet, create it at that path.
-  </Step>
-
-  <Step title="Add the StoreRouter MCP server entry">
-    Open the config file and add (or merge) the following JSON:
-
-    ```json
-    {
-      "mcpServers": {
-        "StoreRouter MCP": {
-          "command": "npx",
-          "args": ["-y", "mcp-remote", "https://mcp.storerouter.ai/mcp"]
-        }
-      }
-    }
-    ```
-
-    The `npx -y mcp-remote` invocation downloads and runs the adapter on first launch; it is kept up to date automatically on each restart. If your config file already contains other `mcpServers` entries, add the `"StoreRouter MCP"` key alongside them without removing the existing ones.
+  <Step title="Open connector settings">
+    In Claude Desktop or at [claude.ai](https://claude.ai), open **Settings** and select **Connectors**.
 
     <Note>
-      You do not need to install `mcp-remote` globally. The `npx -y` flag fetches the latest published version each time Claude Desktop starts.
+      On Claude Team and Enterprise plans, an organization Owner adds custom connectors under **Organization settings** → **Connectors**. Once an Owner has added StoreRouter, members connect to it from their own **Settings** → **Connectors** page.
     </Note>
   </Step>
 
-  <Step title="Fully quit and reopen Claude Desktop">
-    Claude Desktop only reads the config file on startup. A window close is not enough — you must fully quit the application:
+  <Step title="Add StoreRouter as a custom connector">
+    Click **Add custom connector** and enter:
 
-    - **macOS:** Choose **Claude → Quit Claude** from the menu bar, or press `⌘Q`.
-    - **Windows / Linux:** Right-click the tray icon and choose **Quit**, or close all windows and confirm exit.
+    | Field | Value |
+    | --- | --- |
+    | Name | `StoreRouter` |
+    | Remote MCP server URL | `https://mcp.storerouter.ai/mcp` |
 
-    Then reopen Claude Desktop normally.
-
-    <Warning>
-      Closing the Claude Desktop window without quitting the application does not reload the MCP server config. If the StoreRouter tools do not appear after restarting, confirm the app was fully quit before reopening.
-    </Warning>
+    Leave the advanced OAuth client ID and secret fields empty. StoreRouter supports Dynamic Client Registration, so Claude registers itself automatically. Click **Add**.
   </Step>
 
-  <Step title="Sign in on first connection">
-    The first time Claude Desktop connects to the StoreRouter MCP server, the `mcp-remote` adapter opens a browser tab with the Octogen sign-in page. Complete the sign-in flow:
+  <Step title="Connect and sign in">
+    Click **Connect** next to StoreRouter. Claude opens a browser tab with the StoreRouter sign-in page. Complete the sign-in flow:
 
     1. Enter the email that belongs to your Developer organization.
     2. Authenticate using your organization's configured method (password, SSO, or magic link).
     3. If your account belongs to multiple organizations, select the Developer organization you want to act as.
     4. Consent to the requested scopes.
 
-    After sign-in, the browser redirects back to the adapter and the connection completes. Subsequent launches reuse the cached tokens without prompting.
+    After sign-in, the browser redirects back to Claude and the connector shows as connected. Claude refreshes the tokens in the background, so you are not prompted again unless your StoreRouter sign-in session expires.
+  </Step>
+
+  <Step title="Turn on StoreRouter in a conversation">
+    In a chat, open the tools menu in the message box and make sure **StoreRouter** is turned on. You can also choose which StoreRouter tools Claude may use without asking.
+
+    Try a prompt such as "Find waterproof trail running shoes under $150."
   </Step>
 </Steps>
 
 ## What your agent can do
 
-Once connected, Claude Desktop can use the catalog read tools and, when BigQuery access is enabled, the BigQuery subscription tools:
+Once connected, your agent can use these tool groups:
 
-- **`lookup_product(product_url, catalogs?)`** — resolve a product page URL to a full product record.
-- **`search_products(catalog, query?, limit?, cursor?)`** — search products by keyword inside one active crawled catalog.
+- **Products**: `lookup_product` and `lookup_products` resolve product page URLs to full product records; `search_products` searches across all covered stores, with optional catalog, facet, price, store, and brand-style filters.
+- **Taxonomy**: `taxonomy_tree` and `taxonomy_attribute` find the category and attribute filters that search accepts.
+- **Brands**: `search_brands`, `similar_brands`, `brand_prefix`, `get_brand`, `browse_brand_products`, and `get_brand_top_categories`.
+- **Stores**: `search_stores`, `similar_stores`, and `get_store` find retailers and describe what they sell.
+- **BigQuery**: subscription tools for organizations with BigQuery access.
 
-For a full description of each tool, including BigQuery listing and subscriber helpers, see the [MCP overview](/mcp/overview).
+For arguments and error codes, see the [MCP overview](/mcp/overview#available-tools).
