@@ -1,10 +1,10 @@
 ---
 title: "Connect AI agents to StoreRouter via MCP"
-description: "Let AI coding tools search and look up products in your granted StoreRouter catalogs using the Model Context Protocol — no API keys required."
+description: "Let AI agents search and look up products, brands, and stores across StoreRouter's covered stores using the Model Context Protocol — no API keys required."
 sidebarTitle: "Overview"
 ---
 
-The StoreRouter Developer MCP server gives AI agents direct access to the product catalogs granted to your organization. Agents running inside Claude Code, Codex CLI, Claude Desktop, or any MCP-compliant client can call catalog lookup/search tools and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
+The StoreRouter MCP server gives AI agents direct access to product, brand, and store data across the stores StoreRouter covers. Agents running inside Claude Code, Claude (web and desktop), Codex CLI, or any MCP-compliant client can call product lookup and search, taxonomy, brand, store, and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
 
 ## Connection details
 
@@ -19,10 +19,10 @@ The StoreRouter Developer MCP server gives AI agents direct access to the produc
 
 There are no API keys to generate or rotate. MCP clients that implement OAuth 2.1 discovery walk the authorization chain automatically:
 
-1. On the first tool call, your client opens a browser tab pointed at the Octogen sign-in page.
+1. On the first tool call, your client opens a browser tab pointed at the StoreRouter sign-in page.
 2. You sign in with the email that belongs to your Developer organization. If you belong to multiple organizations, you choose which one to act as.
 3. You consent to the requested scopes.
-4. The browser redirects back to your client, which exchanges the authorization code for an access token and a refresh token stored locally.
+4. The browser redirects back to your client, which exchanges the authorization code for an access token and a refresh token.
 
 Access tokens are valid for approximately five minutes. Refresh happens transparently in the background as long as your StoreRouter sign-in session is active. To end access, sign out of the StoreRouter Platform or have your organization administrator remove your account.
 
@@ -32,26 +32,73 @@ Access tokens are valid for approximately five minutes. Refresh happens transpar
 Both conditions must be true before your first tool call.
 </Info>
 
-- Your organization is provisioned as a Developer organization. If you do not yet have a Developer organization, contact StoreRouter support.
+- You have a StoreRouter account that belongs to a Developer organization. If you don't have one, sign up at [platform.storerouter.ai](https://platform.storerouter.ai) and choose **Developer** when you create your organization. See [Create an account](/organization-setup).
 - You can sign in to the StoreRouter Platform with the email that belongs to that organization.
 
 ## Available tools
 
-The product tools use the same catalog access policy as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces.
+The product tools use the same catalog access policy as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces. The product, taxonomy, brand, and store tools return errors as structured values with an `error` code and a `message`, not as transport failures, so your agent can read the error and recover.
 
-### `lookup_product(product_url, catalogs?)`
+### Product tools
 
-Resolves a product page URL to a full product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. If no active product matches, the tool returns a structured `product_not_found` value — not a transport-level failure — so your agent can recover gracefully.
+| Tool | Purpose |
+| --- | --- |
+| `lookup_product(product_url, catalogs?)` | Resolves one product page URL to a full product record. |
+| `lookup_products(product_urls, catalogs?)` | Resolves 1 to 12 product page URLs in one call. |
+| `search_products(query?, limit?, cursor?, catalog?, catalogs?, facets?, price_min?, price_max?, stores?, similar_to_brands?)` | Searches products across all covered stores, with optional filters. |
 
-### `search_products(catalog, query?, limit?, cursor?)`
+#### `lookup_product`
 
-Searches products inside one active crawled catalog by free-text keyword. Use a known catalog key. Results are paginated; pass the `nextCursor` from one response as `cursor` on the next call to advance. The `limit` parameter accepts values from 1 to 100 (default 50); values outside that range return a structured `invalid_limit` error.
+Resolves a product page URL to a full product record, including title, description, prices, sizes, colors, images, and identifiers. Use this when a user pastes a specific product URL. Pass `catalogs` to narrow the lookup to specific catalog keys. If no active product matches, the tool returns a structured `product_not_found` value.
 
-## Brand discovery tools
+#### `lookup_products`
+
+Resolves up to 12 product URLs in one call. Results keep the input order, and each URL returns either its own `product` or its own `error`, so one miss does not fail the rest of the batch.
+
+#### `search_products`
+
+Searches products across the whole corpus your organization can access. All arguments are optional:
+
+| Argument | Description |
+| --- | --- |
+| `query` | Free-text query. Omit it to browse the most relevant products without keyword filtering. |
+| `limit` | Page size, 1 to 100 (default 50). Values outside that range return an `invalid_limit` error. |
+| `cursor` | The `nextCursor` from a previous response. Pass it back unchanged, with the same arguments, to get the next page. |
+| `catalog` | A single catalog key to search inside. |
+| `catalogs` | An allowlist of up to 500 catalog keys. Cannot be combined with `catalog`. |
+| `facets` | Filters, each with a `name` and string `values`. Use `taxonomy_tree` and `taxonomy_attribute` to find accepted names and values. |
+| `price_min`, `price_max` | Inclusive price bounds. |
+| `stores` | Up to 20 store domains, such as `allbirds.com`, to search only those stores. A domain StoreRouter does not cover returns `domain_not_covered`. Cannot be combined with `catalog` or `catalogs`. |
+| `similar_to_brands` | Up to 10 brand names. Ranks results toward those brands' style; it does not filter. |
+
+Color and stock in search results describe the product family. Call `lookup_product` to confirm that a particular variant is available.
+
+### Taxonomy discovery tools
+
+Use these tools to find the category and attribute filters that `search_products` accepts. Discovery is optional; an agent that already knows its filters can search directly. Taxonomy definitions describe valid vocabulary, not current inventory.
+
+| Tool | Purpose |
+| --- | --- |
+| `taxonomy_tree(node_id?, max_depth?, offset?, limit?)` | Lists taxonomy sections, or a subtree of one section. Each node includes its category filters and attribute handles. |
+| `taxonomy_attribute(handle, offset?, limit?)` | Returns an attribute's facet name and canonical values. Submit each value's `search_value` as a facet value. |
+
+A typical sequence: call `taxonomy_tree` without a node to pick a section, traverse that section, call `taxonomy_attribute` for the attributes you need, then pass the resulting filters to `search_products` as `facets`.
+
+### Brand discovery tools
 
 Use `search_brands`, `similar_brands`, `brand_prefix`, `get_brand`, `browse_brand_products`, and `get_brand_top_categories` to discover brands and browse their products. Brand identities describe makers and designers; they are distinct from stores and sellers. Discovery metadata is corpus-wide, while product browse respects your catalog scope. See [Discover brands](/guides/brand-discovery) for arguments, response shapes, and examples.
 
-## BigQuery subscription tools
+### Store discovery tools
+
+Use these tools to find stores (retailers) by what they sell. Store profiles describe each store's observed assortment, not live product availability. To find products at a store, call `search_products` with `stores`.
+
+| Tool | Purpose |
+| --- | --- |
+| `search_stores(request)` | Finds stores from a natural-language description. `request` has `text` (1 to 500 characters) and `limit` (1 to 100, default 24). Results come from profiled stores only and are not paginated. |
+| `similar_stores(request)` | Finds stores similar to 1 to 10 store domains. `request` has `stores` and `limit` (1 to 100, default 24). Each store must have a published profile, otherwise the tool returns `store_not_profiled`. |
+| `get_store(domain)` | Returns a store's coverage and assortment profile. `domain` is a bare host such as `allbirds.com`, not a URL. An uncovered domain returns `domain_not_covered`. |
+
+### BigQuery subscription tools
 
 Developer organizations can also use MCP to automate BigQuery subscriber registration and status refresh:
 
@@ -71,7 +118,7 @@ Both surfaces are equally supported and enforce the same catalog policy. Develop
 
 | | Platform Catalog API v1 (API keys) | MCP (OAuth) |
 | --- | --- | --- |
-| Best for | Backends, batch jobs, server-to-server | Interactive AI agents (Claude Code, Codex CLI, Claude Desktop) |
+| Best for | Backends, batch jobs, server-to-server | Interactive AI agents (Claude Code, Claude, Codex CLI) |
 | Auth | Bearer `octo_live_...` key | OAuth 2.1 + PKCE — browser sign-in, tokens cached locally |
 | Caller identity | `(api_key_id, org_id)` | `(user_sub, org_id, oauth_client_id)` |
 | Token lifetime | Until manually revoked | ~5 minutes access; refresh until session expiry |
@@ -88,7 +135,7 @@ Choose the guide for the AI tool you are using.
     Add StoreRouter to Claude Code with a single command and share the config with your team via `.mcp.json`.
   </Card>
   <Card title="Claude Desktop" icon="desktop" href="/mcp/claude-desktop">
-    Connect Claude Desktop using the `mcp-remote` adapter and a one-time JSON config change.
+    Add StoreRouter as a custom connector in Claude Desktop or claude.ai.
   </Card>
   <Card title="Codex CLI" icon="code" href="/mcp/codex-cli">
     Register StoreRouter with Codex CLI using its dedicated compatibility endpoint.
