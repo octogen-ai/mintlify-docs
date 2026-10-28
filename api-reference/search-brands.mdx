@@ -7,7 +7,9 @@ description: "Discover brands from text and optional reference brands."
 
 Send `Authorization: Bearer <your-platform-api-key>` with every request. POST requests also require `Content-Type: application/json`. Use the base URL `https://api.storerouter.ai/v1`.
 
-Send a JSON body with required `text` (1–500 characters), optional `referenceBrands` (1–20 nonblank names, each at most 200 characters), optional `facets`, and `limit` (1–100, default 24). Unknown fields return `422`. Explicit facets override generated facets by name.
+Send a JSON body with required `text` (1–500 characters), optional `referenceBrands` (1–20 nonblank names, each at most 200 characters), optional `facets`, optional `understand` (default `true`), and `limit` (1–100, default 24). Unknown fields return `422`. Explicit facets override generated facets by name and are never relaxed.
+
+By default `text` is understood: rewritten for retrieval, with brand facets derived from it. Set `understand` to `false` to match `text` as written with no query understanding and no generated facets, filtering only by the facets you send. Reference brands still apply. This is the deterministic, LLM-free path, for example for a heartbeat probe.
 
 ```json
 {"text":"minimalist footwear","referenceBrands":["Allbirds"],"limit":12}

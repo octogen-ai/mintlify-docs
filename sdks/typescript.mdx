@@ -10,7 +10,7 @@ The StoreRouter TypeScript SDK gives you a fully typed, async client for the Sto
 
 <Steps>
   <Step title="Install the package">
-    Requires Node.js 20 or later. The SDK ships as ESM only. This page documents version 0.5.0.
+    Requires Node.js 20 or later. The SDK ships as ESM only. This page documents version 0.9.0.
 
     ```bash
     npm install @octogen-ai/sdk
@@ -119,7 +119,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | --------------------- | ------------------- | ------- | ----------- |
 | `q`                   | `string`            | —       | Free-text query, understood by default. Omit to browse by filters alone. |
 | `understand`          | `boolean`           | `true`  | `false` matches `q` as written and filters only by what you send. Requires `q`. |
-| `facets`              | `Facet[]`           | —       | Filters a product must match. Replaces any understood facet of the same name. See [Faceted search](#faceted-search). |
+| `facets`              | `SearchFacet[]`     | —       | Filters a product must match. Replaces any understood facet of the same name. A facet with `relaxable: true` may be dropped by `relax`; any other facet never is. See [Faceted search](#faceted-search). |
 | `excludeFacets`       | `Facet[]`           | —       | Filters a product must not match. |
 | `omitGeneratedFacets` | `string[]`          | —       | Names of understood facets to drop. Use the names `effectiveQuery` reports. Requires an understood `q`. |
 | `priceMin`            | `number`            | —       | Inclusive minimum price, at least `0`. |
@@ -130,7 +130,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `catalogs`            | `readonly string[]` | —       | 1 to 500 catalog keys. Omit to search every catalog your key can access. |
 | `limit`               | `number`            | `50`    | Number of results per page. Must be an integer between 1 and 100. |
 | `cursor`              | `string`            | —       | The `nextCursor` from the previous page, passed back verbatim with the same params. |
-| `relax`               | `boolean`           | `false` | Drop understood filters in stages when an understood `q` returns nothing. Requires an understood `q`. |
+| `relax`               | `boolean`           | `false` | Drop understood filters, and facets you marked `relaxable`, in stages when `q` returns nothing. Requires `q`, and either `understand` left on or at least one relaxable facet. |
 | `debug`               | `boolean`           | `false` | Include `effectiveQuery`, the search that actually ran. |
 
 **Returns:** `Promise<ProgrammaticProductSearchPage>`. `ProgrammaticProductSearchPage` extends `MerchantProductListPage`, so code typed against the old return type still compiles.
@@ -140,7 +140,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `items`          | `MerchantProductListItem[]`                       | Products on this page. |
 | `nextCursor`     | `string \| null`                                  | Pass as `cursor` in your next call to get the next page. `null` means no more results. |
 | `requestId`      | `string`                                          | Server-generated ID for this request, matching `X-Request-ID`. |
-| `effectiveQuery` | `ProgrammaticProductSearchEffectiveQuery \| null` | Present only when `debug` is `true`. Reports `text`, `understood`, `facets` and `excludeFacets` (each facet tagged `source: "caller"` or `"generated"`), the price and brand-quality bounds, `similarToBrands`, `catalogs`, and `relaxation` (`rounds`, `droppedFacets`, `declinedRounds`). It is a report, not a request fragment. |
+| `effectiveQuery` | `ProgrammaticProductSearchEffectiveQuery \| null` | Present only when `debug` is `true`. Reports `text`, `understood`, `facets` and `excludeFacets` (each facet tagged `source: "caller"` or `"generated"`, and `relaxable: true` on a facet you marked), the price and brand-quality bounds, `similarToBrands`, `catalogs`, and `relaxation` (`rounds`, `droppedFacets`, `declinedRounds`). It is a report, not a request fragment. |
 
 Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `primaryImage`, `images`, `rating`, `isActive`, optional match scores, and `updatedAt`. It also carries the deprecated `imageUrl`.
 
@@ -172,7 +172,7 @@ for (const facet of page.effectiveQuery?.facets ?? []) {
 
 The SDK checks the contradictions the API would refuse and throws a `TypeError` before sending a request:
 
-- `understand: false`, `relax`, or a non-empty `omitGeneratedFacets` without `q`. `relax` and `omitGeneratedFacets` also require `understand` to stay on.
+- `understand: false`, `relax`, or a non-empty `omitGeneratedFacets` without `q`. `omitGeneratedFacets` also requires `understand` to stay on, and so does `relax` unless at least one facet is sent with `relaxable: true`.
 - A facet name repeated within `facets` or `excludeFacets`, or a name in both `facets` and `omitGeneratedFacets`.
 - More than 50 entries in `facets`, `excludeFacets`, or `omitGeneratedFacets`.
 - A negative price or `priceMin > priceMax`.

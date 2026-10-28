@@ -30,17 +30,19 @@ Every field is optional. Unknown fields return a `422`.
   Set to `false` to match `q` as written and filter only by the facets and bounds you send. Requires `q`.
 </ParamField>
 
-<ParamField body="facets" type="Facet[]">
-  Filters a product must match. A product must match every facet, and any value within a facet. Each facet has a `name` and a `values` array.
+<ParamField body="facets" type="SearchFacet[]">
+  Filters a product must match. A product must match every facet, and any value within a facet. Each facet has a `name`, a `values` array, and an optional `relaxable` flag that defaults to `false`.
 
   ```json
   [
-    {"name": "color_family", "values": ["black", "gray"]},
+    {"name": "color_family", "values": ["black", "gray"], "relaxable": true},
     {"name": "gender", "values": ["female"]}
   ]
   ```
 
-  A facet you send replaces any understood facet of the same name and is never relaxed. A color facet replaces both understood color facets. Each name may appear at most once, and the list takes at most 50 entries. See [Facet names](#facet-names) for the supported names.
+  A facet you send replaces any understood facet of the same name. A color facet replaces both understood color facets. Each name may appear at most once, and the list takes at most 50 entries. See [Facet names](#facet-names) for the supported names.
+
+  A facet is never relaxed unless you send it with `"relaxable": true`. A relaxable facet still filters until a relaxation stage drops it, and with `relax: false` it is never dropped. This is how a caller that does its own query understanding gets the staged fallback over its own guesses: send `q` with `understand: false`, the guesses as relaxable facets, and `relax: true`. Only a name a relaxation stage covers may be marked: brand profile facets, taxonomy attributes, `color`, `color_family`, and `category_path.depth_2` and deeper. Any other name returns a `422`.
 </ParamField>
 
 <ParamField body="exclude_facets" type="Facet[]">
@@ -86,7 +88,7 @@ Every field is optional. Unknown fields return a `422`.
 </ParamField>
 
 <ParamField body="relax" type="boolean" default="false">
-  When an understood `q` returns nothing, retry with understood filters dropped in stages and return the first stage with results. Inferred brand attributes are dropped first, then attributes, then color and deep categories. Facets you send are never dropped. Requires an understood `q`. A relaxed page's cursor continues the same relaxed results.
+  When `q` returns nothing, retry with filters dropped in stages and return the first stage with results. Inferred brand attributes are dropped first, then attributes, then color and deep categories. Relaxation drops understood filters and the facets you marked `relaxable`; any other facet you send is never dropped. Requires `q`, and either `understand` left on or at least one relaxable facet. A relaxed page's cursor continues the same relaxed results.
 </ParamField>
 
 <ParamField body="debug" type="boolean" default="false">
@@ -98,7 +100,9 @@ Every field is optional. Unknown fields return a `422`.
 The API rejects these requests with a `422`:
 
 - `understand: false` without `q`.
-- `relax` or `omit_generated_facets` without an understood `q` (a `q` with `understand` left on).
+- `relax` without `q`, or with `understand: false` and no facet marked `relaxable`.
+- A facet marked `relaxable` whose name no relaxation stage covers, such as `gender`, `product_type`, or `brand_name`.
+- `omit_generated_facets` without an understood `q` (a `q` with `understand` left on).
 - A facet name repeated within `facets` or within `exclude_facets`. Put every accepted value in one facet.
 - A name in both `facets` and `omit_generated_facets`. A facet you send already replaces the understood one.
 - More than 50 entries in `facets`, `exclude_facets`, or `omit_generated_facets`.
@@ -263,7 +267,7 @@ Send `"debug": true` to add `effectiveQuery` to the response. It reports the sea
     </ResponseField>
 
     <ResponseField name="facets" type="EffectiveFacet[] | null">
-      Filters that ran. Each entry has `name`, `values`, and `source`: `caller` for a facet you sent, or `generated` for one understood from `q`. You can pass a `generated` name in `omit_generated_facets`.
+      Filters that ran. Each entry has `name`, `values`, and `source`: `caller` for a facet you sent, or `generated` for one understood from `q`. A facet you sent with `relaxable: true` also carries `relaxable: true`; the field is absent on every other entry. You can pass a `generated` name in `omit_generated_facets`.
     </ResponseField>
 
     <ResponseField name="excludeFacets" type="EffectiveFacet[] | null">
@@ -295,7 +299,7 @@ Send `"debug": true` to add `effectiveQuery` to the response. It reports the sea
     </ResponseField>
 
     <ResponseField name="relaxation" type="object | null">
-      Present with `relax: true`. `rounds` is the number of stages applied to produce this page (`0` if none). `droppedFacets` lists the understood facets dropped to produce this page. `declinedRounds` counts stages tried that still returned nothing.
+      Present with `relax: true`. `rounds` is the number of stages applied to produce this page (`0` if none). `droppedFacets` lists the facets dropped to produce this page, in the same shape as `facets`: understood ones, and any of yours marked `relaxable`. `declinedRounds` counts stages tried that still returned nothing.
     </ResponseField>
   </Expandable>
 </ResponseField>

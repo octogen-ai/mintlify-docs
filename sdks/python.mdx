@@ -10,7 +10,7 @@ The StoreRouter Python SDK gives you an async, type-safe client for the StoreRou
 
 <Steps>
   <Step title="Install the package">
-    Requires Python 3.11 or later. Install `octogen-ai-sdk` from PyPI. This page documents version 0.5.0.
+    Requires Python 3.11 or later. Install `octogen-ai-sdk` from PyPI. This page documents version 0.11.0.
 
     ```bash
     pip install octogen-ai-sdk
@@ -148,7 +148,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | ----------------------- | --------------------------------- | ------- | ----------- |
 | `q`                     | `str \| None`                     | `None`  | Free-text query, understood by default. Omit to browse by filters alone. |
 | `understand`            | `bool \| None`                    | `None`  | `False` matches `q` as written and filters only by what you send. Requires `q`. The server default is `True`. |
-| `facets`                | `Sequence[Facet \| dict] \| None` | `None`  | Filters a product must match. Replaces any understood facet of the same name. See [Faceted search](#faceted-search). |
+| `facets`                | `Sequence[SearchFacet \| Facet \| dict] \| None` | `None`  | Filters a product must match. Replaces any understood facet of the same name. A `SearchFacet` (or dict) with `relaxable=True` may be dropped by `relax`; any other facet never is. See [Faceted search](#faceted-search). |
 | `exclude_facets`        | `Sequence[Facet \| dict] \| None` | `None`  | Filters a product must not match. |
 | `omit_generated_facets` | `Sequence[str] \| None`           | `None`  | Names of understood facets to drop. Use the names `effective_query` reports. Requires an understood `q`. |
 | `price_min`             | `float \| None`                   | `None`  | Inclusive minimum price, at least `0`. |
@@ -159,7 +159,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `catalogs`              | `Sequence[str] \| None`           | `None`  | 1 to 500 catalog keys. Omit to search every catalog your key can access. |
 | `limit`                 | `int`                             | `50`    | Number of results per page. Must be between 1 and 100. |
 | `cursor`                | `str \| None`                     | `None`  | The `next_cursor` from the previous page, passed back verbatim with the same arguments. |
-| `relax`                 | `bool \| None`                    | `None`  | Drop understood filters in stages when an understood `q` returns nothing. Requires an understood `q`. |
+| `relax`                 | `bool \| None`                    | `None`  | Drop understood filters, and facets you marked `relaxable`, in stages when `q` returns nothing. Requires `q`, and either `understand` left on or at least one relaxable facet. |
 | `debug`                 | `bool \| None`                    | `None`  | Include `effective_query`, the search that actually ran. |
 
 **Returns:** `ProgrammaticProductSearchPage`, a `MerchantProductListPage` subclass.
@@ -169,7 +169,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `items`           | `list[MerchantProductListItem]`                  | Products on this page. |
 | `next_cursor`     | `str \| None`                                    | Pass as `cursor` in your next call to get the next page. `None` means no more results. |
 | `request_id`      | `str \| None`                                    | Server-generated ID for this request. |
-| `effective_query` | `ProgrammaticProductSearchEffectiveQuery \| None` | Present only when `debug` is `True`. Reports `text`, `understood`, `facets` and `exclude_facets` (each facet with `source` `"caller"` or `"generated"`), the price and brand-quality bounds, `similar_to_brands`, `catalogs`, and `relaxation` (`rounds`, `dropped_facets`, `declined_rounds`). It is a report, not a request fragment. |
+| `effective_query` | `ProgrammaticProductSearchEffectiveQuery \| None` | Present only when `debug` is `True`. Reports `text`, `understood`, `facets` and `exclude_facets` (each facet with `source` `"caller"` or `"generated"`, and `relaxable=True` on a facet you marked), the price and brand-quality bounds, `similar_to_brands`, `catalogs`, and `relaxation` (`rounds`, `dropped_facets`, `declined_rounds`). It is a report, not a request fragment. |
 
 Each `MerchantProductListItem` includes `uuid`, `catalog_key`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `primary_image`, `images`, `rating`, `is_active`, optional match scores, and `updated_at`. It also carries the deprecated `image_url`.
 
@@ -201,7 +201,7 @@ if page.effective_query is not None:
 
 The SDK checks the contradictions the API would refuse and raises `pydantic.ValidationError` before sending a request:
 
-- `understand=False`, `relax=True`, or a non-empty `omit_generated_facets` without `q`. `relax` and `omit_generated_facets` also require `understand` to stay on.
+- `understand=False`, `relax=True`, or a non-empty `omit_generated_facets` without `q`. `omit_generated_facets` also requires `understand` to stay on, and so does `relax=True` unless at least one facet is sent with `relaxable=True`.
 - A facet name repeated within `facets` or `exclude_facets`, or a name in both `facets` and `omit_generated_facets`.
 - More than 50 entries in `facets`, `exclude_facets`, or `omit_generated_facets`.
 - A negative price or `price_min > price_max`.

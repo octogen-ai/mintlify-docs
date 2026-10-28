@@ -3,6 +3,25 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="October 28, 2026" description="Relaxable facets on search; brand search without understanding">
+
+## Updates
+
+**You can let `relax` drop your own facets.** A `POST /v1/products/search` facet sent with `"relaxable": true` may be dropped by `relax`, in the same stages as understood filters. It still replaces an understood facet of the same name, and with `relax: false` it is never dropped. Every other facet you send stays sacred. Only a name a relaxation stage covers may be marked: brand profile facets, taxonomy attributes, `color`, `color_family`, and `category_path.depth_2` and deeper; any other name returns a `422`.
+
+This is how a caller that does its own query understanding gets the staged fallback over its own guesses: send `q` with `understand: false`, the guesses as relaxable facets, and `relax: true`. `relax` now requires `q`, and either `understand` left on or at least one relaxable facet. See [`facets`](/api-reference/search-products).
+
+With `debug: true`, a facet you marked is reported in `effectiveQuery.facets` and `effectiveQuery.relaxation.droppedFacets` as `source: "caller"` with `relaxable: true`.
+
+**Brand search without query understanding.** `POST /v1/brands/search` takes `understand` (default `true`). `understand: false` matches `text` as written with no generated facets, filtering only by the facets you send; reference brands still apply. See [Search brands](/api-reference/search-brands).
+
+**SDKs.** These releases declare both changes:
+
+- `octogen-ai-sdk` 0.11.0, with `SearchFacet` and `understand` on `search_brands_from_text`;
+- `@octogen-ai/sdk` 0.9.0, with `SearchFacet` and `understand` on `searchBrandsFromText`.
+
+</Update>
+
 <Update label="October 19, 2026" description="More Like This: facets, relax, and bounds">
 
 ## Updates

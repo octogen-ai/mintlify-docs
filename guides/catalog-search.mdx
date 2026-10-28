@@ -313,7 +313,8 @@ By default, StoreRouter understands `q` and derives filters from it. These field
 - A facet you send in `facets` replaces any understood facet of the same name.
 - `omit_generated_facets` drops an understood facet that is wrong when you have no value of your own for it. Use the names `effectiveQuery` reports.
 - `understand: false` matches `q` as written and filters only by what you send.
-- `relax: true` drops understood filters in stages when an understood `q` returns nothing. Facets you send are never dropped.
+- `relax: true` drops understood filters in stages when `q` returns nothing. Facets you send are never dropped unless you mark them `"relaxable": true`.
+- A facet sent with `"relaxable": true` may be dropped by `relax`, so a caller that does its own query understanding can send `understand: false`, its guesses as relaxable facets, and `relax: true` to get the staged fallback over them. See [`facets`](/api-reference/search-products) for the names that may be marked.
 - `brand_quality_min` and `brand_quality_max` bound brand quality from `1` (very poor) to `6` (exceptional). `similar_to_brands` ranks results toward the style of up to 10 brands without filtering.
 
 <CodeGroup>
