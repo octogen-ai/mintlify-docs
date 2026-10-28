@@ -320,7 +320,7 @@ for (const product of results.items) {
 
 ## Pagination
 
-When `nextCursor` is not `null` in a response, pass it back verbatim as `cursor`, with the same other params, to retrieve the following page. A cursor the API cannot use returns `400` with `detail` `"invalid cursor"`; restart from page 1 without `cursor`. A product can repeat across pages, so de-duplicate by `uuid`.
+When `nextCursor` is not `null` in a response, pass it back verbatim as `cursor`, with the same other params, to retrieve the following page. A cursor the API cannot use returns `400` with `detail` `"invalid cursor"`; restart from page 1 without `cursor`. Pages don't overlap, but a product can repeat if the catalog changes between requests, so de-duplicate by `uuid`.
 
 ```typescript
 let cursor: string | undefined;

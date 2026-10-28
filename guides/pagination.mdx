@@ -1,6 +1,6 @@
 ---
 title: "Paginate through large StoreRouter search results"
-description: "Use cursor-based pagination to iterate through all matching products in a StoreRouter search, page by page, and de-duplicate products that repeat across pages."
+description: "Use cursor-based pagination to iterate through the products a StoreRouter search matches, page by page."
 sidebarTitle: "Pagination"
 ---
 
@@ -20,7 +20,7 @@ To advance to the next page, send the same request again with the `nextCursor` v
 </Warning>
 
 <Note>
-  Page 1 is ranked by relevance. Later pages continue in quality-score order from page 1's last result, so a product can repeat across pages. De-duplicate by `uuid` when you concatenate pages.
+  Pages are consecutive slices of one ranked list, so they don't overlap. A search with `q` ranks a bounded set of products, so it ends after a limited number of pages. A product can still repeat if the catalog changes between requests, so de-duplicate by `uuid` when you concatenate pages.
 </Note>
 
 ## The pagination pattern
@@ -66,7 +66,7 @@ async def fetch_all_products(
                 limit=50,
             )
             for item in page.items:
-                by_uuid.setdefault(item.uuid, item)  # a product can repeat across pages
+                by_uuid.setdefault(item.uuid, item)  # the catalog can change between pages
 
             if page.next_cursor is None:
                 break  # reached the last page
@@ -103,7 +103,7 @@ async function fetchAllProducts(
     });
 
     for (const item of page.items) {
-      if (!byUuid.has(item.uuid)) byUuid.set(item.uuid, item); // a product can repeat across pages
+      if (!byUuid.has(item.uuid)) byUuid.set(item.uuid, item); // the catalog can change between pages
     }
 
     if (page.nextCursor == null) {

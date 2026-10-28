@@ -3,7 +3,7 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
-<Update label="October 28, 2026" description="Relaxable facets on search; brand search without understanding">
+<Update label="October 28, 2026" description="Relaxable facets on search; brand search without understanding; search pages no longer overlap">
 
 ## Updates
 
@@ -14,6 +14,8 @@ This is how a caller that does its own query understanding gets the staged fallb
 With `debug: true`, a facet you marked is reported in `effectiveQuery.facets` and `effectiveQuery.relaxation.droppedFacets` as `source: "caller"` with `relaxable: true`.
 
 **Brand search without query understanding.** `POST /v1/brands/search` takes `understand` (default `true`). `understand: false` matches `text` as written with no generated facets, filtering only by the facets you send; reference brands still apply. See [Search brands](/api-reference/search-brands).
+
+**Search pages no longer overlap.** Later pages of a `POST /v1/products/search` with `q` now continue page 1's relevance ranking instead of switching to quality-score order, so a product no longer repeats across pages. A search with `q` still ends after a limited number of pages. Keep de-duplicating by `uuid`: a product can still repeat if the catalog changes between requests. Cursors from earlier pages keep working. See [Pagination](/guides/pagination).
 
 **SDKs.** These releases declare both changes:
 

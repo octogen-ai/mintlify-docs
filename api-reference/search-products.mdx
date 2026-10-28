@@ -377,7 +377,7 @@ Advance through pages by repeating your request with the same body and the `curs
 2. If `nextCursor` is non-null in the response, send a new request with `cursor` set to that value and all other fields unchanged.
 3. Repeat until `nextCursor` is `null`.
 
-Page 1 is ranked by relevance. Later pages continue in quality-score order from page 1's last result, so a product can repeat across pages. De-duplicate by `uuid` when you concatenate pages.
+Pages are consecutive slices of one ranked list, so they don't overlap. A search with `q` ranks a bounded set of products, so it ends after a limited number of pages. A product can still repeat if the catalog changes between requests, so de-duplicate by `uuid` when you concatenate pages.
 
 Cursors are opaque — don't parse or construct them. Pass back exactly the `nextCursor` the previous page returned. A cursor that is malformed, was issued under a different cursor version, or no longer maps onto the current query returns `400` with `{"detail": "invalid cursor"}`. Restart from page 1 by omitting `cursor`.
 
