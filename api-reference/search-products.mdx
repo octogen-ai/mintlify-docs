@@ -199,7 +199,7 @@ curl -sS https://api.storerouter.ai/v1/products/search \
 </ResponseField>
 
 <ResponseField name="nextCursor" type="string | null">
-  Opaque cursor for the next page of results. Pass it back verbatim as `cursor` with the same request body. `null` when you have reached the last page.
+  Opaque cursor for the next page of results. Pass it back verbatim as `cursor` with the same request body. `null` when you have reached the last page. Pages don't overlap; see [Pagination](#pagination).
 </ResponseField>
 
 <ResponseField name="requestId" type="string" required>
