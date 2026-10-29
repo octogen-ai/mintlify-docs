@@ -83,6 +83,8 @@
             "pages": [
               "api-reference/search-products",
               "api-reference/lookup-product",
+              "api-reference/retrieve-product",
+              "api-reference/retrieve-products",
               "api-reference/more-like-this"
             ]
           },

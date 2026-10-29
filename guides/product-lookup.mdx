@@ -11,6 +11,10 @@ The response always identifies its source:
 - `source: "indexed"` returns the full indexed product record and catalog context.
 - `source: "on_demand"` returns a partial-safe product view without inventing an indexed UUID, catalog ownership, or lifecycle state.
 
+<Tip>
+  Already hold a product's `uuid` from search or an earlier lookup? Read it back with [Retrieve Product](/api-reference/retrieve-product) or, for up to 50 at once, [Retrieve Products](/api-reference/retrieve-products). Retrieve reads the index only, is not billed, and still returns a product the merchant stopped offering, with `isActive: false`.
+</Tip>
+
 ## Choose a resolution mode
 
 | `resolutionMode` | Behavior | Use it when |
