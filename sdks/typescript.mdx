@@ -105,6 +105,46 @@ if (result.source === "indexed") {
 
 ---
 
+### `retrieveProduct` and `retrieveProducts`
+
+```typescript
+async retrieveProduct(uuid: string): Promise<ProductRetrieveResult>
+
+async retrieveProducts(
+  uuids: readonly string[]
+): Promise<ProductRetrieveBatchResponse>
+```
+
+Reads back products you already hold ids for, such as a `uuid` from search or lookup. Index-only and not billed. An older id resolves to the product; store the result's `uuid`. A product the merchant stopped offering still comes back, with `isActive: false` and `lastDeactivatedAt`. `retrieveProducts` takes 1–50 ids and returns one result per id, in request order. Requires `@octogen-ai/sdk` 0.10.0 or later.
+
+```typescript
+const result = await client.retrieveProduct("0c0e3bb8-965a-4f2d-919b-182e7a24efc9");
+if (result.isActive === false) {
+  console.log("gone since", result.lastDeactivatedAt);
+}
+
+const page = await client.retrieveProducts(savedIds);
+for (const item of page.results) {
+  if (item.status === "found") console.log(item.uuid, item.product?.title);
+}
+```
+
+`retrieveProduct` throws `OctogenNotFoundError` (`detail` `product_not_found`) for an unknown id, a product that left the index, or a product outside your key's catalog access. In a batch, the same cases are `status: "not_found"`.
+
+**Returns:** `Promise<ProductRetrieveResult>` / `Promise<ProductRetrieveBatchResponse>` (`results: ProductRetrieveResult[]`)
+
+| Field               | Type                          | Description |
+| ------------------- | ----------------------------- | ----------- |
+| `requestedUuid`     | `string`                      | The id you sent. |
+| `status`            | `"found" \| "not_found"`      | Whether the id resolved. |
+| `uuid`              | `string \| null`              | The product's current id. |
+| `catalogKey`        | `string \| null`              | Supplying catalog. |
+| `isActive`          | `boolean \| null`             | `false` when no longer offered. |
+| `lastDeactivatedAt` | `string \| null`              | Last deactivation time (ISO 8601). |
+| `product`           | `MerchantProductView \| null` | The product view lookup returns. |
+
+---
+
 ### `searchProducts`
 
 ```typescript

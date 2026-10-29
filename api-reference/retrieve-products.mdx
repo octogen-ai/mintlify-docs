@@ -1,0 +1,116 @@
+---
+title: "POST /products/retrieve — read back up to 50 products by id"
+description: "POST /products/retrieve returns products you already hold ids for, 1-50 per request, from StoreRouter's index only."
+sidebarTitle: "Retrieve Products"
+---
+
+`POST /v1/products/retrieve` is the batch form of [Retrieve Product](/api-reference/retrieve-product). It reads back 1–50 products you already hold ids for, such as a cart or a saved list, in one request. Like the single form, it reads the index only, never fetches from the merchant, and is not billed.
+
+## Request
+
+```http
+POST https://api.storerouter.ai/v1/products/retrieve
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Body parameters
+
+<ParamField body="uuids" type="string[] (UUID)" required>
+  1–50 product ids from earlier responses. Older ids for a product still work. Results come back in this order, one per entry, duplicates included. A value that is not a UUID returns `422`.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.storerouter.ai/v1/products/retrieve \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "uuids": [
+      "0c0e3bb8-965a-4f2d-919b-182e7a24efc9",
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    ]
+  }'
+```
+
+## Response
+
+<ResponseField name="results" type="ProductRetrieveResult[]" required>
+  One result per requested id, in request order. A miss never fails the request.
+
+  <Expandable title="ProductRetrieveResult properties">
+    <ResponseField name="requestedUuid" type="string" required>
+      The id you sent, in canonical lowercase form.
+    </ResponseField>
+    <ResponseField name="status" type='"found" | "not_found"' required>
+      `not_found` covers an unknown id, a product that left the index, and a product outside your key's catalog access.
+    </ResponseField>
+    <ResponseField name="uuid" type="string | null">
+      The product's current id. Store this one. `null` when `not_found`.
+    </ResponseField>
+    <ResponseField name="catalogKey" type="string | null">
+      Catalog that supplies the product.
+    </ResponseField>
+    <ResponseField name="catalogDisplayName" type="string | null">
+      Human-readable catalog name.
+    </ResponseField>
+    <ResponseField name="sourceBaseUrl" type="string | null">
+      Catalog source base URL, when configured.
+    </ResponseField>
+    <ResponseField name="isActive" type="boolean | null">
+      `false` when the merchant no longer offers the product.
+    </ResponseField>
+    <ResponseField name="lastDeactivatedAt" type="datetime | null">
+      When the product was last deactivated, if it ever was.
+    </ResponseField>
+    <ResponseField name="product" type="MerchantProductView | null">
+      The same [product view](/api-reference/models/product) lookup returns. `null` when `not_found`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```json
+{
+  "results": [
+    {
+      "requestedUuid": "0c0e3bb8-965a-4f2d-919b-182e7a24efc9",
+      "status": "found",
+      "uuid": "464ec980-996e-4069-bb2d-16cfaae0e558",
+      "catalogKey": "warrenlotas",
+      "catalogDisplayName": "Warren Lotas",
+      "sourceBaseUrl": "https://warrenlotas.com",
+      "isActive": true,
+      "lastDeactivatedAt": null,
+      "product": {
+        "uuid": "464ec980-996e-4069-bb2d-16cfaae0e558",
+        "catalogKey": "warrenlotas",
+        "productUrl": "https://warrenlotas.com/products/black-hoodie",
+        "title": "Black Hoodie",
+        "isActive": true
+      }
+    },
+    {
+      "requestedUuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "status": "not_found",
+      "uuid": null,
+      "catalogKey": null,
+      "catalogDisplayName": null,
+      "sourceBaseUrl": null,
+      "isActive": null,
+      "lastDeactivatedAt": null,
+      "product": null
+    }
+  ]
+}
+```
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `422` | validation errors | `uuids` is empty, has more than 50 entries, or contains a value that is not a UUID. |
+| `429` | `rate_limit_exceeded` or `retrieve_daily_item_limit_exceeded` | See [Rate limits](/guides/rate-limits). Each id counts toward the daily ceiling. Honor `Retry-After`. |
+| `503` | `product_retrieve_index_unavailable` | The index is busy. Retry after `Retry-After`. |

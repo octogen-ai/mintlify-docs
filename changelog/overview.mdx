@@ -3,6 +3,24 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="October 29, 2026" description="Retrieve products by id">
+
+## Updates
+
+**Read back products you already hold ids for.** [`GET /v1/products/retrieve/{uuid}`](/api-reference/retrieve-product) returns one product and [`POST /v1/products/retrieve`](/api-reference/retrieve-products) returns 1–50, in request order. Use them to refresh products you stored from search or lookup, such as product pages, carts, and saved lists.
+
+- Retrieve reads StoreRouter's index only and never fetches from the merchant. Lookup still resolves URLs from the wild.
+- An older id for a product resolves to it. The result's `uuid` is the current one; store it.
+- A product the merchant stopped offering is still returned, with `isActive: false` and `lastDeactivatedAt`.
+- Retrieve requests are not billed. They have their own rate-limit budget and a daily per-organization id ceiling. See [Rate limits](/guides/rate-limits).
+
+**SDKs.** These releases add the two methods:
+
+- `octogen-ai-sdk` 0.12.0, with `retrieve_product` and `retrieve_products`;
+- `@octogen-ai/sdk` 0.10.0, with `retrieveProduct` and `retrieveProducts`.
+
+</Update>
+
 <Update label="October 28, 2026" description="Relaxable facets on search; brand search without understanding; search pages no longer overlap">
 
 ## Updates

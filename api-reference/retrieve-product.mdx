@@ -1,0 +1,108 @@
+---
+title: "GET /products/retrieve/{uuid} — read back a product by id"
+description: "GET /products/retrieve/{uuid} returns a product you already hold an id for, from StoreRouter's index only."
+sidebarTitle: "Retrieve Product"
+---
+
+`GET /v1/products/retrieve/{uuid}` returns a product StoreRouter already gave you an id for, such as a `uuid` from [search](/api-reference/search-products) or [lookup](/api-reference/lookup-product). Use it to refresh products you stored: product pages, carts, saved lists.
+
+Retrieve is different from the other product routes:
+
+- **Search** finds products for a query.
+- **Lookup** resolves a URL from the wild: the index first, then an on-demand fetch.
+- **Retrieve** reads back an id you already hold. It reads the index only and never fetches from the merchant, so a miss is final.
+
+Retrieve requests are not billed. To read up to 50 ids in one call, use [Retrieve Products](/api-reference/retrieve-products).
+
+## Request
+
+```http
+GET https://api.storerouter.ai/v1/products/retrieve/{uuid}
+Authorization: Bearer <your-platform-api-key>
+```
+
+### Path parameters
+
+<ParamField path="uuid" type="string (UUID)" required>
+  A product `uuid` from an earlier response. An older id for the same product still works. A value that is not a UUID returns `422`.
+</ParamField>
+
+### Example
+
+```bash
+curl -sS https://api.storerouter.ai/v1/products/retrieve/0c0e3bb8-965a-4f2d-919b-182e7a24efc9 \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+## Response
+
+<ResponseField name="requestedUuid" type="string" required>
+  The id you sent, in canonical lowercase form.
+</ResponseField>
+
+<ResponseField name="status" type='"found"' required>
+  Always `found` on a `200`. A miss is a `404`.
+</ResponseField>
+
+<ResponseField name="uuid" type="string" required>
+  The product's current id. It differs from `requestedUuid` when you sent an older id for the same product. Store this one.
+</ResponseField>
+
+<ResponseField name="catalogKey" type="string" required>
+  Catalog that supplies the product.
+</ResponseField>
+
+<ResponseField name="catalogDisplayName" type="string | null">
+  Human-readable catalog name.
+</ResponseField>
+
+<ResponseField name="sourceBaseUrl" type="string | null">
+  Catalog source base URL, when configured.
+</ResponseField>
+
+<ResponseField name="isActive" type="boolean" required>
+  `false` when the merchant no longer offers the product. Unlike lookup, retrieve still returns an inactive product, so you can tell a product that is gone from one you cannot see.
+</ResponseField>
+
+<ResponseField name="lastDeactivatedAt" type="datetime | null">
+  When the product was last deactivated, if it ever was.
+</ResponseField>
+
+<ResponseField name="product" type="MerchantProductView" required>
+  The same [product view](/api-reference/models/product) lookup returns for an indexed product.
+</ResponseField>
+
+### Example
+
+```json
+{
+  "requestedUuid": "0c0e3bb8-965a-4f2d-919b-182e7a24efc9",
+  "status": "found",
+  "uuid": "464ec980-996e-4069-bb2d-16cfaae0e558",
+  "catalogKey": "warrenlotas",
+  "catalogDisplayName": "Warren Lotas",
+  "sourceBaseUrl": "https://warrenlotas.com",
+  "isActive": false,
+  "lastDeactivatedAt": "2026-10-01T08:30:00Z",
+  "product": {
+    "uuid": "464ec980-996e-4069-bb2d-16cfaae0e558",
+    "catalogKey": "warrenlotas",
+    "productUrl": "https://warrenlotas.com/products/black-hoodie",
+    "title": "Black Hoodie",
+    "isActive": false
+  }
+}
+```
+
+### Revalidation
+
+The response carries a weak `ETag`. Send it back in `If-None-Match` to get `304 Not Modified` with no body while the product is unchanged.
+
+## Errors
+
+| Status | `detail` | Meaning |
+| --- | --- | --- |
+| `404` | `product_not_found` | No indexed product with this id is visible to your key. An unknown id, a product that left the index, and a product outside your key's catalog access look the same. |
+| `422` | validation errors | The id is not a UUID. |
+| `429` | `rate_limit_exceeded` or `retrieve_daily_item_limit_exceeded` | See [Rate limits](/guides/rate-limits). Honor `Retry-After`. |
+| `503` | `product_retrieve_index_unavailable` | The index is busy. Retry after `Retry-After`. |

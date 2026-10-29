@@ -48,6 +48,8 @@ The Catalog API reference documents these endpoints.
 | --- | --- | --- | --- |
 | `POST` | `/products/search` | `searchProducts` | Searches products across every catalog your key can access, or only the catalogs listed in `catalogs`. |
 | `POST` | `/products/lookup` | `lookupProduct` | Resolves a product page URL to a full product record. |
+| `GET` | `/products/retrieve/{uuid}` | `retrieveProduct` | Reads back a product you already hold an id for, from the index only. |
+| `POST` | `/products/retrieve` | `retrieveProducts` | Reads back 1–50 products by id, in request order. |
 | `POST` | `/products/more-like-this` | `moreLikeThisProducts` | Finds products similar to a source product URL or UUID. |
 
 ## Error model
