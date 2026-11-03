@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="November 3, 2026" description="MCP product search shares the REST contract">
+
+**`search_products` now accepts the same request and returns the same successful page as `POST /v1/products/search`.** Pass the REST body directly as MCP `arguments`. The tool returns `requestId`, `items`, `nextCursor`, and `effectiveQuery` directly in `structuredContent`, with REST product cards and image objects.
+
+The shared request supports text understanding, facet refinements, price and brand-quality bounds, catalog or store selection, ranking, and relaxation. Every successful page includes `effectiveQuery`, with or without `debug`.
+
+Keep the same arguments when continuing with `nextCursor`. Invalid cursors return `invalid_cursor`. For search failures, check `isError` and parse the JSON text block containing `requestId`, `error`, and `message`.
+
+See the [MCP search reference](/mcp/overview#search_products) for the current request, response, pagination, and error formats. `/v1/products/search` is unchanged by this release.
+
+</Update>
+
 <Update label="October 29, 2026" description="Retrieve products by id">
 
 ## Updates

@@ -14,7 +14,7 @@ StoreRouter API errors fall into two categories:
 2. **Network errors** — The request never reached the server (DNS failure, timeout, connection reset). The SDK raises `OctogenConnectionError`.
 
 <Note>
-  If you are using the Developer MCP server instead of the REST API, tool-level errors are returned as HTTP 200 responses with an `error` field in the payload rather than as HTTP error codes. This guide covers the REST API only.
+  This guide covers REST errors. For MCP `search_products`, check `isError` before reading a successful page. Search tool errors omit `structuredContent` and carry JSON with `requestId`, `error`, and `message` in a text content block. See [MCP search errors](/mcp/overview#search-errors); other tools retain their existing error formats.
 </Note>
 
 ## HTTP error reference

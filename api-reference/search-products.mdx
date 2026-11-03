@@ -10,6 +10,8 @@ Each field controls one thing. `q` says what to find. `facets`, `exclude_facets`
 
 If you already have a source product and want similar products, use [`POST /products/more-like-this`](/api-reference/more-like-this).
 
+The MCP [`search_products` tool](/mcp/overview#search_products) accepts this same request body as its flat arguments and returns this same successful page.
+
 ## Request
 
 ```http
@@ -55,6 +57,10 @@ Every field is optional. Unknown fields return a `422`.
   Use the names that `effectiveQuery` reports. Color is omitted per axis (`color` or `color_family`). Requires an understood `q`. A name may not also appear in `facets`. The list takes at most 50 entries.
 </ParamField>
 
+<ParamField body="fallback_category" type="string[]">
+  Category path, root first, with 1–4 taxonomy category names, for example `["apparel & accessories", "clothing"]`. Requires `q` with `understand: true`. It applies only when understanding finds no root category and your `facets` contain no category filter. Applied levels appear as generated facets in `effectiveQuery`, so relaxation and `omit_generated_facets` can remove them.
+</ParamField>
+
 <ParamField body="price_min" type="number">
   Inclusive minimum price, at least `0`. Combined with any understood minimum by keeping the higher one.
 </ParamField>
@@ -76,7 +82,11 @@ Every field is optional. Unknown fields return a `422`.
 </ParamField>
 
 <ParamField body="catalogs" type="string[]">
-  1 to 500 catalog keys to search. Omit it to search every catalog your key can access. Keys your key cannot access match nothing.
+  1 to 500 catalog keys to search. Omit both selectors to search every catalog your key can access. Keys your key cannot access match nothing. Cannot be combined with `stores`.
+</ParamField>
+
+<ParamField body="stores" type="string[]">
+  1 to 20 store domains, such as `allbirds.com`. Domains are matched without case or a leading `www.`; each searches every catalog serving it within your scope. An uncovered domain returns `404` with `domain_not_covered`. Cannot be combined with `catalogs`.
 </ParamField>
 
 <ParamField body="limit" type="integer" default="50">
@@ -92,7 +102,11 @@ Every field is optional. Unknown fields return a `422`.
 </ParamField>
 
 <ParamField body="debug" type="boolean" default="false">
-  Adds `effectiveQuery` to the response: the text, filters, and bounds that actually ran, with each facet's origin. See [Effective query](#effective-query).
+  Reserved for diagnostic detail. `effectiveQuery` is returned on every response, with or without `debug`. See [Effective query](#effective-query).
+</ParamField>
+
+<ParamField body="diversity" type="boolean" default="false">
+  Spreads page 1 across retailers and removes products whose image repeats one already on the page. Applies only to page 1, with no effect when you send `catalogs`, your key is limited to specific catalogs, or you filter by `brand_name`. Keep the same value when continuing a cursor.
 </ParamField>
 
 ### Validation rules
@@ -103,6 +117,7 @@ The API rejects these requests with a `422`:
 - `relax` without `q`, or with `understand: false` and no facet marked `relaxable`.
 - A facet marked `relaxable` whose name no relaxation stage covers, such as `gender`, `product_type`, or `brand_name`.
 - `omit_generated_facets` without an understood `q` (a `q` with `understand` left on).
+- `fallback_category` without an understood `q`, with fewer than 1 or more than 4 levels, or with a path that does not exist in the taxonomy.
 - A facet name repeated within `facets` or within `exclude_facets`. Put every accepted value in one facet.
 - A name in both `facets` and `omit_generated_facets`. A facet you send already replaces the understood one.
 - More than 50 entries in `facets`, `exclude_facets`, or `omit_generated_facets`.
@@ -110,17 +125,17 @@ The API rejects these requests with a `422`:
 - Brand quality outside 1–6, or `brand_quality_min` greater than `brand_quality_max`.
 - `similar_to_brands` that is empty, has more than 10 names, or has a blank name.
 - `catalogs` that is empty or has more than 500 keys.
+- `stores` that is empty, has more than 20 domains, or includes a blank domain; or sending both `catalogs` and `stores`.
 - An unknown facet name, or an unknown field anywhere in the body.
 
 ### Removed fields
 
-`catalog`, `text_search_query`, and `diversity` are no longer accepted. A request that sends any of them returns a `422` whose message names the replacement:
+`catalog` and `text_search_query` are no longer accepted. A request that sends either returns a `422` whose message names the replacement:
 
 | Removed field | Replacement |
 | --- | --- |
 | `catalog` | Send `catalogs` with a list of catalog keys, for example `"catalogs": ["warrenlotas"]`. |
 | `text_search_query` | Send `q` with `understand: false`, and put filters in `facets`, `exclude_facets`, and the price and brand-quality bounds. |
-| `diversity` | Omit it. It was never applied. |
 
 ### Example
 
@@ -199,15 +214,15 @@ curl -sS https://api.storerouter.ai/v1/products/search \
 </ResponseField>
 
 <ResponseField name="nextCursor" type="string | null">
-  Opaque cursor for the next page of results. Pass it back verbatim as `cursor` with the same request body. `null` when you have reached the last page. Pages don't overlap; see [Pagination](#pagination).
+  Opaque cursor for the next page of results. Pass it back verbatim as `cursor` with the same request body. `null` when you have reached the last page. Keep de-duplicating by `uuid` when using diversity or when catalogs change; see [Pagination](#pagination).
 </ResponseField>
 
 <ResponseField name="requestId" type="string" required>
   Server-generated UUID for this execution, matching `X-Request-ID`. Each invocation or page gets a fresh ID, even when you reuse `X-Request-ID`.
 </ResponseField>
 
-<ResponseField name="effectiveQuery" type="object | null">
-  Present only when `debug` is `true`. The search that actually ran. See [Effective query](#effective-query).
+<ResponseField name="effectiveQuery" type="object" required>
+  The search that actually ran, returned on every page. See [Effective query](#effective-query).
 </ResponseField>
 
 ### Example response
@@ -248,13 +263,22 @@ curl -sS https://api.storerouter.ai/v1/products/search \
     }
   ],
   "nextCursor": "eyJzZWFyY2hBZnRlciI6Wy4uLl19",
-  "requestId": "3f2c0a52-5d8e-4a57-9a61-0c9f1f7b2d11"
+  "requestId": "3f2c0a52-5d8e-4a57-9a61-0c9f1f7b2d11",
+  "effectiveQuery": {
+    "text": "black hoodie",
+    "understood": true,
+    "facets": [{"name": "color", "values": ["black"], "source": "caller"}],
+    "excludeFacets": [],
+    "priceMin": 50,
+    "priceMax": 300,
+    "catalogs": ["warrenlotas"]
+  }
 }
 ```
 
 ## Effective query
 
-Send `"debug": true` to add `effectiveQuery` to the response. It reports the search that actually ran, in the request's own vocabulary.
+Every successful page includes `effectiveQuery`, with or without `debug`. It reports the search that actually ran, in the request's own vocabulary.
 
 <ResponseField name="effectiveQuery" type="object">
   <Expandable title="effectiveQuery properties">

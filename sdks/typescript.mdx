@@ -162,16 +162,19 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `facets`              | `SearchFacet[]`     | —       | Filters a product must match. Replaces any understood facet of the same name. A facet with `relaxable: true` may be dropped by `relax`; any other facet never is. See [Faceted search](#faceted-search). |
 | `excludeFacets`       | `Facet[]`           | —       | Filters a product must not match. |
 | `omitGeneratedFacets` | `string[]`          | —       | Names of understood facets to drop. Use the names `effectiveQuery` reports. Requires an understood `q`. |
+| `fallbackCategory` | `string[]` | — | Root-first category path (1–4 levels), used when understanding finds no category. Requires an understood `q`. |
 | `priceMin`            | `number`            | —       | Inclusive minimum price, at least `0`. |
 | `priceMax`            | `number`            | —       | Inclusive maximum price, at least `priceMin`. |
 | `brandQualityMin`     | `number`            | —       | Inclusive minimum brand quality, from `1` (very poor) to `6` (exceptional). |
 | `brandQualityMax`     | `number`            | —       | Inclusive maximum brand quality, from `1` to `6`. |
 | `similarToBrands`     | `string[]`          | —       | 1 to 10 brand names whose style to favor. Ranks, does not filter. |
 | `catalogs`            | `readonly string[]` | —       | 1 to 500 catalog keys. Omit to search every catalog your key can access. |
+| `stores` | `readonly string[]` | — | 1–20 store domains. Cannot be combined with `catalogs`. |
+| `diversity` | `boolean` | `false` | Spread page 1 across retailers and remove repeated images. See [Search Products](/api-reference/search-products#body-parameters) for scope restrictions. |
 | `limit`               | `number`            | `50`    | Number of results per page. Must be an integer between 1 and 100. |
 | `cursor`              | `string`            | —       | The `nextCursor` from the previous page, passed back verbatim with the same params. |
 | `relax`               | `boolean`           | `false` | Drop understood filters, and facets you marked `relaxable`, in stages when `q` returns nothing. Requires `q`, and either `understand` left on or at least one relaxable facet. |
-| `debug`               | `boolean`           | `false` | Include `effectiveQuery`, the search that actually ran. |
+| `debug`               | `boolean`           | `false` | Reserved for diagnostic detail; `effectiveQuery` is returned on every successful search page. |
 
 **Returns:** `Promise<ProgrammaticProductSearchPage>`. `ProgrammaticProductSearchPage` extends `MerchantProductListPage`, so code typed against the old return type still compiles.
 
@@ -180,7 +183,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `items`          | `MerchantProductListItem[]`                       | Products on this page. |
 | `nextCursor`     | `string \| null`                                  | Pass as `cursor` in your next call to get the next page. `null` means no more results. |
 | `requestId`      | `string`                                          | Server-generated ID for this request, matching `X-Request-ID`. |
-| `effectiveQuery` | `ProgrammaticProductSearchEffectiveQuery \| null` | Present only when `debug` is `true`. Reports `text`, `understood`, `facets` and `excludeFacets` (each facet tagged `source: "caller"` or `"generated"`, and `relaxable: true` on a facet you marked), the price and brand-quality bounds, `similarToBrands`, `catalogs`, and `relaxation` (`rounds`, `droppedFacets`, `declinedRounds`). It is a report, not a request fragment. |
+| `effectiveQuery` | `ProgrammaticProductSearchEffectiveQuery \| null` | Present on every successful search page. Reports `text`, `understood`, `facets` and `excludeFacets` (each facet tagged `source: "caller"` or `"generated"`, and `relaxable: true` on a facet you marked), the price and brand-quality bounds, `similarToBrands`, `catalogs`, and `relaxation` (`rounds`, `droppedFacets`, `declinedRounds`). It is a report, not a request fragment. |
 
 Each `MerchantProductListItem` includes `uuid`, `catalogKey`, `productUrl`, `title`, `brand`, `currentPrice`, `originalPrice`, `primaryImage`, `images`, `rating`, `isActive`, optional match scores, and `updatedAt`. It also carries the deprecated `imageUrl`.
 
@@ -223,7 +226,7 @@ An empty `catalogs` list or a blank key also throws a `TypeError`. The server re
 
 #### Removed in 0.5.0
 
-These fields were deprecated in 0.4.0 and are gone in 0.5.0, because the API now rejects them with a `422`. Passing `catalog`, `textSearchQuery`, or `diversity` from JavaScript, or past the types, throws a `TypeError` that names the replacement.
+These fields were deprecated in 0.4.0 and are gone in 0.5.0, because the API now rejects them with a `422`. Passing `catalog` or `textSearchQuery` from JavaScript, or past the types, throws a `TypeError` that names the replacement.
 
 | Removed | Use instead |
 | --- | --- |
