@@ -168,15 +168,18 @@ async def search_products(
     facets: Sequence[Facet | dict] | None = None,
     exclude_facets: Sequence[Facet | dict] | None = None,
     omit_generated_facets: Sequence[str] | None = None,
+    fallback_category: Sequence[str] | None = None,
     price_min: float | None = None,
     price_max: float | None = None,
     brand_quality_min: float | None = None,
     brand_quality_max: float | None = None,
     similar_to_brands: Sequence[str] | None = None,
     catalogs: Sequence[str] | None = None,
-    limit: int = 50,
+    stores: Sequence[str] | None = None,
+    limit: int | None = None,
     cursor: str | None = None,
     relax: bool | None = None,
+    diversity: bool | None = None,
     debug: bool | None = None,
 ) -> ProgrammaticProductSearchPage
 ```
@@ -190,16 +193,19 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `facets`                | `Sequence[SearchFacet \| Facet \| dict] \| None` | `None`  | Filters a product must match. Replaces any understood facet of the same name. A `SearchFacet` (or dict) with `relaxable=True` may be dropped by `relax`; any other facet never is. See [Faceted search](#faceted-search). |
 | `exclude_facets`        | `Sequence[Facet \| dict] \| None` | `None`  | Filters a product must not match. |
 | `omit_generated_facets` | `Sequence[str] \| None`           | `None`  | Names of understood facets to drop. Use the names `effective_query` reports. Requires an understood `q`. |
+| `fallback_category` | `Sequence[str] \| None` | `None` | Root-first category path (1–4 levels), used when understanding finds no category. Requires an understood `q`. |
 | `price_min`             | `float \| None`                   | `None`  | Inclusive minimum price, at least `0`. |
 | `price_max`             | `float \| None`                   | `None`  | Inclusive maximum price, at least `0`. |
 | `brand_quality_min`     | `float \| None`                   | `None`  | Inclusive minimum brand quality, from `1` (very poor) to `6` (exceptional). |
 | `brand_quality_max`     | `float \| None`                   | `None`  | Inclusive maximum brand quality, from `1` to `6`. |
 | `similar_to_brands`     | `Sequence[str] \| None`           | `None`  | 1 to 10 brand names whose style to favor. Ranks, does not filter. |
 | `catalogs`              | `Sequence[str] \| None`           | `None`  | 1 to 500 catalog keys. Omit to search every catalog your key can access. |
-| `limit`                 | `int`                             | `50`    | Number of results per page. Must be between 1 and 100. |
+| `stores` | `Sequence[str] \| None` | `None` | 1–20 store domains. Cannot be combined with `catalogs`. |
+| `diversity` | `bool \| None` | `None` | Spread page 1 across retailers and remove repeated images. See [Search Products](/api-reference/search-products#body-parameters) for scope restrictions. |
+| `limit` | `int \| None` | `None` | Results per page, 1–100. The server default is 50. |
 | `cursor`                | `str \| None`                     | `None`  | The `next_cursor` from the previous page, passed back verbatim with the same arguments. |
 | `relax`                 | `bool \| None`                    | `None`  | Drop understood filters, and facets you marked `relaxable`, in stages when `q` returns nothing. Requires `q`, and either `understand` left on or at least one relaxable facet. |
-| `debug`                 | `bool \| None`                    | `None`  | Include `effective_query`, the search that actually ran. |
+| `debug`                 | `bool \| None`                    | `None`  | Reserved for diagnostic detail; `effective_query` is returned on every successful search page. |
 
 **Returns:** `ProgrammaticProductSearchPage`, a `MerchantProductListPage` subclass.
 
@@ -208,7 +214,7 @@ Searches every catalog your key can access, or only the catalogs in `catalogs`. 
 | `items`           | `list[MerchantProductListItem]`                  | Products on this page. |
 | `next_cursor`     | `str \| None`                                    | Pass as `cursor` in your next call to get the next page. `None` means no more results. |
 | `request_id`      | `str \| None`                                    | Server-generated ID for this request. |
-| `effective_query` | `ProgrammaticProductSearchEffectiveQuery \| None` | Present only when `debug` is `True`. Reports `text`, `understood`, `facets` and `exclude_facets` (each facet with `source` `"caller"` or `"generated"`, and `relaxable=True` on a facet you marked), the price and brand-quality bounds, `similar_to_brands`, `catalogs`, and `relaxation` (`rounds`, `dropped_facets`, `declined_rounds`). It is a report, not a request fragment. |
+| `effective_query` | `ProgrammaticProductSearchEffectiveQuery \| None` | Present on every successful search page. Reports `text`, `understood`, `facets` and `exclude_facets` (each facet with `source` `"caller"` or `"generated"`, and `relaxable=True` on a facet you marked), the price and brand-quality bounds, `similar_to_brands`, `catalogs`, and `relaxation` (`rounds`, `dropped_facets`, `declined_rounds`). It is a report, not a request fragment. |
 
 Each `MerchantProductListItem` includes `uuid`, `catalog_key`, `product_url`, `title`, `brand`, `current_price`, `original_price`, `primary_image`, `images`, `rating`, `is_active`, optional match scores, and `updated_at`. It also carries the deprecated `image_url`.
 

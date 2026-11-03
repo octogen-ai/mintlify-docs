@@ -309,7 +309,7 @@ const results = await client.searchProducts({
 
 By default, StoreRouter understands `q` and derives filters from it. These fields let you inspect and adjust that behavior:
 
-- `debug: true` adds `effectiveQuery` to the response. It reports the text, facets, and bounds that actually ran. Each facet carries `source: "caller"` for one you sent, or `source: "generated"` for one understood from `q`.
+- Every successful page includes `effectiveQuery`, with or without `debug`. It reports the text, facets, and bounds that actually ran. Each facet carries `source: "caller"` for one you sent, or `source: "generated"` for one understood from `q`.
 - A facet you send in `facets` replaces any understood facet of the same name.
 - `omit_generated_facets` drops an understood facet that is wrong when you have no value of your own for it. Use the names `effectiveQuery` reports.
 - `understand: false` matches `q` as written and filters only by what you send.
@@ -382,7 +382,7 @@ Each search response contains these top-level fields:
 | `items` | array | List of product records matching the query. |
 | `nextCursor` | string \| null | Pagination cursor. Non-null means more pages are available. See [Pagination](/guides/pagination). |
 | `requestId` | string | Server-generated ID for this request. |
-| `effectiveQuery` | object \| null | The search that actually ran. Present only with `debug: true`. |
+| `effectiveQuery` | object \| null | The search that actually ran. Present on every successful page. |
 
 Each item in `items` contains the following fields:
 

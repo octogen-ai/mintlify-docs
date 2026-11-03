@@ -3,6 +3,23 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="November 3, 2026" description="MCP product search shares the REST contract">
+
+**`search_products` now accepts the same request and returns the same successful page as `POST /v1/products/search`.** Pass the REST body directly as MCP `arguments`. The tool returns `requestId`, `items`, `nextCursor`, and `effectiveQuery` directly in `structuredContent`, with REST product cards and image objects.
+
+**Update scripted MCP callers and refresh cached tool schemas:**
+
+- Replace `query` with `q` and `catalog: "key"` with `catalogs: ["key"]`.
+- Omit selectors to search all accessible catalogs. Empty `catalogs` and `stores` arrays are invalid.
+- Read `structuredContent` directly; remove the nested `.result` access.
+- Discard old MCP cursors. Invalid cursors now return `invalid_cursor` instead of restarting silently.
+- Check `isError` for search failures, then parse the JSON text block containing `requestId`, `error`, and `message`.
+- Omit `org_id` from search arguments; Developer callers use their signed-in organization.
+
+`/v1/products/search` and other MCP tools retain their contracts. See the [MCP search reference and migration table](/mcp/overview#search_products).
+
+</Update>
+
 <Update label="October 29, 2026" description="Retrieve products by id">
 
 ## Updates

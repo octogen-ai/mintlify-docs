@@ -37,7 +37,7 @@ Both conditions must be true before your first tool call.
 
 ## Available tools
 
-The product tools use the same catalog access policy as the [Platform Catalog API v1](/api-reference/overview), so access control is consistent across surfaces. The product, taxonomy, brand, and store tools return errors as structured values with an `error` code and a `message`, not as transport failures, so your agent can read the error and recover.
+The product tools use the same catalog access policy as the [Platform Catalog API v1](/api-reference/overview). `search_products` also shares its request and successful response with REST search. Search failures use MCP's `isError` flag and a JSON text error; see [Search errors](#search-errors). Other tools retain their existing response and error formats.
 
 ### Product tools
 
@@ -45,7 +45,7 @@ The product tools use the same catalog access policy as the [Platform Catalog AP
 | --- | --- |
 | `lookup_product(product_url, catalogs?)` | Resolves one product page URL to a full product record. |
 | `lookup_products(product_urls, catalogs?)` | Resolves 1 to 12 product page URLs in one call. |
-| `search_products(query?, limit?, cursor?, catalog?, catalogs?, facets?, price_min?, price_max?, stores?, similar_to_brands?)` | Searches products across all covered stores, with optional filters. |
+| `search_products(q?, ...)` | Searches products with the same arguments and successful response as `POST /v1/products/search`. |
 
 #### `lookup_product`
 
@@ -57,19 +57,88 @@ Resolves up to 12 product URLs in one call. Results keep the input order, and ea
 
 #### `search_products`
 
-Searches products across the whole corpus your organization can access. All arguments are optional:
+Searches all active crawled catalogs your organization can access. Pass the [REST search request body](/api-reference/search-products#body-parameters) directly as MCP `arguments`, with no `request` wrapper. All fields are optional, subject to the same validation rules as REST:
 
 | Argument | Description |
 | --- | --- |
-| `query` | Free-text query. Omit it to browse the most relevant products without keyword filtering. |
-| `limit` | Page size, 1 to 100 (default 50). Values outside that range return an `invalid_limit` error. |
-| `cursor` | The `nextCursor` from a previous response. Pass it back unchanged, with the same arguments, to get the next page. |
-| `catalog` | A single catalog key to search inside. |
-| `catalogs` | An allowlist of up to 500 catalog keys. Cannot be combined with `catalog`. |
-| `facets` | Filters, each with a `name` and string `values`. Use `taxonomy_tree` and `taxonomy_attribute` to find accepted names and values. |
-| `price_min`, `price_max` | Inclusive price bounds. |
-| `stores` | Up to 20 store domains, such as `allbirds.com`, to search only those stores. A domain StoreRouter does not cover returns `domain_not_covered`. Cannot be combined with `catalog` or `catalogs`. |
-| `similar_to_brands` | Up to 10 brand names. Ranks results toward those brands' style; it does not filter. |
+| `q`, `understand` | Text to find; understanding defaults to `true`. Omit `q` to browse by filters. `understand: false` requires nonblank `q`. |
+| `facets`, `exclude_facets`, `omit_generated_facets`, `fallback_category` | Include or exclude products, refine understood filters, or supply a fallback category. Use taxonomy tools to discover valid filter vocabulary. |
+| `price_min`, `price_max`, `brand_quality_min`, `brand_quality_max` | Inclusive price and brand-quality bounds. |
+| `catalogs` or `stores` | Narrow access to 1–500 catalog keys or 1–20 store domains. Omit both to search the full authorized scope. Empty arrays and combining both selectors are invalid. |
+| `similar_to_brands`, `diversity`, `relax` | Brand-style ranking, retailer diversity, and staged filter relaxation. `diversity` and `relax` default to `false`. |
+| `limit`, `cursor` | Page size (1–100, default 50) and continuation cursor. |
+| `debug` | Reserved for diagnostic detail. `effectiveQuery` is returned on every successful response. |
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "search_products",
+    "arguments": {
+      "q": "blue linen shirts",
+      "price_max": 150,
+      "limit": 20
+    }
+  }
+}
+```
+
+Unknown or inaccessible catalog keys match no products. An uncovered store domain returns `domain_not_covered`. Selectors only narrow your organization's access; they cannot grant access to merchant catalogs.
+
+#### Search response
+
+The tool's `structuredContent` is the REST page itself, with `requestId`, `items`, `nextCursor`, and `effectiveQuery`. For example, an empty browse page is:
+
+```json
+{
+  "requestId": "93b3432e-e8b3-43b6-a96a-81a2902d9000",
+  "items": [],
+  "nextCursor": null,
+  "effectiveQuery": {
+    "text": "",
+    "understood": false,
+    "facets": [],
+    "excludeFacets": []
+  }
+}
+```
+
+Read `result.structuredContent.items` in a raw JSON-RPC response. The JSON-RPC `result` container remains; the old nested `structuredContent.result` wrapper is gone. The text content block contains the same page JSON.
+
+Items use the [REST product card](/api-reference/search-products#response), including `primaryImage` and `images` as image objects. Each call and page gets a fresh `requestId`. `effectiveQuery` describes what ran; keep your original request instead of replaying this report as arguments.
+
+#### Search pagination
+
+Keep the original arguments and replace only `cursor` with the returned `nextCursor`. Stop when it is `null`. Invalid, mismatched, or retired MCP cursors return `invalid_cursor`; start a new traversal by omitting `cursor`. REST and MCP cursors can be shared only when the request and authorized catalog scope match. Authorization is checked on every call.
+
+#### Search errors
+
+Search validation and expected execution errors return an MCP tool result with `isError: true`, no `structuredContent`, and a text content block containing JSON with `requestId`, `error`, and `message`. Validation errors also include `detail`. Check `isError` before parsing a successful page. Authentication and protocol errors retain their transport-level handling; see [Rate limits](/guides/rate-limits#mcp) for shared throttling errors.
+
+| Code | Recovery |
+| --- | --- |
+| `invalid_request` | Fix arguments such as an unknown field, out-of-range `limit`, empty selector, or contradictory filters. |
+| `invalid_cursor` | Restart without `cursor`, then preserve the new request and cursor together. |
+| `domain_not_covered` | Choose a covered store domain. |
+| `catalog_registry_unavailable` | Retry later. |
+
+#### Migrate existing callers
+
+Refresh cached tool schemas after the November 3, 2026 release and update scripted callers:
+
+| Previous MCP contract | Current contract |
+| --- | --- |
+| `query` | `q` |
+| `catalog: "key"` | `catalogs: ["key"]` |
+| Empty `catalogs` or `stores` means all | Omit the selector; empty arrays are invalid. |
+| `structuredContent.result` | Read `structuredContent` directly. |
+| Compact product fields and URL-only images | REST product cards and image objects. |
+| Old cursors or silent restart | Discard old cursors and handle `invalid_cursor`. |
+| Search error returned as a successful value | Check MCP `isError` and read the JSON text error. |
+
+Do not pass `org_id` in search arguments. Developer callers use their signed-in organization. Other MCP tools retain their existing contracts, and `/v1/products/search` is unchanged by this release.
 
 Color and stock in search results describe the product family. Call `lookup_product` to confirm that a particular variant is available.
 
