@@ -105,13 +105,13 @@ The tool's `structuredContent` is the REST page itself, with `requestId`, `items
 }
 ```
 
-Read `result.structuredContent.items` in a raw JSON-RPC response. The JSON-RPC `result` container remains; the old nested `structuredContent.result` wrapper is gone. The text content block contains the same page JSON.
+Read `result.structuredContent.items` in a raw JSON-RPC response. The text content block contains the same page JSON.
 
 Items use the [REST product card](/api-reference/search-products#response), including `primaryImage` and `images` as image objects. Each call and page gets a fresh `requestId`. `effectiveQuery` describes what ran; keep your original request instead of replaying this report as arguments.
 
 #### Search pagination
 
-Keep the original arguments and replace only `cursor` with the returned `nextCursor`. Stop when it is `null`. Invalid, mismatched, or retired MCP cursors return `invalid_cursor`; start a new traversal by omitting `cursor`. REST and MCP cursors can be shared only when the request and authorized catalog scope match. Authorization is checked on every call.
+Keep the original arguments and replace only `cursor` with the returned `nextCursor`. Stop when it is `null`. Invalid or mismatched cursors return `invalid_cursor`; start a new traversal by omitting `cursor`. REST and MCP cursors can be shared only when the request and authorized catalog scope match. Authorization is checked on every call.
 
 #### Search errors
 
@@ -123,22 +123,6 @@ Search validation and expected execution errors return an MCP tool result with `
 | `invalid_cursor` | Restart without `cursor`, then preserve the new request and cursor together. |
 | `domain_not_covered` | Choose a covered store domain. |
 | `catalog_registry_unavailable` | Retry later. |
-
-#### Migrate existing callers
-
-Refresh cached tool schemas after the November 3, 2026 release and update scripted callers:
-
-| Previous MCP contract | Current contract |
-| --- | --- |
-| `query` | `q` |
-| `catalog: "key"` | `catalogs: ["key"]` |
-| Empty `catalogs` or `stores` means all | Omit the selector; empty arrays are invalid. |
-| `structuredContent.result` | Read `structuredContent` directly. |
-| Compact product fields and URL-only images | REST product cards and image objects. |
-| Old cursors or silent restart | Discard old cursors and handle `invalid_cursor`. |
-| Search error returned as a successful value | Check MCP `isError` and read the JSON text error. |
-
-Do not pass `org_id` in search arguments. Developer callers use their signed-in organization. Other MCP tools retain their existing contracts, and `/v1/products/search` is unchanged by this release.
 
 Color and stock in search results describe the product family. Call `lookup_product` to confirm that a particular variant is available.
 
