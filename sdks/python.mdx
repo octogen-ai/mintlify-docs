@@ -535,3 +535,47 @@ print(result.linked_dataset, result.state)
 <Note>
   Two BigQuery error types extend `OctogenError`: `OctogenBigQueryError` (base) and `OctogenBigQueryAccessPendingError`, raised when StoreRouter's IAM grant on the listing hasn't propagated yet. Because the grant is asynchronous, catch the access-pending error and retry after a few minutes.
 </Note>
+
+## Brand directory, profiles, and browsing
+
+Use Python SDK **0.16.0 or later** for the lightweight profile contract. `get_brand_details` returns `BrandDetailsView`; it no longer returns coverage. Request that independently with `get_brand_coverage`.
+
+```python
+import asyncio
+import os
+from octogen_ai_sdk import OctogenClient
+
+async def main() -> None:
+    async with OctogenClient(api_key=os.environ["STOREROUTER_API_KEY"]) as client:
+        directory = await client.get_brand_directory()
+        print(directory.total)
+
+        profile = await client.get_brand_details("allbirds")
+        print(profile.brand_name, profile.brand_slug)
+        for article in profile.articles or []:
+            print(article.title, article.date, article.url)
+        for facet in profile.navigation_facets or []:
+            print(facet.name, facet.values)
+
+        # Optional, independent read: approximate corpus-wide coverage.
+        coverage = await client.get_brand_coverage("allbirds")
+        print(coverage.product_count, coverage.computed_at)
+
+        offset = 0
+        while True:
+            page = await client.browse_brand_products("allbirds", limit=24, offset=offset)
+            for product in page.products:
+                print(product.uuid, product.product_url)
+            if page.next_offset is None:
+                break
+            offset = page.next_offset
+
+        categories = await client.get_brand_top_categories("allbirds", min_level=2, limit=3)
+        print(categories.top_categories)
+
+asyncio.run(main())
+```
+
+The directory is complete and unpaginated. Article dates preserve their source precision. Navigation and top categories are recorded brand-wide metadata, not live inventory. Product rows and `total` respect your customer's catalog scope. Follow `next_offset` through short or empty projected pages; `total` counts source rows. Offset 11976 is the final supported start. See [brand browsing](/api-reference/browse-brand-products).
+
+`OctogenNotFoundError` means an unknown brand. A server error is a failure, not an empty directory or missing profile. Load coverage separately when the profile must remain available during a snapshot failure. For manual ETag revalidation, use the [HTTP directory example](/api-reference/brand-directory).

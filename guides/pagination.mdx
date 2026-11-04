@@ -133,3 +133,9 @@ Smaller page sizes reduce response latency for interactive use cases. Larger pag
 <Tip>
   For batch export jobs that process the entire catalog, `limit: 100` minimizes the number of API calls. For interactive search UIs where the user sees results one page at a time, `limit: 20` or `limit: 25` keeps each response fast.
 </Tip>
+
+## Brand product browsing uses offsets
+
+[`GET /brands/{brand}/products`](/api-reference/browse-brand-products) uses stable UUID order and a server-derived nullable `nextOffset`, rather than Product Search's relevance cursor. Follow that value even when the projected `products` list is empty. `total` counts scoped source rows before public projection.
+
+At 24 source rows per page, page 500 starts at offset 11976. It is the last supported page. `nextOffset` is null when the source is exhausted or another page would exceed that bound. An offset above 11976 returns `422`. This is bounded browsing, not an export of the full catalog.

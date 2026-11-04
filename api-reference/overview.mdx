@@ -52,6 +52,18 @@ The Catalog API reference documents these endpoints.
 | `POST` | `/products/retrieve` | `retrieveProducts` | Reads back 1–50 products by id, in request order. |
 | `POST` | `/products/more-like-this` | `moreLikeThisProducts` | Finds products similar to a source product URL or UUID. |
 
+## Brand endpoints
+
+| Method | Path | Operation | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/brands/directory` | `getBrandDirectory` | Complete alphabetical directory with ETag revalidation. |
+| `GET` | `/brands/{brand}` | `getBrandDetails` | Lightweight public profile, articles, and navigation. |
+| `GET` | `/brands/{brand}/coverage` | `getBrandCoverage` | Independent approximate public-population snapshot. |
+| `GET` | `/brands/{brand}/products` | `browseBrandProducts` | Customer-scoped products with server `nextOffset`. |
+| `GET` | `/brands/{brand}/top-categories` | `getBrandTopCategories` | Precomputed corpus-wide category metadata. |
+
+See [Discover brands](/guides/brand-discovery) for search, similarity, scope, and examples.
+
 ## Error model
 
 All error responses carry a top-level `detail` field.

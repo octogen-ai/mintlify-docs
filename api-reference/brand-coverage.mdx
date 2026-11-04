@@ -1,0 +1,21 @@
+---
+title: "Get brand coverage"
+description: "Inspect a brand's approximate product population, facets, prices, and carrying catalogs."
+---
+
+Use `GET /v1/brands/{brand}/coverage` when you need an approximate view of where a brand appears and which product attributes are populated. Load it separately from the [brand profile](/api-reference/get-brand), so a coverage failure does not prevent the profile from rendering.
+
+```bash
+curl https://api.storerouter.ai/v1/brands/allbirds/coverage \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
+```
+
+The `BrandCoverageResponse` contains public brand metadata plus `productCount`, `computedAt`, `fields`, `price`, `catalogs`, and `catalogsTruncated`. `fields` reports populated facets and top values; `price` is the price distribution. Each catalog lists `catalog`, `catalogDisplayName`, `hosts`, and `productCount`. Pass a returned host to the store coverage API to inspect that store.
+
+These are cached, approximate public-population snapshots across catalogs. They are not live inventory counts, products matching a search, or your customer-scoped browse total. Use [`GET /brands/{brand}/products`](/api-reference/browse-brand-products) to fetch products your organization can access.
+
+Snapshots are cached per brand for about a day. The endpoint supports ETags and `If-None-Match`; a matching ETag returns `304` without a body. Keep the saved snapshot when revalidating it.
+
+An unknown brand returns `404` with `brand_not_found`. Snapshot or registry failures return `503`. A failed coverage read does not change whether the profile exists.
+
+Operation ID: `getBrandCoverage`. SDK methods: Python `get_brand_coverage(brand)`; TypeScript `getBrandCoverage(brand)`. The CLI command is `storerouter brands coverage <brand>`.
