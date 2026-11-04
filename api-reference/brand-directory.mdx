@@ -1,0 +1,25 @@
+---
+title: "List the brand directory"
+description: "Build an A–Z directory with every canonical brand name and slug."
+---
+
+Use `GET /v1/brands/directory` to build a complete alphabetical brand directory. It returns one unpaginated `BrandDirectoryResponse`, independent of ranked search and your product catalog scope.
+
+```bash
+curl -i https://api.storerouter.ai/v1/brands/directory \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
+```
+
+The response contains `entries` and `total`. Each entry has `brandName` and nullable `brandSlug`. Use the returned slug with [Get a brand profile](/api-reference/get-brand); use the canonical name when the slug is null. URL-encode the identifier as one path segment. Names with diacritics can have folded canonical slugs, such as `Éliou` and `eliou`.
+
+The response includes `ETag` and `Cache-Control: private, max-age=3600`. Retain the body and ETag in your own cache. Send the ETag in `If-None-Match` to revalidate it:
+
+```bash
+curl -i https://api.storerouter.ai/v1/brands/directory \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY" \
+  -H 'If-None-Match: "<etag-from-your-response>"'
+```
+
+An unchanged directory returns `304` with no JSON body. Reuse your saved body. Authorization still applies before a conditional response. An operational failure returns `503`; it does not mean the directory is empty.
+
+Operation ID: `getBrandDirectory`. SDK methods: Python `get_brand_directory()`; TypeScript `getBrandDirectory()`. The CLI command is `storerouter brands directory`.

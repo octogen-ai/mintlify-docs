@@ -433,3 +433,47 @@ try {
 <Warning>
   `MissingAPIKeyError` is thrown by the constructor, not by a network call. It will surface at client creation time if neither `apiKey` nor an API key environment variable is present.
 </Warning>
+
+## Brand directory, profiles, and browsing
+
+Use TypeScript SDK **0.14.0 or later** for the lightweight profile contract. `getBrandDetails` returns `BrandDetailsView`; request the separate `BrandCoverageResponse` with `getBrandCoverage`.
+
+```typescript
+import { OctogenClient } from "@octogen-ai/sdk";
+
+const client = new OctogenClient({ apiKey: process.env.STOREROUTER_API_KEY });
+const directory = await client.getBrandDirectory();
+console.log(directory.total);
+
+const profile = await client.getBrandDetails("allbirds");
+console.log(profile.brandName, profile.brandSlug);
+for (const article of profile.articles ?? []) {
+  console.log(article.title, article.date, article.url);
+}
+for (const facet of profile.navigationFacets ?? []) {
+  console.log(facet.name, facet.values);
+}
+
+// Optional, independent read: approximate corpus-wide coverage.
+const coverage = await client.getBrandCoverage("allbirds");
+console.log(coverage.productCount, coverage.computedAt);
+
+let offset = 0;
+while (true) {
+  const page = await client.browseBrandProducts("allbirds", { limit: 24, offset });
+  for (const product of page.products) {
+    console.log(product.uuid, product.productUrl);
+  }
+  if (page.nextOffset === null) break;
+  offset = page.nextOffset;
+}
+
+const categories = await client.getBrandTopCategories("allbirds", { minLevel: 2, limit: 3 });
+console.log(categories.topCategories);
+```
+
+The directory is complete and unpaginated. Article dates retain their actual precision. Navigation and top categories describe recorded brand-wide assortment, not live scoped inventory. Browse products and source totals respect the customer's catalog scope.
+
+Follow `nextOffset`, even when `products` is empty. It advances by source page size rather than the projected product count. It becomes null at exhaustion or the offset cap of 11976. See [brand browsing](/api-reference/browse-brand-products).
+
+An `OctogenNotFoundError` means an unknown identity. Keep server failures separate from missing or empty data. Fetch optional coverage independently when the profile needs to render during a snapshot outage. Use the [HTTP directory example](/api-reference/brand-directory) for ETag revalidation.

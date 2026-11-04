@@ -1,18 +1,39 @@
 ---
-title: "Get brand details"
-description: "Resolve a brand slug or case-insensitive canonical name."
+title: "Get a brand profile"
+description: "Display a brand's public profile, articles, and assortment navigation."
 ---
 
-`GET /brands/{brand}` resolve a brand slug or case-insensitive canonical name.
+Use `GET /v1/brands/{brand}` to render a brand landing page or resolve its canonical identity. Pass a returned slug or case-insensitive brand name, URL-encoded as one path segment.
 
-Send `Authorization: Bearer <your-platform-api-key>` with every request. POST requests also require `Content-Type: application/json`. Use the base URL `https://api.storerouter.ai/v1`.
-
-URL-encode `brand` as one path segment. Use a result's `brandSlug`, or `brandName` when the slug is null.
-
-```http
-GET https://api.storerouter.ai/v1/brands/allbirds
+```bash
+curl https://api.storerouter.ai/v1/brands/allbirds \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
 ```
 
-Returns `brandUuid`, `brandName`, `brandSlug`, `brandDescription`, `directorySubheading`, `domain`, `foundedYear`, `originCountry`, and `priceTier`. Fields other than the UUID and canonical name may be null. Internal assessments and research are omitted. An unknown brand returns `404` with `brand_not_found`.
+The response is a lightweight `BrandDetailsView`. It contains `brandUuid`, `brandName`, `brandSlug`, `brandDescription`, `directorySubheading`, `domain`, `foundedYear`, `originCountry`, `priceTier`, `targetAudience`, `articles`, and `navigationFacets`. Display metadata can be null. The domain is the brand's primary website, not a promise that a store or seller is indexed.
 
-See [Discover brands](/guides/brand-discovery) for brand-versus-store semantics, catalog scope, filter rules, MCP equivalents, and shared authorization, validation, and rate-limit errors.
+## Article cards
+
+Each article contains `title`, `publication`, `date`, `summary`, `url`, and nullable `thumbnailUrl`. Use the returned URL for the article link. Dates retain the source's precision: `May 2026` remains a month, not an invented publication day. An empty `articles` list means the brand has no public article content.
+
+## Navigation facets
+
+`navigationFacets` uses Product Search's `{name, values}` model. Supported names are `gender`, `age_groups`, and `category_path.depth_0` through `category_path.depth_6`. Values are normalized, deduplicated, and taxonomy-checked. For example:
+
+```json
+[
+  {"name": "gender", "values": ["female", "male"]},
+  {"name": "age_groups", "values": ["adult"]},
+  {"name": "category_path.depth_0", "values": ["apparel & accessories"]}
+]
+```
+
+Use these values to build your own labels, facet combinations, and [Product Search](/api-reference/search-products) routes. They describe recorded brand-wide assortment. They provide no live counts or guarantee of results within your organization's catalog scope. `targetAudience` remains a display field.
+
+## Coverage and failures
+
+Read counts, catalog coverage, facet coverage, and prices from [Get brand coverage](/api-reference/brand-coverage). They are not fields in the profile response. Render the profile independently of that optional coverage request.
+
+An unknown identity returns `404` with `brand_not_found`. Operational failures return `503`; do not cache them as a missing brand or an empty article list. Internal enrichment, quality, and retry fields are excluded.
+
+Operation ID: `getBrandDetails`. SDK methods: Python `get_brand_details(brand)`; TypeScript `getBrandDetails(brand)`. The CLI command is `storerouter brands show <brand>`.

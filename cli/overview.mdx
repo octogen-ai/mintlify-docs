@@ -109,3 +109,21 @@ Diagnostics go to stderr, while stdout contains only the result. Use `--quiet` t
 | `7` | Partial success or an unfinished wait |
 
 Exit code `6` never represents throttling. This distinction lets an agent tell an empty result apart from an unavailable or exhausted service.
+
+## Discover and browse brands
+
+These commands require CLI **0.6.0 or later**, which uses TypeScript SDK 0.14.0. Install from `@next` as shown above.
+
+```bash
+storerouter brands directory --json
+storerouter brands show allbirds --json
+storerouter brands coverage allbirds --json
+storerouter brands categories allbirds --min-level 2 --limit 3 --json
+storerouter brands products allbirds --limit 24 --offset 0 --json
+```
+
+`brands directory` returns the complete alphabetical list. `brands show` returns the profile, typed articles, and navigation; it no longer includes coverage. Use `brands coverage` explicitly for the independently cached approximate snapshot.
+
+Product output includes `nextOffset`. Pass it to the next `brands products --offset` request until it is null. An empty page can still have a continuation. Offsets end at 11976, including page 500 at 24 source rows per page. Product rows and source totals respect your catalog scope; metadata and approximate coverage span the corpus.
+
+For interactive relevance search, use `storerouter search` with a `brand_name` facet. See [Discover brands](/guides/brand-discovery).

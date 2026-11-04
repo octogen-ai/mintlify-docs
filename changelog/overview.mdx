@@ -3,6 +3,13 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+## November 3, 2026
+
+Brand serving now has a complete [directory](/api-reference/brand-directory), lightweight [profiles](/api-reference/get-brand) with article cards and navigation facets, and separate [coverage snapshots](/api-reference/brand-coverage). Profiles no longer contain coverage fields. Brand product browsing returns server `nextOffset` and supports offset 11976, equivalent to page 500 at 24 rows per page.
+
+Python SDK 0.16.0, TypeScript SDK 0.14.0, and CLI 0.6.0 adopt these contracts. `brands show` reads profiles; `brands coverage` reads snapshots. Product results stay customer-scoped; navigation, top categories, and approximate coverage are corpus-wide metadata.
+
+
 <Update label="November 3, 2026" description="MCP product search shares the REST contract">
 
 **`search_products` now accepts the same request and returns the same successful page as `POST /v1/products/search`.** Pass the REST body directly as MCP `arguments`. The tool returns `requestId`, `items`, `nextCursor`, and `effectiveQuery` directly in `structuredContent`, with REST product cards and image objects.
@@ -43,7 +50,7 @@ This is how a caller that does its own query understanding gets the staged fallb
 
 With `debug: true`, a facet you marked is reported in `effectiveQuery.facets` and `effectiveQuery.relaxation.droppedFacets` as `source: "caller"` with `relaxable: true`.
 
-**Brand search without query understanding.** `POST /v1/brands/search` takes `understand` (default `true`). `understand: false` matches `text` as written with no generated facets, filtering only by the facets you send; reference brands still apply. See [Search brands](/api-reference/search-brands).
+**Brand search without query understanding.** `POST /v1/brands/search` takes `understand` (default `true`). `understand: false` matches `q` as written with no generated facets, filtering only by the facets you send; reference brands still apply. See [Search brands](/api-reference/search-brands).
 
 **Search pages no longer overlap.** Later pages of a `POST /v1/products/search` with `q` now continue page 1's relevance ranking instead of switching to quality-score order, so a product no longer repeats across pages. A search with `q` still ends after a limited number of pages. Keep de-duplicating by `uuid`: a product can still repeat if the catalog changes between requests. Cursors from earlier pages keep working. See [Pagination](/guides/pagination).
 

@@ -91,10 +91,12 @@
           {
             "group": "Brands API",
             "pages": [
+              "api-reference/brand-directory",
               "api-reference/search-brands",
               "api-reference/similar-brands",
               "api-reference/brand-prefix",
               "api-reference/get-brand",
+              "api-reference/brand-coverage",
               "api-reference/browse-brand-products",
               "api-reference/brand-top-categories"
             ]

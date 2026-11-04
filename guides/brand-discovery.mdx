@@ -1,58 +1,52 @@
 ---
 title: "Discover brands"
-description: "Search canonical brand identities, find similar brands, and browse their products through REST or MCP."
+description: "Build a directory, render brand profiles, and help shoppers browse customer-scoped products."
 ---
 
-Use brand discovery when you know an aesthetic, a product category, or a reference brand. Brand identities describe who makes or designs a product. They do not identify every store or seller that carries it. A brand's `domain` identifies its primary website; it does not guarantee that the website is an indexed store.
+Use brand discovery to help shoppers find a designer, learn about a brand, and browse its products. A brand describes who makes or designs a product. It is distinct from the stores and sellers that carry it.
 
-## Search, resolve, then browse
+## Choose a starting point
 
-1. Call [`POST /brands/search`](/api-reference/search-brands) with a natural-language `text` query and optional `referenceBrands`.
-2. Use a returned `brandSlug` (or the canonical `brandName` when the slug is null) with [`GET /brands/{brand}`](/api-reference/get-brand).
-3. Browse [`GET /brands/{brand}/products`](/api-reference/browse-brand-products) to find products your organization can access.
+- Build an A–Z list with the complete [brand directory](/api-reference/brand-directory).
+- Find a brand from a description, reference brands, or filters with [Brand Search](/api-reference/search-brands).
+- Complete part of a name with [prefix search](/api-reference/brand-prefix).
+- Find alternatives with [similar brands](/api-reference/similar-brands).
 
 ```bash
 curl https://api.storerouter.ai/v1/brands/search \
   -H "Authorization: Bearer $STOREROUTER_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"text":"minimalist footwear made with natural materials","referenceBrands":["Allbirds"],"limit":12}'
+  -d '{"q":"minimalist footwear made with natural materials","similar_to_brands":["Allbirds"],"limit":12}'
 ```
 
-Search and similarity responses contain `totalFound` and ranked `results`. Each result includes `brandUuid`, `brandName`, `brandSlug`, `domain`, `brandDescription`, and `directorySubheading`. Optional metadata may be null. These display responses omit internal brand analysis and search strategies.
+Search returns `totalFound` and ranked `results`. Each result includes `brandUuid`, `brandName`, `brandSlug`, `domain`, `brandDescription`, and `directorySubheading`. Optional metadata can be null. Use the returned slug, or the canonical name when the slug is null, as the identifier for the next request.
 
-Use [`GET /brands/prefix`](/api-reference/brand-prefix) for autocomplete and [`POST /brands/similar`](/api-reference/similar-brands) to rank brands by embedding similarity to source brand names. [`GET /brands/{brand}/top-categories`](/api-reference/brand-top-categories) provides precomputed category names, ranked by active product count.
+## Render a brand page
 
-## Access and availability
+Read the lightweight [profile](/api-reference/get-brand) for public metadata, typed article cards, and navigation facets. Use the returned canonical identity for your page URL. Keep article dates at their actual precision, such as `May 2026`.
 
-All six REST operations require your Developer organization API key. Brand search, prefix, details, similarity, and top categories are corpus-wide metadata. They have no catalog dimension. A brand match or top category does not promise available products in your organization's catalog scope.
+Build navigation with the normalized `gender`, `age_groups`, and `category_path.depth_*` facets. Labels and combinations belong to your application. The [top-categories endpoint](/api-reference/brand-top-categories) also provides precomputed category metadata. Both describe the brand's recorded assortment across the corpus; neither promises live products in your customer's scope.
 
-Product browse filters rows by your authorized catalog scope. Developer organizations can browse active crawled catalog products; merchant catalog products remain excluded. A known brand can therefore return an empty product page. Top categories are metadata, not catalog-scoped product counts.
+Request the separate [coverage snapshot](/api-reference/brand-coverage) when you need approximate product counts, carrying catalogs, facet coverage, or price distributions. Render the profile even if that request fails.
 
-These routes share the standard per-organization [rate limit](/guides/rate-limits). Validation failures return `422`; missing/invalid credentials return `401`, forbidden organization types return `403`, and unknown brand identifiers return `404` with `brand_not_found`. Search operations can return `503` with `brand_search_unavailable`; retry with backoff. Search can return `400` with `brand_query_unusable` or `brands_have_no_embeddings`; similarity can return `400` with `brands_have_no_embeddings`.
+## Browse products
 
-## Brand filters
+Use [brand product browsing](/api-reference/browse-brand-products) for a consistent UUID-ordered grid. Follow the returned `nextOffset` until it is null, including when the projected products list is empty. Offset 11976 is the last supported start, equivalent to page 500 at 24 rows per page. Use Product Search for text, additional filters, and relevance ranking.
 
-Search accepts `facets`; similarity accepts `facets` and `exclusionFacets`. Each filter has `name` and string `values`. Use lowercase values. At most 20 facets are accepted, with 1–100 nonblank values per facet, each at most 256 characters. For example:
+Directory, profile, navigation, top categories, and coverage are corpus-wide metadata. Product rows and browse source totals respect your API key's catalog scope. An explicit empty scope returns no products. A brand match, category, or approximate coverage count does not grant product access.
 
-```json
-{"text":"footwear","facets":[{"name":"facet_price_tier","values":["premium"]}],"limit":12}
-```
+## Handle missing data and failures
 
-Explicit text-search facets override generated facets with the same name. Brand facets are distinct from product inventory filters. Supported base names include `facet_price_tier`, `facet_origin_country`, `facet_styles`, `facet_genders`, and `facet_category_path.depth_0` through `facet_category_path.depth_6`. Product-only names `color`, `color_family`, and `is_activewear`, and the internal `brand_quality_score` name, are rejected.
+Every REST operation requires your Developer organization API key. Keep credentials on your server. The directory has a one-hour private cache and ETag revalidation. Coverage is an independently cached snapshot.
 
-## Use MCP
+Treat `404 brand_not_found` as a missing identity. Treat `503` as an operational failure, not an empty directory, absent articles, or a missing brand. Empty article and category lists are valid successful results. Validation failures return `422`; missing or invalid credentials return `401`; forbidden organizations return `403`. The standard organization [rate limit](/guides/rate-limits) applies.
 
-The same operations are available through the [StoreRouter MCP connection](/mcp/overview):
+## Brand filters and SDKs
 
-| Tool | Inputs |
-| --- | --- |
-| `search_brands` | `request`: the REST search body |
-| `similar_brands` | `request`: the REST similarity body |
-| `brand_prefix` | `prefix`, optional `limit` |
-| `get_brand` | `brand` |
-| `browse_brand_products` | `brand`, optional `limit`, `offset` |
-| `get_brand_top_categories` | `brand`, optional `min_level`, `limit` |
+Brand Search accepts `q`, `similar_to_brands`, `facets`, `exclude_facets`, `understand`, and `limit`. Omit `q` for reference- or filter-only requests. Without text, query understanding is skipped. Explicit clauses are preserved and never relaxed. Set `understand: false` to use text as written.
 
-For example, call `search_brands` with `{"request":{"text":"minimalist footwear","limit":12}}`. Successful brand tool responses contain `requestId` and `result`, where `result` has the corresponding REST response shape. Expected service and authorization errors return `requestId`, `error`, and `message`. Invalid tool arguments follow the MCP client's validation/error behavior. Enforced rate limits use the shared MCP rate-limit error with a retry hint.
+Brand filters use `{name, values}` with names such as `facet_price_tier`, `facet_origin_country`, `facet_styles`, `facet_genders`, and `facet_category_path.depth_0` through `facet_category_path.depth_6`. These differ from the Product Search names in profile navigation. Each inclusion or exclusion list supports up to 20 clauses, with 1–100 nonblank values per clause and 256 characters per value. Product-only filters and internal quality controls are rejected. The separate similarity operation retains `brands`, `facets`, and `exclusionFacets`.
 
-Developer callers omit `org_id`; the server uses the signed-in organization. Internal super admins must select a target organization with `org_id`. Selecting a target never expands the authenticated caller's product catalog scope.
+Use the [Python SDK](/sdks/python#brand-directory-profiles-and-browsing), [TypeScript SDK](/sdks/typescript#brand-directory-profiles-and-browsing), or [CLI](/cli/overview#discover-and-browse-brands) for typed examples. The canonical operation names are listed on each reference page.
+
+The [StoreRouter MCP connection](/mcp/overview) exposes `search_brands`, `similar_brands`, `brand_prefix`, `get_brand`, `browse_brand_products`, and `get_brand_top_categories`. `get_brand` returns the profile. Use REST or an SDK for the separate coverage snapshot. Developer callers omit `org_id`; internal super admins select an organization without expanding their own product scope.
