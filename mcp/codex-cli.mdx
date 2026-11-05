@@ -1,21 +1,31 @@
 ---
 title: "Use StoreRouter with Codex CLI via MCP"
-description: "Connect Codex CLI to StoreRouter using its dedicated compatibility endpoint, then sign in once to give your agent access to products, brands, and stores."
+description: "Register the StoreRouter MCP server in Codex CLI, then sign in once to give your agent access to products, brands, and stores."
 sidebarTitle: "Codex CLI"
 ---
 
-Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rather than the standard MCP base URL. This endpoint handles OAuth discovery and token minting in a way that is compatible with how Codex implements the OAuth 2.1 flow. Everything else — the tools, the response shapes, and the catalog grants — is identical to other clients.
+Codex CLI connects to the same StoreRouter MCP server as every other client, `https://mcp.dev.storerouter.ai/mcp`. You register the server, sign in once in your browser, and Codex caches and refreshes the tokens for you. No API keys, client IDs, or manual credential management are required.
 
-<Note>
-  Always use `https://codex-mcp.storerouter.ai/mcp` with Codex CLI. Do not substitute the standard `https://mcp.dev.storerouter.ai/mcp` URL. Codex CLI is supported only through the compatibility endpoint.
-</Note>
+<Warning>
+  The Codex compatibility hosts, `codex-mcp.storerouter.ai` and `codex-mcp.octogen.ai`, are removed. If your Codex config still points at either host, follow the steps below to replace the entry.
+</Warning>
 
 <Steps>
+  <Step title="Remove an old registration">
+    If you registered StoreRouter with Codex before, remove the existing entry:
+
+    ```bash
+    codex mcp remove storerouter
+    ```
+
+    If you added the entry by hand, delete the `[mcp_servers.storerouter]` table from `~/.codex/config.toml` instead. Skip this step for a new setup.
+  </Step>
+
   <Step title="Register the StoreRouter MCP server">
     Run the following command in your terminal:
 
     ```bash
-    codex mcp add storerouter --url https://codex-mcp.storerouter.ai/mcp
+    codex mcp add storerouter --url https://mcp.dev.storerouter.ai/mcp
     ```
 
     This registers a server named `storerouter` in your Codex configuration.
@@ -24,12 +34,12 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
 
     ```toml
     [mcp_servers.storerouter]
-    url = "https://codex-mcp.storerouter.ai/mcp"
+    url = "https://mcp.dev.storerouter.ai/mcp"
     ```
   </Step>
 
   <Step title="Sign in to StoreRouter">
-    Trigger the OAuth sign-in flow by running:
+    Start the OAuth sign-in flow:
 
     ```bash
     codex mcp login storerouter
@@ -45,7 +55,7 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
     After you complete sign-in, the browser redirects back to Codex, which stores the resulting tokens locally.
 
     <Note>
-      Access tokens are valid for approximately five minutes. Codex refreshes them transparently — you will not be prompted again unless your StoreRouter sign-in session expires.
+      Access tokens are valid for approximately five minutes. Codex refreshes them transparently. You are not prompted again unless your StoreRouter sign-in session expires.
     </Note>
   </Step>
 
@@ -56,15 +66,14 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
     codex mcp get storerouter
     ```
 
-    The output should show `url = "https://codex-mcp.storerouter.ai/mcp"`. If the URL differs, remove the entry and re-run step 1.
+    The output should show `url = "https://mcp.dev.storerouter.ai/mcp"`. If it shows a `codex-mcp` host, repeat the first two steps.
   </Step>
 </Steps>
 
-## Why a separate URL?
+## Troubleshooting
 
-The Codex CLI uses a different OAuth discovery path than other MCP clients. The compatibility endpoint at `https://codex-mcp.storerouter.ai` advertises OAuth resource indicator support and handles the `authorize` and `token` requests in the format Codex expects. It attaches the Developer MCP audience (`https://mcp.dev.storerouter.ai/mcp`) before forwarding to `https://auth.storerouter.ai`, so Codex tokens carry the same audience as every other client. Standard clients connect to `mcp.dev.storerouter.ai` directly and discover that audience from its protected-resource metadata. Your catalog grants, tool calls, and response shapes are identical on both hosts.
-
-Tokens issued before November 5, 2026 carry a retired audience (`https://mcp.octogen.ai`) and are rejected. If Codex reports an invalid token, run `codex mcp login storerouter` again.
+- **Codex can't connect, or reports a DNS or TLS error.** Your entry still points at a removed `codex-mcp` host. Remove it and register `https://mcp.dev.storerouter.ai/mcp`.
+- **Codex reports an invalid token.** Tokens issued before November 5, 2026 carry a retired audience and are rejected. Run `codex mcp login storerouter` again.
 
 ## What your agent can do
 

@@ -3,6 +3,20 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="November 5, 2026" description="Codex CLI connects to mcp.dev.storerouter.ai">
+
+**Codex CLI now connects directly to `https://mcp.dev.storerouter.ai/mcp`, like every other MCP client.** The Codex compatibility hosts, `codex-mcp.storerouter.ai` and `codex-mcp.octogen.ai`, are removed. They no longer resolve, so Codex entries that point at them fail to connect. This replaces the Codex CLI guidance in the earlier November 5 entry.
+
+To reconnect Codex CLI:
+
+1. Run `codex mcp remove storerouter`.
+2. Run `codex mcp add storerouter --url https://mcp.dev.storerouter.ai/mcp`.
+3. Run `codex mcp login storerouter` and sign in again.
+
+Tools, response shapes, and catalog grants are unchanged. See [Codex CLI](/mcp/codex-cli).
+
+</Update>
+
 <Update label="November 5, 2026" description="The MCP server moves to mcp.dev.storerouter.ai">
 
 **The StoreRouter MCP server for Developer organizations is now at `https://mcp.dev.storerouter.ai/mcp`.** That URL is also the only token audience the server accepts. Clients discover it from `https://mcp.dev.storerouter.ai/.well-known/oauth-protected-resource`. Tools, response shapes, and catalog grants are unchanged.

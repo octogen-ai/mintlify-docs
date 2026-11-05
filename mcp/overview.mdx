@@ -10,7 +10,7 @@ The StoreRouter MCP server gives AI agents direct access to product, brand, and 
 
 | Property    | Value                                                                                      |
 | ----------- | ------------------------------------------------------------------------------------------ |
-| Base URL    | `https://mcp.dev.storerouter.ai/mcp` (Codex CLI uses `https://codex-mcp.storerouter.ai/mcp`)      |
+| Base URL    | `https://mcp.dev.storerouter.ai/mcp`, for every client, including Codex CLI                 |
 | Transport   | Streamable HTTP                                                                             |
 | Auth        | OAuth 2.1 with PKCE-S256 against `https://auth.storerouter.ai`                                 |
 | Audience    | `https://mcp.dev.storerouter.ai/mcp`, the only accepted token audience                      |
@@ -196,6 +196,6 @@ Choose the guide for the AI tool you are using.
     Add StoreRouter as a custom connector in Claude Desktop or claude.ai.
   </Card>
   <Card title="Codex CLI" icon="code" href="/mcp/codex-cli">
-    Register StoreRouter with Codex CLI using its dedicated compatibility endpoint.
+    Register StoreRouter with Codex CLI and sign in once from the terminal.
   </Card>
 </CardGroup>
