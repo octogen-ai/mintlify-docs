@@ -7,7 +7,7 @@ sidebarTitle: "Codex CLI"
 Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rather than the standard MCP base URL. This endpoint handles OAuth discovery and token minting in a way that is compatible with how Codex implements the OAuth 2.1 flow. Everything else — the tools, the response shapes, and the catalog grants — is identical to other clients.
 
 <Note>
-  Always use `https://codex-mcp.storerouter.ai/mcp` with Codex CLI. Do not substitute the standard `https://mcp.storerouter.ai/mcp` URL — authentication will not complete correctly.
+  Always use `https://codex-mcp.storerouter.ai/mcp` with Codex CLI. Do not substitute the standard `https://mcp.dev.storerouter.ai/mcp` URL. Codex CLI is supported only through the compatibility endpoint.
 </Note>
 
 <Steps>
@@ -62,7 +62,9 @@ Codex CLI connects to StoreRouter through a dedicated compatibility endpoint rat
 
 ## Why a separate URL?
 
-The Codex CLI uses a different OAuth discovery path than other MCP clients. The compatibility endpoint at `https://codex-mcp.storerouter.ai` advertises OAuth resource indicator support and handles the `authorize` and `token` requests in the format Codex expects. It attaches the existing compatibility audience (`https://mcp.octogen.ai`) before forwarding to `https://auth.storerouter.ai`. This audience is a token identifier, not the hostname you connect to. Standard clients on `mcp.storerouter.ai` use `https://mcp.storerouter.ai` as their audience. Your catalog grants, tool calls, and response shapes are identical on both hosts.
+The Codex CLI uses a different OAuth discovery path than other MCP clients. The compatibility endpoint at `https://codex-mcp.storerouter.ai` advertises OAuth resource indicator support and handles the `authorize` and `token` requests in the format Codex expects. It attaches the Developer MCP audience (`https://mcp.dev.storerouter.ai/mcp`) before forwarding to `https://auth.storerouter.ai`, so Codex tokens carry the same audience as every other client. Standard clients connect to `mcp.dev.storerouter.ai` directly and discover that audience from its protected-resource metadata. Your catalog grants, tool calls, and response shapes are identical on both hosts.
+
+Tokens issued before November 5, 2026 carry a retired audience (`https://mcp.octogen.ai`) and are rejected. If Codex reports an invalid token, run `codex mcp login storerouter` again.
 
 ## What your agent can do
 

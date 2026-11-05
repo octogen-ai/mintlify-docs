@@ -10,10 +10,15 @@ The StoreRouter MCP server gives AI agents direct access to product, brand, and 
 
 | Property    | Value                                                                                      |
 | ----------- | ------------------------------------------------------------------------------------------ |
-| Base URL    | `https://mcp.storerouter.ai/mcp` (Codex CLI uses `https://codex-mcp.storerouter.ai/mcp`)          |
+| Base URL    | `https://mcp.dev.storerouter.ai/mcp` (Codex CLI uses `https://codex-mcp.storerouter.ai/mcp`)      |
 | Transport   | Streamable HTTP                                                                             |
 | Auth        | OAuth 2.1 with PKCE-S256 against `https://auth.storerouter.ai`                                 |
-| Discovery   | RFC 9728 protected-resource metadata at `https://mcp.storerouter.ai/.well-known/oauth-protected-resource` |
+| Audience    | `https://mcp.dev.storerouter.ai/mcp`, the only accepted token audience                      |
+| Discovery   | RFC 9728 protected-resource metadata at `https://mcp.dev.storerouter.ai/.well-known/oauth-protected-resource` |
+
+<Warning>
+  The MCP server moved to `https://mcp.dev.storerouter.ai/mcp` on November 5, 2026. The previous hosts, `mcp.storerouter.ai` and `mcp.octogen.ai`, return `410 Gone` with a pointer to the new URL until about November 19, 2026, when they are removed. Tokens issued for the previous audiences are rejected. If you connected before November 5, remove the old server from your client, add the new URL, and sign in again.
+</Warning>
 
 ## Authentication
 

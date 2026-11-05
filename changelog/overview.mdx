@@ -3,6 +3,20 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="November 5, 2026" description="The MCP server moves to mcp.dev.storerouter.ai">
+
+**The StoreRouter MCP server for Developer organizations is now at `https://mcp.dev.storerouter.ai/mcp`.** That URL is also the only token audience the server accepts. Clients discover it from `https://mcp.dev.storerouter.ai/.well-known/oauth-protected-resource`. Tools, response shapes, and catalog grants are unchanged.
+
+The previous hosts, `mcp.storerouter.ai` and `mcp.octogen.ai`, return `410 Gone` with a pointer to the new URL. They will be removed after about November 19, 2026. Tokens issued for the previous audiences are rejected, so every client must reconnect:
+
+- **Claude Code**: run `claude mcp remove storerouter`, then add `https://mcp.dev.storerouter.ai/mcp`. See [Claude Code](/mcp/claude-code).
+- **Claude Desktop and claude.ai**: remove the StoreRouter connector, then add a new one with the new URL. See [Claude Desktop](/mcp/claude-desktop).
+- **Other MCP clients**: replace the server URL and sign in again.
+- **Codex CLI**: keep `https://codex-mcp.storerouter.ai/mcp`. It now issues tokens for the new audience. If Codex reports an invalid token, run `codex mcp login storerouter` again. See [Codex CLI](/mcp/codex-cli).
+- **BigQuery auto-subscribe**: existing refresh tokens no longer work. Run `octogen-mcp-login` with `--resource https://mcp.dev.storerouter.ai/mcp`, and run `octogen-bq-autosubscribe` with `--mcp-url https://mcp.dev.storerouter.ai/mcp/`. The Python SDK on the `octogen-dev` main branch (0.17.0) uses both values as defaults. See [Subscribe to catalogs in BigQuery](/guides/bigquery-subscribe#automatic-subscription-from-cron).
+
+</Update>
+
 ## November 3, 2026
 
 Brand serving now has a complete [directory](/api-reference/brand-directory), lightweight [profiles](/api-reference/get-brand) with article cards and navigation facets, and separate [coverage snapshots](/api-reference/brand-coverage). Profiles no longer contain coverage fields. Brand product browsing returns server `nextOffset` and supports offset 11976, equivalent to page 500 at 24 rows per page.
