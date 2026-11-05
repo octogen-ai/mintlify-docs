@@ -11,10 +11,14 @@ Claude Code supports MCP servers over HTTP natively. Registering StoreRouter tak
     Run the following command in your terminal:
 
     ```bash
-    claude mcp add --transport http storerouter https://mcp.storerouter.ai/mcp
+    claude mcp add --transport http storerouter https://mcp.dev.storerouter.ai/mcp
     ```
 
     This adds an entry named `storerouter` pointing at the StoreRouter MCP server. Claude Code stores the configuration locally and loads it at startup.
+
+    <Note>
+      If you registered StoreRouter before November 5, 2026, your entry points at the retired `mcp.storerouter.ai` host. Run `claude mcp remove storerouter` first, then run the command above. For a project-scoped entry, run `claude mcp remove --scope project storerouter`, then repeat the last step.
+    </Note>
   </Step>
 
   <Step title="Sign in on first use">
@@ -39,14 +43,14 @@ Claude Code supports MCP servers over HTTP natively. Registering StoreRouter tak
     claude mcp list
     ```
 
-    You should see `storerouter` listed with the URL `https://mcp.storerouter.ai/mcp`.
+    You should see `storerouter` listed with the URL `https://mcp.dev.storerouter.ai/mcp`.
   </Step>
 
   <Step title="Share the config with your team (optional)">
     To commit the MCP configuration to your repository so teammates pick it up automatically, re-run the registration command with the `--scope project` flag:
 
     ```bash
-    claude mcp add --transport http --scope project storerouter https://mcp.storerouter.ai/mcp
+    claude mcp add --transport http --scope project storerouter https://mcp.dev.storerouter.ai/mcp
     ```
 
     This writes the entry to `.mcp.json` at your repository root instead of your personal config. Each team member still signs in with their own StoreRouter account on first use — credentials are never stored in the project file.
