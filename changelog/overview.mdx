@@ -3,34 +3,6 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
-<Update label="November 5, 2026" description="Codex CLI connects to mcp.dev.storerouter.ai">
-
-**Codex CLI now connects directly to `https://mcp.dev.storerouter.ai/mcp`, like every other MCP client.** The Codex compatibility hosts, `codex-mcp.storerouter.ai` and `codex-mcp.octogen.ai`, are removed. They no longer resolve, so Codex entries that point at them fail to connect. This replaces the Codex CLI guidance in the earlier November 5 entry.
-
-To reconnect Codex CLI:
-
-1. Run `codex mcp remove storerouter`.
-2. Run `codex mcp add storerouter --url https://mcp.dev.storerouter.ai/mcp`.
-3. Run `codex mcp login storerouter` and sign in again.
-
-Tools, response shapes, and catalog grants are unchanged. See [Codex CLI](/mcp/codex-cli).
-
-</Update>
-
-<Update label="November 5, 2026" description="The MCP server moves to mcp.dev.storerouter.ai">
-
-**The StoreRouter MCP server for Developer organizations is now at `https://mcp.dev.storerouter.ai/mcp`.** That URL is also the only token audience the server accepts. Clients discover it from `https://mcp.dev.storerouter.ai/.well-known/oauth-protected-resource`. Tools, response shapes, and catalog grants are unchanged.
-
-The previous hosts, `mcp.storerouter.ai` and `mcp.octogen.ai`, return `410 Gone` with a pointer to the new URL. They will be removed after about November 19, 2026. Tokens issued for the previous audiences are rejected, so every client must reconnect:
-
-- **Claude Code**: run `claude mcp remove storerouter`, then add `https://mcp.dev.storerouter.ai/mcp`. See [Claude Code](/mcp/claude-code).
-- **Claude Desktop and claude.ai**: remove the StoreRouter connector, then add a new one with the new URL. See [Claude Desktop](/mcp/claude-desktop).
-- **Other MCP clients**: replace the server URL and sign in again.
-- **Codex CLI**: keep `https://codex-mcp.storerouter.ai/mcp`. It now issues tokens for the new audience. If Codex reports an invalid token, run `codex mcp login storerouter` again. See [Codex CLI](/mcp/codex-cli).
-- **BigQuery auto-subscribe**: existing refresh tokens no longer work. Run `octogen-mcp-login` with `--resource https://mcp.dev.storerouter.ai/mcp`, and run `octogen-bq-autosubscribe` with `--mcp-url https://mcp.dev.storerouter.ai/mcp/`. The Python SDK on the `octogen-dev` main branch (0.17.0) uses both values as defaults. See [Subscribe to catalogs in BigQuery](/guides/bigquery-subscribe#automatic-subscription-from-cron).
-
-</Update>
-
 ## November 3, 2026
 
 Brand serving now has a complete [directory](/api-reference/brand-directory), lightweight [profiles](/api-reference/get-brand) with article cards and navigation facets, and separate [coverage snapshots](/api-reference/brand-coverage). Profiles no longer contain coverage fields. Brand product browsing returns server `nextOffset` and supports offset 11976, equivalent to page 500 at 24 rows per page.
@@ -147,9 +119,9 @@ The MCP `search_products` tool and More Like This are unchanged. See the [Search
 
 ## Updates
 
-**Connect through StoreRouter domains.** API examples use `https://api.storerouter.ai/v1`, standard MCP clients use `https://mcp.storerouter.ai/mcp`, and Codex CLI uses `https://codex-mcp.storerouter.ai/mcp`. The published OpenAPI contract is available at `https://cdn.storerouter.ai/openapi/platform/v1/openapi.json`.
+**Connect through StoreRouter domains.** API examples use `https://api.storerouter.ai/v1`. The published OpenAPI contract is available at `https://cdn.storerouter.ai/openapi/platform/v1/openapi.json`.
 
-SDK and CLI examples set the service URLs explicitly so they work with package releases that predate the migration. Package names, API key variables, and catalog grants stay the same. The Codex compatibility proxy retains its existing token audience; see the [Codex CLI guide](/mcp/codex-cli).
+SDK and CLI examples set the service URLs explicitly so they work with package releases that predate the migration. Package names, API key variables, and catalog grants stay the same.
 
 Examples in earlier changelog entries below also use the current service URLs.
 
@@ -235,7 +207,7 @@ The TypeScript SDK exposes `moreLikeThisProducts(...)`, and the Python SDK expos
 # From a clone of github.com/octogen-ai/octogen-dev:
 uv sync --project sdks/python --extra bigquery
 uv run --project sdks/python --extra bigquery octogen-bq-subscribe --listing <listing-resource> --project my-gcp-project --apply
-uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --mcp-url https://mcp.storerouter.ai/mcp/ --mcp-token-endpoint https://auth.storerouter.ai/oauth2/token --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
+uv run --project sdks/python --extra bigquery octogen-bq-autosubscribe --mcp-url https://mcp.dev.storerouter.ai/mcp/ --mcp-token-endpoint https://auth.storerouter.ai/oauth2/token --project my-gcp-project --principal serviceAccount:bq-reader@my-gcp-project.iam.gserviceaccount.com --apply --json
 ```
 
 See the [BigQuery subscribe guide](/guides/bigquery-subscribe) to get started.
@@ -261,11 +233,5 @@ See the [MCP overview](/mcp/overview) to choose a client and get started.
 **Platform Catalog API v1 (REST) is generally available.** Backends and batch jobs can now hit the same catalog data over HTTPS with an `octo_live_...` API key. Endpoints include `POST /v1/products/search` and `POST /v1/products/lookup`, with cursor-based pagination and facet support.
 
 See the [API reference overview](/api-reference/overview) for endpoint details and the [authentication guide](/authentication) for key setup.
-
-## Updates
-
-**Codex CLI now uses a dedicated MCP endpoint.** Codex CLI users should point their client at `https://codex-mcp.storerouter.ai/mcp` instead of the standard MCP base URL. The compatibility endpoint handles OAuth discovery in the format Codex expects, while issued tokens still target the canonical MCP audience — tools, response shapes, and catalog grants are unchanged.
-
-If you set up Codex CLI before this week, update your registration following the [Codex CLI guide](/mcp/codex-cli). All other clients continue to use `https://mcp.storerouter.ai/mcp`.
 
 </Update>

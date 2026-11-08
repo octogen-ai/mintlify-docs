@@ -4,23 +4,9 @@ description: "Register the StoreRouter MCP server in Codex CLI, then sign in onc
 sidebarTitle: "Codex CLI"
 ---
 
-Codex CLI connects to the same StoreRouter MCP server as every other client, `https://mcp.dev.storerouter.ai/mcp`. You register the server, sign in once in your browser, and Codex caches and refreshes the tokens for you. No API keys, client IDs, or manual credential management are required.
-
-<Warning>
-  The Codex compatibility hosts, `codex-mcp.storerouter.ai` and `codex-mcp.octogen.ai`, are removed. If your Codex config still points at either host, follow the steps below to replace the entry.
-</Warning>
+Codex CLI connects to the StoreRouter MCP server at `https://mcp.dev.storerouter.ai/mcp`. You register the server, sign in once in your browser, and Codex caches and refreshes the tokens for you. No API keys, client IDs, or manual credential management are required.
 
 <Steps>
-  <Step title="Remove an old registration">
-    If you registered StoreRouter with Codex before, remove the existing entry:
-
-    ```bash
-    codex mcp remove storerouter
-    ```
-
-    If you added the entry by hand, delete the `[mcp_servers.storerouter]` table from `~/.codex/config.toml` instead. Skip this step for a new setup.
-  </Step>
-
   <Step title="Register the StoreRouter MCP server">
     Run the following command in your terminal:
 
@@ -66,14 +52,14 @@ Codex CLI connects to the same StoreRouter MCP server as every other client, `ht
     codex mcp get storerouter
     ```
 
-    The output should show `url = "https://mcp.dev.storerouter.ai/mcp"`. If it shows a `codex-mcp` host, repeat the first two steps.
+    The output should show `url = "https://mcp.dev.storerouter.ai/mcp"`.
   </Step>
 </Steps>
 
 ## Troubleshooting
 
-- **Codex can't connect, or reports a DNS or TLS error.** Your entry still points at a removed `codex-mcp` host. Remove it and register `https://mcp.dev.storerouter.ai/mcp`.
-- **Codex reports an invalid token.** Tokens issued before November 5, 2026 carry a retired audience and are rejected. Run `codex mcp login storerouter` again.
+- **Codex can't connect.** Run `codex mcp get storerouter` and check that the URL is `https://mcp.dev.storerouter.ai/mcp`. If it is not, run `codex mcp remove storerouter` and register the server again.
+- **Codex reports an invalid token.** Run `codex mcp login storerouter` again.
 
 ## What your agent can do
 

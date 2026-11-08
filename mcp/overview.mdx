@@ -1,10 +1,10 @@
 ---
 title: "Connect AI agents to StoreRouter via MCP"
-description: "Let AI agents search and look up products, brands, and stores across StoreRouter's covered stores using the Model Context Protocol — no API keys required."
+description: "Let AI agents search and look up products, brands, and stores across StoreRouter's covered stores using the Model Context Protocol, with a browser sign-in or your StoreRouter API key."
 sidebarTitle: "Overview"
 ---
 
-The StoreRouter MCP server gives AI agents direct access to product, brand, and store data across the stores StoreRouter covers. Agents running inside Claude Code, Claude (web and desktop), Codex CLI, or any MCP-compliant client can call product lookup and search, taxonomy, brand, store, and BigQuery subscription tools without you needing to provision API keys, client IDs, or shared secrets. Authentication is handled through a browser sign-in the first time a tool is called; after that, tokens are cached and refreshed transparently.
+The StoreRouter MCP server gives AI agents direct access to product, brand, and store data across the stores StoreRouter covers. Agents running inside Claude Code, Claude (web and desktop), Codex CLI, or any MCP-compliant client can call product lookup and search, taxonomy, brand, store, and BigQuery subscription tools. Interactive clients authenticate through a browser sign-in the first time a tool is called, with no API keys, client IDs, or shared secrets to provision; after that, tokens are cached and refreshed transparently. Clients that run as a service, with nobody there to sign in, can send your organization's API key instead; see [Server-side integrations](#server-side-integrations).
 
 ## Connection details
 
@@ -12,15 +12,15 @@ The StoreRouter MCP server gives AI agents direct access to product, brand, and 
 | ----------- | ------------------------------------------------------------------------------------------ |
 | Base URL    | `https://mcp.dev.storerouter.ai/mcp`, for every client, including Codex CLI                 |
 | Transport   | Streamable HTTP                                                                             |
-| Auth        | OAuth 2.1 with PKCE-S256 against `https://auth.storerouter.ai`                                 |
+| Auth        | OAuth 2.1 with PKCE-S256 against `https://auth.storerouter.ai`, or your API key as a bearer token |
 | Audience    | `https://mcp.dev.storerouter.ai/mcp`, the only accepted token audience                      |
 | Discovery   | RFC 9728 protected-resource metadata at `https://mcp.dev.storerouter.ai/.well-known/oauth-protected-resource` |
 
-<Warning>
-  The MCP server moved to `https://mcp.dev.storerouter.ai/mcp` on November 5, 2026. The previous hosts, `mcp.storerouter.ai` and `mcp.octogen.ai`, return `410 Gone` with a pointer to the new URL until about November 19, 2026, when they are removed. Tokens issued for the previous audiences are rejected. If you connected before November 5, remove the old server from your client, add the new URL, and sign in again.
-</Warning>
-
 ## Authentication
+
+The server accepts two credentials on the same URL. Use a browser sign-in when a person is at the client, and an [API key](#server-side-integrations) when the client runs as a service.
+
+### Sign in from an interactive client
 
 There are no API keys to generate or rotate. MCP clients that implement OAuth 2.1 discovery walk the authorization chain automatically:
 
@@ -30,6 +30,35 @@ There are no API keys to generate or rotate. MCP clients that implement OAuth 2.
 4. The browser redirects back to your client, which exchanges the authorization code for an access token and a refresh token.
 
 Access tokens are valid for approximately five minutes. Refresh happens transparently in the background as long as your StoreRouter sign-in session is active. To end access, sign out of the StoreRouter Platform or have your organization administrator remove your account.
+
+### Server-side integrations
+
+A backend service, scheduled job, or hosted agent can't complete a browser sign-in. Send your Developer organization's [API key](/authentication) as a bearer token on every request instead:
+
+```http
+POST https://mcp.dev.storerouter.ai/mcp
+Authorization: Bearer octo_live_<your-key>
+Content-Type: application/json
+Accept: application/json, text/event-stream
+```
+
+For example, to list the tools with `curl`, reading the key from the environment:
+
+```bash
+curl -sS https://mcp.dev.storerouter.ai/mcp \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+It is the same key you use with the [Platform Catalog API v1](/api-reference/overview), with the same limits and metering. There is no separate MCP key. Tool calls share your organization's [rate limit](/guides/rate-limits) with REST requests. `search_products` is charged as a product search and `lookup_product` as a product lookup; `lookup_products` is charged one product lookup per URL in the batch. See [API pricing and billing](/guides/pricing-and-billing).
+
+A key acts on its own organization only. Merchant organization keys are refused with `403`. The BigQuery subscriber tools that change or list subscribers need a signed-in owner or admin, so they return `not_authorized` when called with a key.
+
+<Warning>
+  Your API key is an organization credential: anyone holding it can make billed requests for your organization. Keep it in an environment variable or secret manager, never in a committed client config. Treat MCP client logs as sensitive, because a client that logs request headers logs the key. If a key leaks, revoke it in StoreRouter Platform under **API Keys** and create a new one.
+</Warning>
 
 ## Prerequisites
 
@@ -174,13 +203,13 @@ For most scheduled jobs, use the Python SDK's `octogen-bq-autosubscribe` command
 
 Both surfaces are equally supported and enforce the same catalog policy. Developers can search and browse active crawled catalogs and cannot access merchant catalogs. BigQuery listings remain explicitly granted.
 
-| | Platform Catalog API v1 (API keys) | MCP (OAuth) |
-| --- | --- | --- |
-| Best for | Backends, batch jobs, server-to-server | Interactive AI agents (Claude Code, Claude, Codex CLI) |
-| Auth | Bearer `octo_live_...` key | OAuth 2.1 + PKCE — browser sign-in, tokens cached locally |
-| Caller identity | `(api_key_id, org_id)` | `(user_sub, org_id, oauth_client_id)` |
-| Token lifetime | Until manually revoked | ~5 minutes access; refresh until session expiry |
-| Revocation | Revoke the API key | Sign out of StoreRouter Platform or remove user from org |
+| | Platform Catalog API v1 (API keys) | MCP (OAuth) | MCP (API key) |
+| --- | --- | --- | --- |
+| Best for | Backends, batch jobs, server-to-server | Interactive AI agents (Claude Code, Claude, Codex CLI) | Agents and MCP clients that run as a service |
+| Auth | Bearer `octo_live_...` key | OAuth 2.1 + PKCE — browser sign-in, tokens cached locally | The same bearer `octo_live_...` key |
+| Caller identity | `(api_key_id, org_id)` | `(user_sub, org_id, oauth_client_id)` | `(api_key_id, org_id)` |
+| Token lifetime | Until manually revoked | ~5 minutes access; refresh until session expiry | Until manually revoked |
+| Revocation | Revoke the API key | Sign out of StoreRouter Platform or remove user from org | Revoke the API key |
 
 Both surfaces also share one per-organization [rate limit](/guides/rate-limits): tool calls and REST API requests draw from the same budget.
 

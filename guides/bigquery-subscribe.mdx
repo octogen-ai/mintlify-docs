@@ -147,10 +147,6 @@ octogen-mcp-login \
 
 The login command opens StoreRouter AuthKit in your browser, registers a public MCP OAuth client if needed, requests an MCP-audience refresh token, and writes the client id, registered redirect URI, and rotating refresh token to the requested files. It does not print the refresh token.
 
-<Warning>
-  Refresh tokens minted before November 5, 2026 used the retired `https://mcp.storerouter.ai` or `https://mcp.octogen.ai` audience and no longer work. Run `octogen-mcp-login` again with `--resource https://mcp.dev.storerouter.ai/mcp`, then update any cron job to `--mcp-url https://mcp.dev.storerouter.ai/mcp/`.
-</Warning>
-
 ### Dry run
 
 ```bash
