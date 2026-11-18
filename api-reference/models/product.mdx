@@ -1,100 +1,49 @@
 ---
-title: "Product data models: search items and full views"
-description: "Reference for MerchantProductListItem returned by search and MerchantProductView returned by lookup, including all fields and example JSON."
+title: "Product data models"
+description: "Reference for ProductSummary, ProductDetail, ProductVariant, and their supporting StoreRouter API models, with field definitions and JSON examples."
 sidebarTitle: "Product"
 ---
 
-The Platform Catalog API uses two product shapes depending on the endpoint. `MerchantProductListItem` is the compact shape returned in search and More Like This results — it carries the fields needed to render a product card. `MerchantProductView` extends the list item with full detail fields and is returned only by the [`POST /products/lookup`](/api-reference/lookup-product) endpoint. Every field present on a list item is also present on a view.
+Use [`ProductSummary`](#productsummary) to display search results and [`ProductDetail`](#productdetail) for a full product record. Each entry in `ProductDetail.variants` is a [`ProductVariant`](#productvariant). The [compatibility table](#model-name-compatibility) maps each new name to its existing SDK import and OpenAPI component.
 
-## MerchantProductListItem
+<span id="merchantproductlistitem"></span>
 
-Returned as elements of the `items` array in [`POST /products/search`](/api-reference/search-products) and [`POST /products/more-like-this`](/api-reference/more-like-this) responses.
+## ProductSummary
 
-<ResponseField name="uuid" type="string" required>
-  Stable unique identifier for this product record. Use this to deduplicate items across pages.
-</ResponseField>
+Search and More Like This return summaries in `items[]`. [Brand product browsing](/api-reference/browse-brand-products) returns them in `products[]`. See [Search products](/api-reference/search-products) and [More Like This](/api-reference/more-like-this).
 
-<ResponseField name="catalogKey" type="string | null">
-  Catalog that supplied this product. Present for search and More Like This results so cross-catalog responses can link back to the correct catalog.
-</ResponseField>
+| Field | Type | Description |
+| --- | --- | --- |
+| `uuid` | string, required | Identifier for the indexed product. Use it to deduplicate results across pages. |
+| `productUrl` | string, required | Merchant product URL. Pass it to product lookup for the full record. |
+| `title` | string or null | Product title from the merchant. |
+| `brand` | [`ProductBrand`](#productbrand) or null | Brand associated with the product. |
+| `catalogKey` | string or null | Key of the catalog that supplied the product. |
+| `catalogDisplayName` | string or null | Display name of the catalog that supplied the product. |
+| `currentPrice` | number or null | Current selling price. |
+| `originalPrice` | number or null | List or regular price, when available. |
+| `currency` | string or null | ISO 4217 currency code, or null when unknown or mixed. |
+| `primaryImage` | [`ProductImage`](#productimage) or null | The product's display image. |
+| `images` | [`ProductImage[]`](#productimage) | Product images in display order. |
+| `imageUrl` | string or null | Deprecated CDN URL. Read `primaryImage` for the image and its metadata. |
+| `rating` | [`ProductRatingSummary`](#productratingsummary) or null | Aggregate customer rating. |
+| `inStock` | boolean or null | Product-level availability. Read the individual variant for size- or color-specific stock. Null means unknown. |
+| `isActive` | boolean | Whether the product is active in the index. |
+| `colors` | string array or null | Product-level color labels. |
+| `sizes` | string array or null | Product-level size labels. |
+| `gender` | string or null | `male`, `female`, or `unisex`. Null when unknown or when several are listed. |
+| `categoryPath` | string array or null | Taxonomy category path, starting at the root. |
+| `displayMatchScore` | integer or null | Display score from 0 to 100, normalized for the current result set. |
+| `rawScore` | number or null | Raw Elasticsearch hit score for debugging. |
+| `updatedAt` | date-time string or null | When the index last updated the product record. |
 
-<ResponseField name="productUrl" type="string" required>
-  Canonical product page URL on the merchant's site. You can pass this directly to `POST /products/lookup` to retrieve the full view.
-</ResponseField>
+<span id="example--merchantproductlistitem"></span>
 
-<ResponseField name="title" type="string | null">
-  Product title as indexed from the merchant.
-</ResponseField>
-
-<ResponseField name="brand" type="object | null">
-  Brand information associated with this product.
-
-  <Expandable title="BrandView properties">
-    <ResponseField name="name" type="string" required>
-      Brand display name.
-    </ResponseField>
-    <ResponseField name="slug" type="string | null">
-      URL-safe brand identifier used in `brand_slug` facet filters.
-    </ResponseField>
-    <ResponseField name="url" type="string | null">
-      URL of the brand's page on the merchant site.
-    </ResponseField>
-    <ResponseField name="description" type="string | null">
-      Short brand description.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="currentPrice" type="number | null">
-  Current sale or listing price. Used as the basis for `price_min` and `price_max` filter comparisons.
-</ResponseField>
-
-<ResponseField name="originalPrice" type="number | null">
-  Pre-discount price. `null` when no markdown or promotion applies.
-</ResponseField>
-
-<ResponseField name="primaryImage" type="MerchantProductImageMetadataView | null">
-  The product's display image as an [image object](#merchantproductimagemetadataview). Its `url` is the merchant source URL, and `cdnUrl` carries the StoreRouter-hosted copy when one exists. `null` when the product has no images.
-</ResponseField>
-
-<ResponseField name="images" type="MerchantProductImageMetadataView[]">
-  All product images as [image objects](#merchantproductimagemetadataview), in display order. Includes the primary image. Empty when no images are indexed.
-</ResponseField>
-
-<ResponseField name="imageUrl" type="string | null" deprecated>
-  Deprecated. The primary image's hosted CDN URL, kept populated during migration. Read `primaryImage` instead. On-demand lookup results (`source: "on_demand"`) always return `null` here because StoreRouter hosts no copy of their images. Read their images from `primaryImage.url` and `images[].url`.
-</ResponseField>
-
-<ResponseField name="rating" type="object | null">
-  Aggregated customer rating data.
-
-  <Expandable title="RatingView properties">
-    <ResponseField name="average" type="number | null">
-      Average rating value (typically on a 1–5 scale).
-    </ResponseField>
-    <ResponseField name="count" type="integer | null">
-      Total number of individual ratings.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="isActive" type="boolean">
-  Whether the product is active in the current index.
-</ResponseField>
-
-<ResponseField name="displayMatchScore" type="integer | null">
-  Optional user-facing match score from 0 to 100, when the search strategy returns one. It is intended for display only.
-</ResponseField>
-
-<ResponseField name="updatedAt" type="datetime | null">
-  ISO 8601 UTC timestamp of the last update to this product record in the index.
-</ResponseField>
-
-### Example — MerchantProductListItem
+### ProductSummary example
 
 ```json
 {
-  "uuid": "prod_01HX...",
+  "uuid": "c6a0e2ab-66b1-4ff0-93e3-06f1747b949c",
   "catalogKey": "warrenlotas",
   "productUrl": "https://warrenlotas.com/products/black-hoodie",
   "title": "Black Hoodie",
@@ -135,150 +84,63 @@ Returned as elements of the `items` array in [`POST /products/search`](/api-refe
   ],
   "rating": null,
   "isActive": true,
-  "updatedAt": "2026-05-19T18:04:10Z"
+  "updatedAt": "2026-05-19T18:04:10Z",
+  "currency": "USD",
+  "inStock": true,
+  "colors": [
+    "Black"
+  ],
+  "sizes": [
+    "s",
+    "m",
+    "l",
+    "xl"
+  ]
 }
 ```
 
----
+<span id="merchantproductview"></span>
 
-## MerchantProductView
+## ProductDetail
 
-Returned as the `product` field in [`POST /products/lookup`](/api-reference/lookup-product) responses. Contains all fields from `MerchantProductListItem` plus the following additional fields.
+Find the detail in `product` after [product lookup](/api-reference/lookup-product), single-product retrieval (`GET /products/retrieve/{uuid}`), or resolving from HTML (`POST /products/resolve-from-html`). Batch retrieval (`POST /products/retrieve`) returns it in `results[].product` for each product found.
 
-<ResponseField name="description" type="string | null">
-  Full product description text as indexed from the merchant.
-</ResponseField>
+`ProductDetail` shares most fields with [`ProductSummary`](#productsummary). The table below lists its different and additional fields. Summary fields `gender`, `categoryPath`, and `catalogDisplayName` appear only on `ProductSummary`. A detail response carries audience and categories in separate fields.
 
-<ResponseField name="inStock" type="boolean | null">
-  `true` if at least one variant is currently available to purchase. `null` if stock status is not available.
-</ResponseField>
+| Field | Type | Description |
+| --- | --- | --- |
+| `uuid` | string or null, required | Indexed product identifier. Null for an ephemeral lookup result. |
+| `isActive` | boolean or null | Indexed product lifecycle state. Null for an ephemeral lookup result. |
+| `description` | string or null | Product description from the merchant. |
+| `inStock` | boolean or null | Product-level stock rollup. Null means unknown. |
+| `sizes` | string array | Product-level size labels. Defaults to an empty array. |
+| `colors` | [`ProductColor[]`](#productcolor) | Color labels and available swatch information. |
+| `categories` | [`ProductCategory[]`](#productcategory) | Categories reported by the merchant. |
+| `tags` | string array | Tags associated with the product. |
+| `variants` | [`ProductVariant[]`](#productvariant) | Individual size, color, or SKU combinations. |
+| `details` | [`ProductSpecifications`](#productspecifications) | Materials, fit, dimensions, and patterns. |
+| `audience` | [`ProductAudience`](#productaudience) or null | Intended audience reported for the product. |
+| `identifiers` | [`ProductIdentifiers`](#productidentifiers) | Merchant and catalog identifiers. |
+| `breadcrumbs` | [`ProductBreadcrumb[]`](#productbreadcrumb) | Navigation trail on the merchant site. |
+| `promotions` | [`ProductPromotion[]`](#productpromotion) | Promotions associated with the product. |
+| `reviews` | [`ProductReview[]`](#productreview) | Individual customer reviews. |
+| `videos` | [`ProductVideo[]`](#productvideo) | Product videos and thumbnails. |
+| `availability` | string or null | Schema.org availability term for the product's own offer, such as `InStock` or `PreOrder`. |
+| `itemCondition` | string or null | Schema.org offer condition, such as `NewCondition`. |
+| `offerSku` | string or null | SKU on the product's own offer. |
+| `languageCode` | string or null | Language of the title and description, such as `en-US`. |
+| `additionalAttributes` | [`MerchantProvidedAttribute[]`](#merchantprovidedattribute) | Name/value pairs in the order supplied by the merchant. |
+| `enrichment` | [`ProductEnrichment`](#productenrichment) or null | StoreRouter-generated classification and attributes. |
 
-<ResponseField name="categories" type="CategoryView[]">
-  Categories the product is assigned to on the merchant site. Each item has `name` (string, required) and optional `url` (string).
-</ResponseField>
+On-demand lookup can return images with the merchant URL only. Use `primaryImage.cdnUrl` when available and fall back to `primaryImage.url`.
 
-<ResponseField name="sizes" type="string[]">
-  Available size labels as strings, e.g. `["xs", "s", "m", "l", "xl"]`. Empty array if the product has no size options.
-</ResponseField>
+<span id="example--merchantproductview"></span>
 
-<ResponseField name="colors" type="ColorView[]">
-  Available color options for this product.
-
-  <Expandable title="ColorView properties">
-    <ResponseField name="label" type="string" required>
-      Color display label, e.g. `"Black"`.
-    </ResponseField>
-    <ResponseField name="hexCode" type="string | null">
-      Hex color code, e.g. `"#000000"`.
-    </ResponseField>
-    <ResponseField name="swatchUrl" type="string | null">
-      URL of a swatch image for this color.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="tags" type="string[]">
-  Free-form tags associated with the product, e.g. `["hoodie", "graphic", "streetwear"]`.
-</ResponseField>
-
-<ResponseField name="variants" type="MerchantVariantView[]">
-  Individual SKU-level variants of the product.
-
-  <Expandable title="MerchantVariantView properties">
-    <ResponseField name="sku" type="string | null">
-      SKU identifier for this variant.
-    </ResponseField>
-    <ResponseField name="productUrl" type="string | null">
-      URL of this specific variant's product page, if it differs from the parent.
-    </ResponseField>
-    <ResponseField name="color" type="ColorView | null">
-      Color of this variant. Same shape as the top-level `ColorView`.
-    </ResponseField>
-    <ResponseField name="size" type="string | null">
-      Size label for this variant.
-    </ResponseField>
-    <ResponseField name="inStock" type="boolean | null">
-      Whether this specific variant is in stock.
-    </ResponseField>
-    <ResponseField name="imageUrl" type="string | null">
-      Image URL specific to this variant. Unlike product images, this is a plain URL string, not an image object.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="details" type="ProductDetailsView">
-  Structured product attribute details.
-
-  <Expandable title="ProductDetailsView properties">
-    <ResponseField name="materials" type="string[]">
-      List of materials, e.g. `["100% cotton"]`.
-    </ResponseField>
-    <ResponseField name="fit" type="string[]">
-      Fit descriptors, e.g. `["oversized", "relaxed"]`.
-    </ResponseField>
-    <ResponseField name="dimensions" type="string | null">
-      Dimensions or measurements as a free-form string.
-    </ResponseField>
-    <ResponseField name="patterns" type="string[]">
-      Pattern descriptors, e.g. `["solid", "graphic"]`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="audience" type="AudienceView | null">
-  Intended target audience for the product.
-
-  <Expandable title="AudienceView properties">
-    <ResponseField name="genders" type="string[]">
-      Target genders. Values: `"male"`, `"female"`, `"unisex"`.
-    </ResponseField>
-    <ResponseField name="ageGroups" type="string[]">
-      Target age groups. Values: `"infant"`, `"toddler"`, `"kids"`, `"adult"`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="identifiers" type="IdentifiersView">
-  External product identifiers for cross-referencing with other systems.
-
-  <Expandable title="IdentifiersView properties">
-    <ResponseField name="productId" type="string | null">
-      Merchant's internal product ID.
-    </ResponseField>
-    <ResponseField name="gtin" type="string | null">
-      Global Trade Item Number (barcode / UPC / EAN).
-    </ResponseField>
-    <ResponseField name="productGroupId" type="string | null">
-      ID grouping related product variants together on the merchant's platform.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="breadcrumbs" type="BreadcrumbView[]">
-  Navigation breadcrumb trail from the merchant's site. Each item has `name` (string, required) and optional `url` (string).
-</ResponseField>
-
-<ResponseField name="promotions" type="PromotionView[]">
-  Active promotions for this product. Each item has optional `description` (string) and `code` (string).
-</ResponseField>
-
-<ResponseField name="reviews" type="ReviewView[]">
-  Customer reviews. Each item has optional `author` (string), `rating` (number), `body` (string), and `publishedAt` (datetime).
-</ResponseField>
-
-<ResponseField name="videos" type="VideoView[]">
-  Associated product videos. Each item has optional `url` (string), `thumbnailUrl` (string), and `name` (string).
-</ResponseField>
-
-<ResponseField name="enrichment" type="ProductEnrichment | null">
-  StoreRouter-generated enrichment metadata. Includes classification fields like `type`, `gender`, `age_groups`, `color`, `color_family`, `category_path`, and `attributes`, plus `canonical_brand` with brand-level intelligence data.
-</ResponseField>
-
-### Example — MerchantProductView
+### ProductDetail example
 
 ```json
 {
-  "uuid": "prod_01HX...",
+  "uuid": "c6a0e2ab-66b1-4ff0-93e3-06f1747b949c",
   "productUrl": "https://warrenlotas.com/products/black-hoodie",
   "title": "Black Hoodie",
   "brand": {
@@ -320,29 +182,67 @@ Returned as the `product` field in [`POST /products/lookup`](/api-reference/look
   "updatedAt": "2026-05-19T18:04:10Z",
   "description": "Heavyweight cotton hoodie with screen-printed graphics.",
   "inStock": true,
-  "categories": [{"name": "Hoodies & Sweatshirts", "url": null}],
-  "sizes": ["s", "m", "l", "xl"],
-  "colors": [{"label": "Black", "hexCode": "#000000", "swatchUrl": null}],
-  "tags": ["hoodie", "black", "graphic"],
+  "categories": [
+    {
+      "name": "Hoodies & Sweatshirts",
+      "url": null
+    }
+  ],
+  "sizes": [
+    "s",
+    "m",
+    "l",
+    "xl"
+  ],
+  "colors": [
+    {
+      "label": "Black",
+      "hexCode": "#000000",
+      "swatchUrl": null
+    }
+  ],
+  "tags": [
+    "hoodie",
+    "black",
+    "graphic"
+  ],
   "variants": [
     {
       "sku": "WL-BH-001-M",
       "productUrl": null,
-      "color": {"label": "Black", "hexCode": "#000000", "swatchUrl": null},
+      "color": {
+        "label": "Black",
+        "hexCode": "#000000",
+        "swatchUrl": null
+      },
       "size": "m",
       "inStock": true,
-      "imageUrl": null
+      "imageUrl": null,
+      "currentPrice": 180,
+      "currency": "USD",
+      "availability": "InStock"
     }
   ],
   "details": {
-    "materials": ["100% heavyweight cotton"],
-    "fit": ["oversized"],
+    "materials": [
+      "100% heavyweight cotton"
+    ],
+    "fit": [
+      "oversized"
+    ],
     "dimensions": null,
-    "patterns": ["graphic"]
+    "patterns": [
+      "graphic"
+    ]
   },
   "audience": {
-    "genders": ["male", "unisex"],
-    "ageGroups": ["adult"]
+    "genders": [
+      "male",
+      "unisex"
+    ],
+    "ageGroups": [
+      "adult"
+    ]
   },
   "identifiers": {
     "productId": "WL-BH-001",
@@ -350,46 +250,86 @@ Returned as the `product` field in [`POST /products/lookup`](/api-reference/look
     "productGroupId": null
   },
   "breadcrumbs": [
-    {"name": "Home", "url": "https://warrenlotas.com"},
-    {"name": "Tops", "url": "https://warrenlotas.com/collections/tops"},
-    {"name": "Black Hoodie", "url": null}
+    {
+      "name": "Home",
+      "url": "https://warrenlotas.com"
+    },
+    {
+      "name": "Tops",
+      "url": "https://warrenlotas.com/collections/tops"
+    },
+    {
+      "name": "Black Hoodie",
+      "url": null
+    }
   ],
   "promotions": [],
   "reviews": [],
   "videos": [],
-  "enrichment": null
+  "enrichment": {
+    "type": "Hoodie",
+    "gender": "unisex",
+    "age_groups": [
+      "adult"
+    ],
+    "structured_attributes": [
+      {
+        "name": "Neckline",
+        "handle": "neckline",
+        "values": [
+          {
+            "name": "Hooded",
+            "handle": "hooded"
+          }
+        ]
+      }
+    ]
+  },
+  "isActive": true,
+  "currency": "USD",
+  "availability": "InStock",
+  "additionalAttributes": [
+    {
+      "name": "Fabric weight",
+      "value": "Heavyweight"
+    }
+  ]
 }
 ```
 
-## MerchantProductImageMetadataView
+## ProductVariant
 
-One product image. `primaryImage` and every entry in `images` use this shape, on both `MerchantProductListItem` and `MerchantProductView`.
+One entry in `ProductDetail.variants[]`. All fields can be null when the merchant supplies no value.
 
-<ResponseField name="url" type="string" required>
-  Original image URL on the merchant storefront. Always present.
-</ResponseField>
+| Field | Type | Description |
+| --- | --- | --- |
+| `sku` | string | The variant's own SKU. |
+| `offerSku` | string | SKU on the variant's offer. |
+| `gtin` | string | Variant barcode as published by the merchant. |
+| `productUrl` | string | Merchant URL for this variant. |
+| `color` | [`ProductColor`](#productcolor) | Color of the variant. |
+| `size` | string | Size label for this variant. |
+| `inStock` | boolean | Availability of this variant. Null means unknown. |
+| `availability` | string | Schema.org offer term, such as `InStock`, `OutOfStock`, `PreOrder`, or `BackOrder`. |
+| `currentPrice` | number | Current selling price for this variant. |
+| `originalPrice` | number | List or regular price for this variant. |
+| `currency` | string | ISO 4217 currency code for the variant's prices. |
+| `imageUrl` | string | URL of the variant's image. |
 
-<ResponseField name="cdnUrl" type="string | null">
-  StoreRouter-hosted CDN copy of the image. `null` when no hosted copy exists yet. Prefer it and fall back to `url`.
-</ResponseField>
+<span id="merchantproductimagemetadataview"></span>
 
-<ResponseField name="width" type="integer | null">
-  Pixel width of the hosted image.
-</ResponseField>
+## ProductImage
 
-<ResponseField name="height" type="integer | null">
-  Pixel height of the hosted image.
-</ResponseField>
+Both `primaryImage` and each entry in `images[]` use this shape.
 
-<ResponseField name="sizeBytes" type="integer | null">
-  File size of the hosted image in bytes.
-</ResponseField>
-
-<ResponseField name="mimeType" type="string | null">
-  Image format of the hosted copy, predominantly `image/webp`.
-</ResponseField>
-
-To display a product image, read the hosted copy first and fall back to the merchant URL:
+| Field | Type | Description |
+| --- | --- | --- |
+| `url` | string, required | Original image URL on the merchant storefront. |
+| `cdnUrl` | string or null | StoreRouter-hosted copy. Use this URL when available and fall back to `url`. |
+| `width` | integer or null | Width of the hosted image in pixels. |
+| `height` | integer or null | Height of the hosted image in pixels. |
+| `sizeBytes` | integer or null | File size of the hosted image in bytes. |
+| `mimeType` | string or null | MIME type of the hosted copy, such as `image/webp`. |
 
 <CodeGroup>
 
@@ -404,94 +344,109 @@ const src = product.primaryImage?.cdnUrl ?? product.primaryImage?.url;
 
 </CodeGroup>
 
+## Supporting models
+
+### ProductBrand
+
+Brand displayed on a product. It contains a required `name` (string) and nullable string fields `slug`, `url`, and `description`. Use `slug` with the `brand_slug` facet.
+
+### ProductRatingSummary
+
+Product-level rating with `average` (number or null) and `count` (integer or null).
+
+### ProductColor
+
+Color data in `ProductDetail.colors[]` and `ProductVariant.color`. It contains a required `label` (string), plus `hexCode` and `swatchUrl` (strings or null).
+
+### ProductCategory
+
+One entry in `ProductDetail.categories[]`. It contains a required category `name` (string) and a merchant category `url` (string or null).
+
+### ProductAudience
+
+Target audience represented by `genders` and `ageGroups` (arrays of strings). Both default to empty arrays.
+
+### ProductBreadcrumb
+
+One entry in the merchant's navigation trail. It contains a required `name` (string) and a `url` (string or null).
+
+### ProductPromotion
+
+One merchant promotion. Its `promotionId`, `description`, and `code` fields are strings or null. A merchant may provide only a label in `promotionId`.
+
+### ProductReview
+
+One review with nullable `author` and `body` strings, `rating` (number), `ratingCount` (integer), `ratingType` (string, such as `Rating` or `AggregateRating`), and `publishedAt` (date-time string).
+
+### ProductVideo
+
+One video with nullable string fields `url`, `contentUrl`, `embedUrl`, `thumbnailUrl`, and `name`. The API uses `contentUrl`, then `embedUrl`, then the merchant's general URL to populate `url`.
+
+### ProductSpecifications
+
+Structured product details. It contains `materials`, `fit`, and `patterns` (arrays of strings) and `dimensions` (a free-form string or null).
+
+### ProductIdentifiers
+
+Merchant product `productId`, product-level barcode `gtin`, and merchant grouping ID `productGroupId`. Each field is a string or null.
+
+### MerchantProvidedAttribute
+
+One merchant-supplied name/value pair in `ProductDetail.additionalAttributes[]`. Each entry requires a `name` (string) and a `value` (string or number). A name can repeat when the merchant provides several values.
+
+## Enrichment models
+
+### ProductEnrichment
+
+StoreRouter-generated data in `ProductDetail.enrichment`. It includes classification fields such as `type`, `gender`, `age_groups`, `color`, `color_family`, and `category_path`. The `canonical_brand` field carries normalized brand information. Use `attributes` for taxonomy values by name, `attribute_handles` for values by handle, and `structured_attributes` for each attribute's name, handle, and structured values.
+
+### EnrichmentAttribute
+
+One entry in `ProductEnrichment.structured_attributes[]`. It contains a required `name` (string), a required `handle` (string), and `values` (an array of [`EnrichmentAttributeValue`](#enrichmentattributevalue), empty by default).
+
+### EnrichmentAttributeValue
+
+One entry in `EnrichmentAttribute.values[]`. It contains a required display `name` (string) and a required taxonomy `handle` (string).
+
+## Model name compatibility
+
+The product-model update adds these names to the SDKs and OpenAPI schema. Existing SDK imports and OpenAPI components remain supported. Generated response envelopes still reference the existing component names. Both names use the same JSON fields.
+
+| New model name | Existing SDK and OpenAPI name |
+| --- | --- |
+| [`ProductSummary`](#productsummary) | `MerchantProductListItem` |
+| [`ProductDetail`](#productdetail) | `MerchantProductView` |
+| [`ProductVariant`](#productvariant) | `MerchantVariantView` |
+| [`ProductImage`](#productimage) | `MerchantProductImageMetadataView` |
+| [`EnrichmentAttribute`](#enrichmentattribute) | `Attribute` |
+| [`EnrichmentAttributeValue`](#enrichmentattributevalue) | `AttributeValue` |
+| [`MerchantProvidedAttribute`](#merchantprovidedattribute) | `AdditionalAttributeView` |
+| [`ProductAudience`](#productaudience) | `AudienceView` |
+| [`ProductBrand`](#productbrand) | `BrandView` |
+| [`ProductBreadcrumb`](#productbreadcrumb) | `BreadcrumbView` |
+| [`ProductCategory`](#productcategory) | `CategoryView` |
+| [`ProductColor`](#productcolor) | `ColorView` |
+| [`ProductIdentifiers`](#productidentifiers) | `IdentifiersView` |
+| [`ProductPromotion`](#productpromotion) | `PromotionView` |
+| [`ProductRatingSummary`](#productratingsummary) | `RatingView` |
+| [`ProductReview`](#productreview) | `ReviewView` |
+| [`ProductSpecifications`](#productspecifications) | `ProductDetailsView` |
+| [`ProductVideo`](#productvideo) | `VideoView` |
+
 ## SDK types
+
+Import the model names from the SDK package. Python exposes snake_case attributes such as `product_url` and `primary_image`. TypeScript uses the JSON names, such as `productUrl` and `primaryImage`.
 
 <CodeGroup>
 
 ```python Python
-# octogen_ai_sdk.models
-class MerchantProductImageMetadataView(_ResponseModel):
-    url: str
-    cdn_url: str | None        # JSON alias: "cdnUrl"
-    width: int | None
-    height: int | None
-    size_bytes: int | None     # JSON alias: "sizeBytes"
-    mime_type: str | None      # JSON alias: "mimeType"
-
-class MerchantProductListItem(_ResponseModel):
-    uuid: str
-    product_url: str           # JSON alias: "productUrl"
-    title: str | None
-    brand: BrandView | None
-    current_price: float | None  # JSON alias: "currentPrice"
-    original_price: float | None  # JSON alias: "originalPrice"
-    image_url: str | None      # JSON alias: "imageUrl" (deprecated)
-    primary_image: MerchantProductImageMetadataView | None  # JSON alias: "primaryImage"
-    images: list[MerchantProductImageMetadataView]
-    rating: RatingView | None
-    updated_at: datetime | None  # JSON alias: "updatedAt"
-
-class MerchantProductView(MerchantProductListItem):
-    description: str | None
-    in_stock: bool | None      # JSON alias: "inStock"
-    categories: list[CategoryView]
-    sizes: list[str]
-    colors: list[ColorView]
-    tags: list[str]
-    variants: list[MerchantVariantView]
-    details: ProductDetailsView
-    audience: AudienceView | None
-    identifiers: IdentifiersView
-    breadcrumbs: list[BreadcrumbView]
-    promotions: list[PromotionView]
-    reviews: list[ReviewView]
-    videos: list[VideoView]
-    enrichment: ProductEnrichment | None
+from octogen_ai_sdk import ProductDetail, ProductSummary, ProductVariant
 ```
 
 ```typescript TypeScript
-// @octogen-ai/sdk: models
-interface MerchantProductImageMetadataView {
-  url: string;
-  cdnUrl?: string | null;
-  width?: number | null;
-  height?: number | null;
-  sizeBytes?: number | null;
-  mimeType?: string | null;
-}
-
-interface MerchantProductListItem {
-  uuid: string;
-  productUrl: string;
-  title?: string | null;
-  brand?: BrandView | null;
-  currentPrice?: number | null;
-  originalPrice?: number | null;
-  /** @deprecated Read primaryImage instead. */
-  imageUrl?: string | null;
-  primaryImage?: MerchantProductImageMetadataView | null;
-  images?: MerchantProductImageMetadataView[];
-  rating?: RatingView | null;
-  updatedAt?: string | null;
-}
-
-interface MerchantProductView extends MerchantProductListItem {
-  description?: string | null;
-  inStock?: boolean | null;
-  categories?: CategoryView[];
-  sizes?: string[];
-  colors?: ColorView[];
-  tags?: string[];
-  variants?: MerchantVariantView[];
-  details?: ProductDetailsView;
-  audience?: AudienceView | null;
-  identifiers?: IdentifiersView;
-  breadcrumbs?: BreadcrumbView[];
-  promotions?: PromotionView[];
-  reviews?: ReviewView[];
-  videos?: VideoView[];
-  enrichment?: ProductEnrichment | null;
-}
+import type { ProductDetail, ProductSummary, ProductVariant } from "@octogen-ai/sdk";
 ```
 
 </CodeGroup>
+
+See the [Python SDK](/sdks/python) and [TypeScript SDK](/sdks/typescript) guides.
