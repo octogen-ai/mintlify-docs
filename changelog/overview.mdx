@@ -3,6 +3,18 @@ title: "Changelog"
 description: "New features, improvements, and fixes for the Octogen Platform."
 ---
 
+<Update label="November 19, 2026" description="Taxonomy, facet-count, and store endpoints in the API reference">
+
+The API reference now documents seven endpoints that were already available:
+
+- **Taxonomy API.** [`GET /v1/taxonomy/categories`](/api-reference/list-taxonomy-categories), [`GET /v1/taxonomy/attributes`](/api-reference/list-taxonomy-attributes), and [`GET /v1/taxonomy/attributes/{handle}/values`](/api-reference/list-taxonomy-attribute-values) return the categories and enrichment attributes StoreRouter assigns to products, with the search facets that select them. They are the REST equivalents of the MCP `taxonomy_tree` and `taxonomy_attribute` tools.
+- **Facet counts.** [`POST /v1/products/facet-counts`](/api-reference/count-product-facets) counts the products a search would filter to, per category, attribute value, or color family.
+- **Stores API.** [`POST /v1/stores/search`](/api-reference/search-stores), [`POST /v1/stores/similar`](/api-reference/similar-stores), and [`GET /v1/stores/{domain}`](/api-reference/get-store) find stores and describe their coverage and assortment.
+
+None of these endpoints is billed.
+
+</Update>
+
 ## November 3, 2026
 
 Brand serving now has a complete [directory](/api-reference/brand-directory), lightweight [profiles](/api-reference/get-brand) with article cards and navigation facets, and separate [coverage snapshots](/api-reference/brand-coverage). Profiles no longer contain coverage fields. Brand product browsing returns server `nextOffset` and supports offset 11976, equivalent to page 500 at 24 rows per page.

@@ -51,6 +51,17 @@ The Catalog API reference documents these endpoints.
 | `GET` | `/products/retrieve/{uuid}` | `retrieveProduct` | Reads back a product you already hold an id for, from the index only. |
 | `POST` | `/products/retrieve` | `retrieveProducts` | Reads back 1–50 products by id, in request order. |
 | `POST` | `/products/more-like-this` | `moreLikeThisProducts` | Finds products similar to a source product URL or UUID. |
+| `POST` | `/products/facet-counts` | `countProductFacets` | Counts the products a search would filter to, per category, attribute value, or facet value. |
+
+## Taxonomy endpoints
+
+The taxonomy endpoints return the canonical categories and enrichment attributes that StoreRouter assigns to products, with the search facets that select them. They return definitions, not inventory; use `POST /products/facet-counts` for counts.
+
+| Method | Path | Operation | Description |
+| --- | --- | --- | --- |
+| `GET` | `/taxonomy/categories` | `listTaxonomyCategories` | Root categories, or one category's direct children, with the facets that select each. |
+| `GET` | `/taxonomy/attributes` | `listTaxonomyAttributes` | The attributes a category carries, such as `neckline` for dresses, with their facet names. |
+| `GET` | `/taxonomy/attributes/{handle}/values` | `listTaxonomyAttributeValues` | One attribute's canonical value handles and labels. |
 
 ## Brand endpoints
 
@@ -63,6 +74,20 @@ The Catalog API reference documents these endpoints.
 | `GET` | `/brands/{brand}/top-categories` | `getBrandTopCategories` | Precomputed corpus-wide category metadata. |
 
 See [Discover brands](/guides/brand-discovery) for search, similarity, scope, and examples.
+
+## Store endpoints
+
+Stores are the retailers whose products StoreRouter indexes. They are distinct from brands, which make the products.
+
+| Method | Path | Operation | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/stores/search` | `searchStores` | Stores whose observed assortment matches a description. |
+| `POST` | `/stores/similar` | `searchSimilarStores` | Stores whose whole assortment resembles one or more stores. |
+| `GET` | `/stores/{domain}` | `getStore` | One store's catalogs, product counts, populated facets, price histogram, and assortment profile. |
+
+To search a store's products, pass its domain in `stores` on [`POST /products/search`](/api-reference/search-products).
+
+The taxonomy, store, and facet-count endpoints are not billed. They share your organization's rate limit.
 
 ## Error model
 

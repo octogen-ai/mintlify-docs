@@ -1,0 +1,55 @@
+---
+title: "POST /stores/similar — find stores similar to other stores"
+description: "Find stores whose whole assortment resembles one or more stores you name, ranked by their published store profiles."
+sidebarTitle: "Similar Stores"
+---
+
+`POST /stores/similar` finds stores whose whole assortment resembles one or more stores you name. It compares the stores' overall published profiles. When you name several stores, their profiles are averaged. The stores you name never appear in their own results.
+
+The response has the same shape as [`POST /stores/search`](/api-reference/search-stores#response).
+
+<Note>
+  Similar-store search covers the same stores as store search: stores with a published profile. Results can return fewer stores than `limit`, and there is no total or pagination.
+</Note>
+
+This endpoint is not billed. It is rate limited like every `/v1` route. Responses are sent with `Cache-Control: private, no-store`.
+
+## Request
+
+```bash
+curl https://api.storerouter.ai/v1/stores/similar \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"stores": ["thereformation.com"], "limit": 10}'
+```
+
+### Body parameters
+
+Unknown fields return a `422`.
+
+<ParamField body="stores" type="string[]" required>
+  1 to 10 store domains to find neighbors for, as [`GET /stores/{domain}`](/api-reference/get-store) takes them: bare hosts such as `thereformation.com`. Each store must be covered and have a published profile.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="24">
+  Most stores to return, from 1 to 100.
+</ParamField>
+
+## Response
+
+<ResponseField name="results" type="StoreSearchResult[]" required>
+  Unique stores, most similar first. See [`POST /stores/search`](/api-reference/search-stores#response) for the result fields. `matchedDepartment` is not populated for similarity results.
+</ResponseField>
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `404` | `domain_not_covered` | A store you named is not covered. |
+| `404` | `store_not_profiled` | A store you named has no published profile to compare. |
+| `422` | Validation array | `stores` is empty, has more than 10 domains, or includes a blank domain, or `limit` is out of range. |
+| `503` | `store_search_unavailable` | Store search is not configured, or its backend is unavailable. Retry later. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+Operation ID: `searchSimilarStores`. SDK methods: Python `search_similar_stores(stores, limit=...)`; TypeScript `searchSimilarStores({ stores, limit })`. The CLI command is `storerouter stores similar <domain|url>...`. The MCP equivalent is [`similar_stores`](/mcp/overview#store-discovery-tools).

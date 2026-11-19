@@ -85,7 +85,16 @@
               "api-reference/lookup-product",
               "api-reference/retrieve-product",
               "api-reference/retrieve-products",
-              "api-reference/more-like-this"
+              "api-reference/more-like-this",
+              "api-reference/count-product-facets"
+            ]
+          },
+          {
+            "group": "Taxonomy API",
+            "pages": [
+              "api-reference/list-taxonomy-categories",
+              "api-reference/list-taxonomy-attributes",
+              "api-reference/list-taxonomy-attribute-values"
             ]
           },
           {
@@ -99,6 +108,14 @@
               "api-reference/brand-coverage",
               "api-reference/browse-brand-products",
               "api-reference/brand-top-categories"
+            ]
+          },
+          {
+            "group": "Stores API",
+            "pages": [
+              "api-reference/search-stores",
+              "api-reference/similar-stores",
+              "api-reference/get-store"
             ]
           },
           {

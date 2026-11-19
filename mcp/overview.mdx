@@ -171,13 +171,15 @@ Use these tools to find the category and attribute filters that `search_products
 
 A typical sequence: call `taxonomy_tree` without a node to pick a section, traverse that section, call `taxonomy_attribute` for the attributes you need, then pass the resulting filters to `search_products` as `facets`.
 
+The REST equivalents are the [Taxonomy API](/api-reference/list-taxonomy-categories) endpoints. To count products per category or value under a set of filters, call [`POST /v1/products/facet-counts`](/api-reference/count-product-facets); there is no MCP tool for counts.
+
 ### Brand discovery tools
 
 Use `search_brands`, `similar_brands`, `brand_prefix`, `get_brand`, `browse_brand_products`, and `get_brand_top_categories` to discover brands and browse their products. Brand identities describe makers and designers; they are distinct from stores and sellers. Discovery metadata is corpus-wide, while product browse respects your catalog scope. See [Discover brands](/guides/brand-discovery) for arguments, response shapes, and examples.
 
 ### Store discovery tools
 
-Use these tools to find stores (retailers) by what they sell. Store profiles describe each store's observed assortment, not live product availability. To find products at a store, call `search_products` with `stores`.
+Use these tools to find stores (retailers) by what they sell. Store profiles describe each store's observed assortment, not live product availability. To find products at a store, call `search_products` with `stores`. The REST equivalents are the [Stores API](/api-reference/search-stores) endpoints.
 
 | Tool | Purpose |
 | --- | --- |
