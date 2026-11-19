@@ -1,0 +1,217 @@
+---
+title: "GET /stores/{domain} — get a store's coverage and profile"
+description: "Inspect every catalog that serves a store domain: indexed product counts, populated facets with top values, a price histogram, and the store's assortment profile."
+sidebarTitle: "Get Store"
+---
+
+`GET /stores/{domain}` describes what StoreRouter indexes for one store (retailer). It returns every catalog that serves the domain, with:
+
+- the number of indexed products;
+- the search facets populated on those products, with coverage and top values;
+- a current-price histogram;
+- the store's assortment profile, when one is published.
+
+Use it to check whether a store is covered before you search it, to build a store page, or to choose filters that are populated for that store. To search a store's products, pass its domain in `stores`, or its `catalog` in `catalogs`, on [`POST /products/search`](/api-reference/search-products).
+
+Stores are distinct from brands. A store sells products; a brand makes them. For brands, see [Get brand coverage](/api-reference/brand-coverage).
+
+<Note>
+  Counts describe the store's observed, indexed assortment. They are approximate snapshots, not live inventory or the number of products a search would return. Use [`POST /products/facet-counts`](/api-reference/count-product-facets) for counts under specific filters.
+</Note>
+
+This endpoint is not billed. It is rate limited like every `/v1` route.
+
+## Request
+
+```bash
+curl https://api.storerouter.ai/v1/stores/thereformation.com \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
+```
+
+### Path parameters
+
+<ParamField path="domain" type="string" required>
+  The store's bare host, such as `thereformation.com`. Not a URL. The host is lowercased and a leading `www.` is removed, so `www.TheReformation.com` reads the same store. The SDKs also accept a full product URL and extract its host.
+</ParamField>
+
+A domain is covered only when at least one catalog serving it has an indexed product. There is no endpoint that lists every covered domain: ask about the store you have, or find stores with [`POST /stores/search`](/api-reference/search-stores).
+
+## Response
+
+<ResponseField name="host" type="string" required>
+  The normalized domain you requested.
+</ResponseField>
+
+<ResponseField name="catalogs" type="StoreCatalogCoverage[]" required>
+  One entry per catalog serving the domain, sorted by `catalog`. Several catalogs can share a domain; that does not make them the same store.
+
+  <Expandable title="StoreCatalogCoverage properties">
+    <ResponseField name="catalog" type="string" required>
+      Catalog key. Pass it in `catalogs` on [`POST /products/search`](/api-reference/search-products) to search this catalog.
+    </ResponseField>
+
+    <ResponseField name="catalogDisplayName" type="string" required>
+      Human-readable catalog name.
+    </ResponseField>
+
+    <ResponseField name="productCount" type="integer" required>
+      Indexed product groups in the catalog.
+    </ResponseField>
+
+    <ResponseField name="computedAt" type="string" required>
+      When the coverage snapshot was computed, as a UTC ISO 8601 timestamp.
+    </ResponseField>
+
+    <ResponseField name="fields" type="DomainField[]" required>
+      Public search facets populated on at least one product, ordered by `source` and then by coverage.
+
+      <Expandable title="DomainField properties">
+        <ResponseField name="name" type="string" required>
+          Search facet name, such as `category_path.depth_2` or `neckline`.
+        </ResponseField>
+
+        <ResponseField name="displayName" type="string" required>
+          Human-readable facet name.
+        </ResponseField>
+
+        <ResponseField name="source" type="string" required>
+          `product` for merchant data, `enrichment` for StoreRouter's classification and attributes, or `brands` for brand facts.
+        </ResponseField>
+
+        <ResponseField name="populated" type="integer" required>
+          Products with at least one value.
+        </ResponseField>
+
+        <ResponseField name="coverage" type="number" required>
+          `populated / productCount`, rounded to 3 decimals.
+        </ResponseField>
+
+        <ResponseField name="distinct" type="integer" required>
+          Approximate number of distinct values.
+        </ResponseField>
+
+        <ResponseField name="topValues" type="DomainFieldValue[]" required>
+          Up to 10 of the most common values, most common first. Each has `value` (the canonical search value to send with `name` as a facet), `label`, and approximate `count`.
+        </ResponseField>
+
+        <ResponseField name="truncated" type="boolean" required>
+          Whether values beyond `topValues` exist.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="price" type="PriceDistribution | null" required>
+      Current-price histogram, in the catalog's listing currency (usually USD). `null` when nothing is priced. Contains `populated` (products priced above zero), approximate `median`, and equal-width `buckets`, each with `min` (inclusive), `max` (exclusive), and `count`. Buckets span roughly the 1st to 95th percentile; products outside that span are counted in `below` and `above`.
+    </ResponseField>
+
+    <ResponseField name="profile" type="StoreProfile | null" required>
+      The store's published assortment profile, or `null` when none is usable. Coverage is still returned when the profile is `null`.
+
+      <Expandable title="StoreProfile properties">
+        <ResponseField name="store" type="StoreIdentity" required>
+          The store's identity: `storeId`, `displayName`, `catalog`, `primaryDomain`, and every alias in `domains`.
+        </ResponseField>
+
+        <ResponseField name="overall" type="StoreAssortmentProfile" required>
+          The whole store's profile: `productCount`, a `summary` in prose, and `distributions`.
+        </ResponseField>
+
+        <ResponseField name="departments" type="StoreDepartmentProfile[]" required>
+          One profile per department, each with `departmentId`, `categoryPath` (root first), `productCount`, `summary`, and `distributions`.
+        </ResponseField>
+
+        <ResponseField name="computedAt" type="string" required>
+          When the profile was computed, with timezone.
+        </ResponseField>
+
+        <ResponseField name="profileVersion" type="string" required>
+          Opaque ID of this published profile generation.
+        </ResponseField>
+
+        <ResponseField name="schemaVersion" type="string" required>
+          Profile schema version.
+        </ResponseField>
+
+        <ResponseField name="provenance" type="object" required>
+          `observedAt` (source observation time), `countingUnit` (what one counted product is), and `taxonomyVersion` when known.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Profile distributions
+
+Each `distributions` entry describes one field within the profile's population:
+
+| Field | Description |
+| --- | --- |
+| `name` | Canonical profile field name. |
+| `source` | `product`, `enrichment`, or `brands`. Brand-derived values describe the brands a store stocks, not the store's policies. |
+| `populationCount` | Denominator for value shares. |
+| `populatedCount` | Products with a known value. The rest are unknown, not absent. |
+| `values` | Each value's `value`, `label`, and `count`. A value's share is `count / populationCount`. For multi-valued fields, shares can sum to more than 100%. |
+| `approximate` | Whether the counts are approximate. |
+| `truncated` | Whether more values exist than are listed. |
+
+Profile counts and timestamps belong to the profile's own generation, which can differ from the coverage snapshot.
+
+### Example response
+
+Abbreviated to one field and two price buckets:
+
+```json
+{
+  "host": "thereformation.com",
+  "catalogs": [
+    {
+      "catalog": "thereformation",
+      "catalogDisplayName": "Reformation",
+      "productCount": 3949,
+      "computedAt": "2026-11-19T05:43:15Z",
+      "fields": [
+        {
+          "name": "neckline",
+          "displayName": "Neckline",
+          "source": "enrichment",
+          "populated": 2494,
+          "coverage": 0.632,
+          "distinct": 24,
+          "topValues": [
+            {"value": "neckline__v_neck", "label": "V Neck", "count": 465},
+            {"value": "neckline__square", "label": "Square", "count": 336},
+            {"value": "neckline__mock", "label": "Mock Neck", "count": 246}
+          ],
+          "truncated": true
+        }
+      ],
+      "price": {
+        "populated": 3809,
+        "median": 208.73,
+        "buckets": [
+          {"min": 40, "max": 60, "count": 81},
+          {"min": 60, "max": 80, "count": 139}
+        ],
+        "below": 12,
+        "above": 191
+      },
+      "profile": null
+    }
+  ]
+}
+```
+
+## Caching
+
+Coverage snapshots are cached per catalog for about a day. Responses carry an `ETag` and `Cache-Control: private, no-cache`. Send the saved `ETag` in `If-None-Match` to revalidate; a match returns `304` with no body.
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `404` | `domain_not_covered` | No catalog with indexed products serves the domain. |
+| `503` | `domain_snapshot_unavailable` | The coverage snapshot could not be read. Retry later; don't cache it as an uncovered store. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+Operation ID: `getStore`. SDK methods: Python `get_store(url_or_host)`; TypeScript `getStore(urlOrHost)`. The CLI command is `storerouter stores show <domain|url>`. The MCP equivalent is [`get_store`](/mcp/overview#store-discovery-tools).

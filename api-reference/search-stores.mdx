@@ -1,0 +1,140 @@
+---
+title: "POST /stores/search — discover stores by what they sell"
+description: "Find stores (retailers) from a plain-language description of their assortment, ranked by published store profiles and exact store name or domain matches."
+sidebarTitle: "Search Stores"
+---
+
+`POST /stores/search` finds stores (retailers) whose observed assortment matches a description, such as `linen dresses` or `Japanese ceramics`. Results are ranked by each store's published assortment profile, plus exact matches on store name or domain.
+
+Each result identifies the store and summarizes its profile. To inspect a result, pass its `store.primaryDomain` to [`GET /stores/{domain}`](/api-reference/get-store). To search its products, pass the same domain in `stores`, or `store.catalog` in `catalogs`, on [`POST /products/search`](/api-reference/search-products).
+
+<Note>
+  Store search covers stores with a published profile, not every covered store. Results can return fewer stores than `limit`, and there is no total or pagination. Profile counts describe a store's observed assortment, not products that match your text. Use [`POST /products/search`](/api-reference/search-products) to establish product-level requirements.
+</Note>
+
+This endpoint is not billed. It is rate limited like every `/v1` route. Responses are sent with `Cache-Control: private, no-store`.
+
+## Request
+
+```bash
+curl https://api.storerouter.ai/v1/stores/search \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "linen dresses", "limit": 10}'
+```
+
+### Body parameters
+
+Unknown fields return a `422`.
+
+<ParamField body="text" type="string" required>
+  Description of the kind of store to find, 1 to 500 characters after trimming whitespace.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="24">
+  Most stores to return, from 1 to 100.
+</ParamField>
+
+## Response
+
+<ResponseField name="results" type="StoreSearchResult[]" required>
+  Unique stores, best match first.
+
+  <Expandable title="StoreSearchResult properties">
+    <ResponseField name="store" type="StoreIdentity" required>
+      The store's identity.
+
+      <Expandable title="StoreIdentity properties">
+        <ResponseField name="storeId" type="string" required>
+          Stable store identifier.
+        </ResponseField>
+
+        <ResponseField name="displayName" type="string" required>
+          Store name.
+        </ResponseField>
+
+        <ResponseField name="catalog" type="string" required>
+          Catalog key. Pass it in `catalogs` on `POST /products/search`.
+        </ResponseField>
+
+        <ResponseField name="primaryDomain" type="string" required>
+          Normalized bare primary host. Pass it to `GET /stores/{domain}` or in `stores` on `POST /products/search`.
+        </ResponseField>
+
+        <ResponseField name="domains" type="string[]" required>
+          Every normalized host for the store, including `primaryDomain`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="summary" type="string" required>
+      The store's published overall profile summary.
+    </ResponseField>
+
+    <ResponseField name="matchedDepartment" type="StoreDepartmentProfile | null">
+      The department most relevant to your text, if any, with `departmentId`, `categoryPath`, `productCount`, `summary`, and `distributions`. Its counts describe that department's whole population, not products matching your text. See [Profile distributions](/api-reference/get-store#profile-distributions).
+    </ResponseField>
+
+    <ResponseField name="profileVersion" type="string" required>
+      Opaque ID of the profile generation that ranked this store.
+    </ResponseField>
+
+    <ResponseField name="computedAt" type="string" required>
+      When that profile was computed, with timezone.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example response
+
+Illustrative values, with one distribution shown:
+
+```json
+{
+  "results": [
+    {
+      "store": {
+        "storeId": "thereformation",
+        "displayName": "Reformation",
+        "catalog": "thereformation",
+        "primaryDomain": "thereformation.com",
+        "domains": ["thereformation.com"]
+      },
+      "summary": "Women's clothing focused on dresses, tops, and denim, mostly in natural fibers.",
+      "matchedDepartment": {
+        "departmentId": "category:apparel & accessories > clothing > dresses",
+        "categoryPath": ["Apparel & Accessories", "Clothing", "Dresses"],
+        "productCount": 1204,
+        "summary": "Midi and maxi dresses, often in linen and silk.",
+        "distributions": [
+          {
+            "name": "fabric",
+            "source": "enrichment",
+            "populationCount": 1204,
+            "populatedCount": 1102,
+            "approximate": false,
+            "truncated": true,
+            "values": [
+              {"value": "fabric__linen", "label": "Linen", "count": 318},
+              {"value": "fabric__silk", "label": "Silk", "count": 211}
+            ]
+          }
+        ]
+      },
+      "profileVersion": "2026-11-18T09:12:44Z-7f3c",
+      "computedAt": "2026-11-18T09:12:44Z"
+    }
+  ]
+}
+```
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `422` | Validation array | `text` is missing, blank, or longer than 500 characters, or `limit` is out of range. |
+| `503` | `store_search_unavailable` | Store search is not configured, or its backend is unavailable. Retry later. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+Operation ID: `searchStores`. SDK methods: Python `search_stores(text, limit=...)`; TypeScript `searchStores({ text, limit })`. The CLI command is `storerouter stores search <description>`. The MCP equivalent is [`search_stores`](/mcp/overview#store-discovery-tools).

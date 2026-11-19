@@ -10,7 +10,7 @@ curl https://api.storerouter.ai/v1/brands/allbirds/coverage \
   -H "Authorization: Bearer $STOREROUTER_API_KEY"
 ```
 
-The `BrandCoverageResponse` contains public brand metadata plus `productCount`, `computedAt`, `fields`, `price`, `catalogs`, and `catalogsTruncated`. `fields` reports populated facets and top values; `price` is the price distribution. Each catalog lists `catalog`, `catalogDisplayName`, `hosts`, and `productCount`. Pass a returned host to the store coverage API to inspect that store.
+The `BrandCoverageResponse` contains public brand metadata plus `productCount`, `computedAt`, `fields`, `price`, `catalogs`, and `catalogsTruncated`. `fields` reports populated facets and top values; `price` is the price distribution. Each catalog lists `catalog`, `catalogDisplayName`, `hosts`, and `productCount`. Pass a returned host to [`GET /stores/{domain}`](/api-reference/get-store) to inspect that store.
 
 These are cached, approximate public-population snapshots across catalogs. They are not live inventory counts, products matching a search, or your customer-scoped browse total. Use [`GET /brands/{brand}/products`](/api-reference/browse-brand-products) to fetch products your organization can access.
 

@@ -1,0 +1,115 @@
+---
+title: "GET /taxonomy/attributes/{handle}/values — list an attribute's values"
+description: "List one taxonomy attribute's canonical value handles and display labels, ready to send as search facet values."
+sidebarTitle: "List Attribute Values"
+---
+
+`GET /taxonomy/attributes/{handle}/values` lists the canonical values of one attribute, such as `neckline__halter` for `neckline`. To filter search by a value, send `{"name": attribute.facetName, "values": [value.handle]}` in `facets` on [`POST /products/search`](/api-reference/search-products).
+
+<Note>
+  These are canonical definitions, not inventory. A value listed here may match no product in your catalog scope. Use [`POST /products/facet-counts`](/api-reference/count-product-facets) with `attributes` to list only values that have products, with counts.
+</Note>
+
+This endpoint is not billed. It is rate limited like every `/v1` route.
+
+## Request
+
+```bash
+curl "https://api.storerouter.ai/v1/taxonomy/attributes/neckline/values?limit=3" \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
+```
+
+### Path parameters
+
+<ParamField path="handle" type="string" required>
+  Attribute handle from [`GET /taxonomy/attributes`](/api-reference/list-taxonomy-attributes), such as `neckline`.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="offset" type="integer" default="0">
+  Number of values to skip. Use the previous page's `nextOffset`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Values per page, from 1 to 100.
+</ParamField>
+
+## Response
+
+<ResponseField name="taxonomyVersion" type="string" required>
+  Canonical taxonomy version name, such as `v4`.
+</ResponseField>
+
+<ResponseField name="attribute" type="TaxonomyAttribute" required>
+  The attribute, in the shape [`GET /taxonomy/attributes`](/api-reference/list-taxonomy-attributes#response) returns. Its `facetName` is the facet to send the value handles under.
+</ResponseField>
+
+<ResponseField name="values" type="TaxonomyAttributeValue[]" required>
+  This page of values.
+
+  <Expandable title="TaxonomyAttributeValue properties">
+    <ResponseField name="handle" type="string" required>
+      Canonical value handle, such as `neckline__halter`. Send it unchanged in the attribute facet's `values`.
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Display label, such as `Halter`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer" required>
+  Number of values across all pages.
+</ResponseField>
+
+<ResponseField name="nextOffset" type="integer | null" required>
+  Offset of the next page. Repeat the request with it as `offset`. `null` on the last page.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "taxonomyVersion": "v4",
+  "attribute": {
+    "handle": "neckline",
+    "name": "Neckline",
+    "description": "Used to describe the neck shape of a garment, such as V-neck or boat",
+    "facetName": "neckline",
+    "matching": "any selected value; exact canonical handles",
+    "valueCount": 26
+  },
+  "values": [
+    {"handle": "neckline__asymmetric", "name": "Asymmetric"},
+    {"handle": "neckline__boat", "name": "Boat"},
+    {"handle": "neckline__collared", "name": "Collared"}
+  ],
+  "total": 26,
+  "nextOffset": 3
+}
+```
+
+To find boat-neck dresses, combine the category facets from [`GET /taxonomy/categories`](/api-reference/list-taxonomy-categories) with the attribute facet:
+
+```json
+{
+  "facets": [
+    {"name": "category_path.depth_0", "values": ["apparel & accessories"]},
+    {"name": "category_path.depth_1", "values": ["clothing"]},
+    {"name": "category_path.depth_2", "values": ["dresses"]},
+    {"name": "neckline", "values": ["neckline__boat"]}
+  ]
+}
+```
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `404` | `taxonomy_attribute_not_found` | `handle` names no attribute. |
+| `422` | Validation array | `offset` or `limit` is out of range. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+Operation ID: `listTaxonomyAttributeValues`. SDK methods: Python `list_taxonomy_attribute_values(handle, offset=..., limit=...)`; TypeScript `listTaxonomyAttributeValues(handle, { offset, limit })`. The MCP equivalent is [`taxonomy_attribute`](/mcp/overview#taxonomy-discovery-tools).

@@ -1,0 +1,135 @@
+---
+title: "GET /taxonomy/attributes — list a category's attributes"
+description: "List the enrichment attributes a taxonomy category carries, such as neckline for dresses, with the search facet name for each."
+sidebarTitle: "List Attributes"
+---
+
+`GET /taxonomy/attributes` lists the attributes that enrichment records for products in one category, such as `neckline`, `fabric`, and `sleeve_style` for dresses. Each attribute includes its `facetName`, the name to filter on in [`POST /products/search`](/api-reference/search-products) `facets`.
+
+Read an attribute's values with [`GET /taxonomy/attributes/{handle}/values`](/api-reference/list-taxonomy-attribute-values).
+
+<Note>
+  These are canonical definitions, not inventory. An attribute listed here may be populated on few products in your catalog scope. Use [`POST /products/facet-counts`](/api-reference/count-product-facets) to count products by attribute value.
+</Note>
+
+This endpoint is not billed. It is rate limited like every `/v1` route.
+
+## Request
+
+```bash
+curl "https://api.storerouter.ai/v1/taxonomy/attributes?category=apparel%20%26%20accessories%20%3E%20clothing%20%3E%20dresses&limit=2" \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
+```
+
+### Query parameters
+
+<ParamField query="category" type="string" required>
+  The category whose attributes to list. Accepts a category UUID, a section handle such as `apparel`, or a category path such as `Apparel & Accessories > Clothing > Dresses` in any letter case. See [`GET /taxonomy/categories`](/api-reference/list-taxonomy-categories).
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of attributes to skip. Use the previous page's `nextOffset`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Attributes per page, from 1 to 100.
+</ParamField>
+
+## Response
+
+<ResponseField name="taxonomyVersion" type="string" required>
+  Canonical taxonomy version name, such as `v4`.
+</ResponseField>
+
+<ResponseField name="category" type="TaxonomyCategory" required>
+  The requested category, in the shape [`GET /taxonomy/categories`](/api-reference/list-taxonomy-categories#response) returns.
+</ResponseField>
+
+<ResponseField name="attributes" type="TaxonomyAttribute[]" required>
+  This page of attributes.
+
+  <Expandable title="TaxonomyAttribute properties">
+    <ResponseField name="handle" type="string" required>
+      Canonical attribute handle, such as `neckline`.
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Display name, such as `Neckline`.
+    </ResponseField>
+
+    <ResponseField name="description" type="string | null">
+      What the attribute describes.
+    </ResponseField>
+
+    <ResponseField name="facetName" type="string | null" required>
+      The search facet name for this attribute. Send its value handles under this name in `facets`. `null` when the attribute is not filterable.
+    </ResponseField>
+
+    <ResponseField name="matching" type="string | null" required>
+      How a facet on this attribute matches. `null` when the attribute is not filterable.
+    </ResponseField>
+
+    <ResponseField name="valueCount" type="integer" required>
+      Number of canonical values.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer" required>
+  Number of attributes across all pages.
+</ResponseField>
+
+<ResponseField name="nextOffset" type="integer | null" required>
+  Offset of the next page. Repeat the request with it as `offset`. `null` on the last page.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "taxonomyVersion": "v4",
+  "category": {
+    "id": "8866aef9-1915-4d6e-b465-87ba30b50380",
+    "name": "Dresses",
+    "path": "Apparel & Accessories > Clothing > Dresses",
+    "depth": 2,
+    "childCount": 0,
+    "facets": [
+      {"name": "category_path.depth_0", "values": ["apparel & accessories"]},
+      {"name": "category_path.depth_1", "values": ["clothing"]},
+      {"name": "category_path.depth_2", "values": ["dresses"]}
+    ]
+  },
+  "attributes": [
+    {
+      "handle": "baby_unique_features",
+      "name": "Baby & Toddler Features",
+      "description": "Features specific to baby and toddler clothing for safety and convenience",
+      "facetName": "baby_unique_features",
+      "matching": "any selected value; exact canonical handles",
+      "valueCount": 5
+    },
+    {
+      "handle": "construction_detail",
+      "name": "Construction Detail",
+      "description": "Describes fabric manipulation techniques used in garment construction, such as pleating or ruching.",
+      "facetName": "construction_detail",
+      "matching": "any selected value; exact canonical handles",
+      "valueCount": 7
+    }
+  ],
+  "total": 23,
+  "nextOffset": 2
+}
+```
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `404` | `taxonomy_category_not_found` | `category` names no category. |
+| `422` | Validation array | `category` is missing or blank, or `offset` or `limit` is out of range. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+Operation ID: `listTaxonomyAttributes`. SDK methods: Python `list_taxonomy_attributes(category, offset=..., limit=...)`; TypeScript `listTaxonomyAttributes(category, { offset, limit })`. The MCP equivalent is the `attribute_handles` on each [`taxonomy_tree`](/mcp/overview#taxonomy-discovery-tools) node.

@@ -86,7 +86,7 @@ Every field is optional. Unknown fields return a `422`.
 </ParamField>
 
 <ParamField body="stores" type="string[]">
-  1 to 20 store domains, such as `allbirds.com`. Domains are matched without case or a leading `www.`; each searches every catalog serving it within your scope. An uncovered domain returns `404` with `domain_not_covered`. Cannot be combined with `catalogs`.
+  1 to 20 store domains, such as `allbirds.com`. Domains are matched without case or a leading `www.`; each searches every catalog serving it within your scope. An uncovered domain returns `404` with `domain_not_covered`. Check a domain with [`GET /stores/{domain}`](/api-reference/get-store), or find stores with [`POST /stores/search`](/api-reference/search-stores). Cannot be combined with `catalogs`.
 </ParamField>
 
 <ParamField body="limit" type="integer" default="50">
@@ -388,6 +388,8 @@ Use these values for the `name` field in each facet object. Each facet has one p
 | `category_path.depth_6` | Seventh-level category. |
 
 You can also filter on brand profile facets, such as `brand_origin_country`, and on taxonomy attribute handles by their bare name, such as `fit`. Don't add the `attribute_facets.` prefix: `attribute_facets.fit` returns a `422`. The one exception is the attribute named `color`, which you send as `attribute_facets.color` because `color` already names the facet above.
+
+To discover valid values, list categories and their `category_path.depth_N` facets with [`GET /taxonomy/categories`](/api-reference/list-taxonomy-categories), a category's attributes with [`GET /taxonomy/attributes`](/api-reference/list-taxonomy-attributes), and an attribute's value handles with [`GET /taxonomy/attributes/{handle}/values`](/api-reference/list-taxonomy-attribute-values). To see how many products each value would return under your filters, use [`POST /products/facet-counts`](/api-reference/count-product-facets).
 
 ## Pagination
 

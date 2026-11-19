@@ -1,0 +1,153 @@
+---
+title: "GET /taxonomy/categories — list taxonomy categories"
+description: "List StoreRouter's root taxonomy categories, or one category's direct children, each with the search facets that select it."
+sidebarTitle: "List Categories"
+---
+
+`GET /taxonomy/categories` walks StoreRouter's canonical product taxonomy, the category tree that enrichment assigns every indexed product to. Without `parent`, it returns the root categories. With `parent`, it returns that category's direct children.
+
+Each category includes the `facets` that select it. Send them unchanged in `facets` on [`POST /products/search`](/api-reference/search-products), or as a category on [`POST /products/facet-counts`](/api-reference/count-product-facets).
+
+<Note>
+  These are canonical definitions, not inventory. A category listed here may hold no products in your catalog scope. Use [`POST /products/facet-counts`](/api-reference/count-product-facets) to count matching products.
+</Note>
+
+This endpoint is not billed. It is rate limited like every `/v1` route.
+
+## Request
+
+```bash
+curl "https://api.storerouter.ai/v1/taxonomy/categories?parent=Apparel%20%26%20Accessories%20%3E%20Clothing&limit=2" \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY"
+```
+
+### Query parameters
+
+<ParamField query="parent" type="string">
+  The category whose children to list. Omit it to list root categories. Accepts any of these forms:
+
+  - A category UUID, such as `9af8b8a5-b1d0-48a1-9d30-93c2877d2621`.
+  - A section handle: `apparel`, `beauty`, `furniture`, `home_garden`, or `media`.
+  - A category path, root first and separated by ` > `, in any letter case, such as `Apparel & Accessories > Clothing`.
+
+  The lowercase `category_path.depth_N` values joined with ` > ` also name their category.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of categories to skip. Use the previous page's `nextOffset`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="25">
+  Categories per page, from 1 to 50.
+</ParamField>
+
+## Response
+
+<ResponseField name="taxonomyVersion" type="string" required>
+  Canonical taxonomy version name, such as `v4`.
+</ResponseField>
+
+<ResponseField name="parent" type="TaxonomyCategory | null" required>
+  The requested parent category. `null` when listing root categories.
+</ResponseField>
+
+<ResponseField name="categories" type="TaxonomyCategory[]" required>
+  This page of categories.
+
+  <Expandable title="TaxonomyCategory properties">
+    <ResponseField name="id" type="string" required>
+      Canonical category UUID.
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Display name, such as `Dresses`.
+    </ResponseField>
+
+    <ResponseField name="path" type="string" required>
+      Fully qualified name, root first and ` > ` separated, such as `Apparel & Accessories > Clothing > Dresses`.
+    </ResponseField>
+
+    <ResponseField name="depth" type="integer" required>
+      `0` for a root category.
+    </ResponseField>
+
+    <ResponseField name="childCount" type="integer" required>
+      Number of direct child categories. `0` for a leaf category.
+    </ResponseField>
+
+    <ResponseField name="facets" type="Facet[] | null" required>
+      Search facets that select this category, one `category_path.depth_N` facet per level. `null` for a category too deep to filter on.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer" required>
+  Number of categories across all pages.
+</ResponseField>
+
+<ResponseField name="nextOffset" type="integer | null" required>
+  Offset of the next page. Repeat the request with it as `offset`. `null` on the last page.
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "taxonomyVersion": "v4",
+  "parent": {
+    "id": "9af8b8a5-b1d0-48a1-9d30-93c2877d2621",
+    "name": "Clothing",
+    "path": "Apparel & Accessories > Clothing",
+    "depth": 1,
+    "childCount": 13,
+    "facets": [
+      {"name": "category_path.depth_0", "values": ["apparel & accessories"]},
+      {"name": "category_path.depth_1", "values": ["clothing"]}
+    ]
+  },
+  "categories": [
+    {
+      "id": "8866aef9-1915-4d6e-b465-87ba30b50380",
+      "name": "Dresses",
+      "path": "Apparel & Accessories > Clothing > Dresses",
+      "depth": 2,
+      "childCount": 0,
+      "facets": [
+        {"name": "category_path.depth_0", "values": ["apparel & accessories"]},
+        {"name": "category_path.depth_1", "values": ["clothing"]},
+        {"name": "category_path.depth_2", "values": ["dresses"]}
+      ]
+    },
+    {
+      "id": "3ec05ac7-c6f7-4c13-bd8f-9f882dd6bb94",
+      "name": "Jackets & Coats",
+      "path": "Apparel & Accessories > Clothing > Jackets & Coats",
+      "depth": 2,
+      "childCount": 6,
+      "facets": [
+        {"name": "category_path.depth_0", "values": ["apparel & accessories"]},
+        {"name": "category_path.depth_1", "values": ["clothing"]},
+        {"name": "category_path.depth_2", "values": ["jackets & coats"]}
+      ]
+    }
+  ],
+  "total": 13,
+  "nextOffset": 2
+}
+```
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `404` | `taxonomy_category_not_found` | `parent` names no category. |
+| `422` | Validation array | `offset` or `limit` is out of range, or `parent` is blank. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+## Next steps
+
+- List a category's attributes with [`GET /taxonomy/attributes`](/api-reference/list-taxonomy-attributes).
+- Count the products in each category with [`POST /products/facet-counts`](/api-reference/count-product-facets).
+
+Operation ID: `listTaxonomyCategories`. SDK methods: Python `list_taxonomy_categories(parent=..., offset=..., limit=...)`; TypeScript `listTaxonomyCategories({ parent, offset, limit })`. The MCP equivalent is [`taxonomy_tree`](/mcp/overview#taxonomy-discovery-tools).

@@ -1,0 +1,219 @@
+---
+title: "POST /products/facet-counts — count products by category and filter value"
+description: "Count the products a search would filter to, per taxonomy category, enrichment attribute value, color family, or top-level category, to build filter menus with live counts."
+sidebarTitle: "Count Product Facets"
+---
+
+`POST /products/facet-counts` counts the products that [`POST /products/search`](/api-reference/search-products) would filter to. Use it to build filter menus and category navigation that show how many products each option would return, and to hide options that return nothing.
+
+Send the same filters you would send to search: `q`, `facets`, `exclude_facets`, price and brand-quality bounds, and `catalogs`. Then say what to count:
+
+- **`categories`**: one count per category you name, such as the children from [`GET /taxonomy/categories`](/api-reference/list-taxonomy-categories).
+- **`attributes`** or **`derive_attributes`**: counts per value of enrichment attributes, such as `neckline` or `fabric`.
+- **`facet_names`**: counts per value of `color_family` or `category_path.depth_0`.
+
+Counts span every catalog your key can access unless `catalogs` narrows them, exactly as search does. Unlike the [taxonomy endpoints](/api-reference/list-taxonomy-categories), which return definitions, these counts reflect indexed products in your scope.
+
+This endpoint is not billed. It is rate limited like every `/v1` route.
+
+## Request
+
+```http
+POST https://api.storerouter.ai/v1/products/facet-counts
+Authorization: Bearer <your-platform-api-key>
+Content-Type: application/json
+```
+
+### Filter parameters
+
+These fields mean exactly what they mean on [`POST /products/search`](/api-reference/search-products#body-parameters), and follow the same [validation rules](/api-reference/search-products#validation-rules). Every field is optional. Unknown fields return a `422`.
+
+<ParamField body="q" type="string">
+  Free-text query, up to 1,000 characters, understood as search understands it. The category, gender, color, brand, price, and attribute filters understood from `q` apply to the counts. The text itself does not narrow them. A blank string is the same as omitting it.
+</ParamField>
+
+<ParamField body="facets" type="Facet[]">
+  Filters a product must match, as on search. A facet you send replaces any understood facet of the same name. Each name may appear at most once; at most 50 entries. See [Facet names](/api-reference/search-products#facet-names).
+</ParamField>
+
+<ParamField body="exclude_facets" type="Facet[]">
+  Filters a product must not match, as on search. At most 50 entries.
+</ParamField>
+
+<ParamField body="omit_generated_facets" type="string[]">
+  Understood facets to drop, as on search. Requires `q`.
+</ParamField>
+
+<ParamField body="fallback_category" type="string[]">
+  Category path, root first, with 1–4 category names, to filter to when understanding finds no category in `q`. Requires `q`.
+</ParamField>
+
+<ParamField body="price_min" type="number">
+  Inclusive minimum price, at least `0`.
+</ParamField>
+
+<ParamField body="price_max" type="number">
+  Inclusive maximum price, at least `0`.
+</ParamField>
+
+<ParamField body="brand_quality_min" type="number">
+  Inclusive minimum brand quality score, from `1` to `6`.
+</ParamField>
+
+<ParamField body="brand_quality_max" type="number">
+  Inclusive maximum brand quality score, from `1` to `6`.
+</ParamField>
+
+<ParamField body="catalogs" type="string[]">
+  1 to 500 catalog keys to count in. Omit it to count every catalog your key can access. Keys your key cannot access count nothing.
+</ParamField>
+
+### Count parameters
+
+Send at least one of `categories`, `attributes`, `derive_attributes`, or `facet_names`. Because `facet_names` defaults to `["color_family"]`, a request with none of them counts color families.
+
+<ParamField body="categories" type="FacetCountCategory[]">
+  Up to 100 categories to count. Each count is the products matching the filters above **and** the category's own facets. Each entry has:
+
+  - `key` (string, 1–200 characters, required): your identifier for the category. Its count carries it back. Keys must be unique.
+  - `facets` (Facet[], 1–10 entries, required): the facets that select the category, such as a [`GET /taxonomy/categories`](/api-reference/list-taxonomy-categories) entry's `facets`. Each name at most once.
+</ParamField>
+
+<ParamField body="context_facets" type="Facet[]">
+  Filters that apply to attribute and `facet_names` counts only, such as the category being browsed. Category counts ignore them, so sibling categories keep their own counts. Each name may appear at most once; at most 50 entries.
+</ParamField>
+
+<ParamField body="attributes" type="string[]">
+  Up to 50 attribute handles, such as `neckline`, whose values to count. Find a category's handles with [`GET /taxonomy/attributes`](/api-reference/list-taxonomy-attributes). Each handle must be filterable and may appear once. A value's count ignores your own facet on that attribute, so every value shows what selecting it would return.
+</ParamField>
+
+<ParamField body="derive_attributes" type="boolean" default="false">
+  Count every filterable attribute on any leaf category under the category path in `context_facets` (its `category_path.depth_N` facets), instead of naming `attributes`. Attributes that apply to more leaf categories come first. With no category path in `context_facets`, no attributes are counted. Cannot be combined with `attributes`.
+</ParamField>
+
+<ParamField body="facet_names" type="string[]" default='["color_family"]'>
+  Up to 2 facets whose values to count: `color_family` and `category_path.depth_0` (top-level categories). Like `attributes`, a count ignores your own facet of that name. Send `[]` to skip them.
+</ParamField>
+
+<ParamField body="value_limit" type="integer" default="100">
+  Most values returned per attribute and per facet, highest counts first. From 1 to 1,000.
+</ParamField>
+
+### Example
+
+Count the children of **Clothing** for women under $200, and the neckline and color-family values within **Dresses**:
+
+```bash
+curl https://api.storerouter.ai/v1/products/facet-counts \
+  -H "Authorization: Bearer $STOREROUTER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "facets": [{"name": "gender", "values": ["female"]}],
+    "price_max": 200,
+    "categories": [
+      {"key": "dresses", "facets": [
+        {"name": "category_path.depth_1", "values": ["clothing"]},
+        {"name": "category_path.depth_2", "values": ["dresses"]}
+      ]},
+      {"key": "skirts", "facets": [
+        {"name": "category_path.depth_1", "values": ["clothing"]},
+        {"name": "category_path.depth_2", "values": ["skirts"]}
+      ]}
+    ],
+    "context_facets": [
+      {"name": "category_path.depth_0", "values": ["apparel & accessories"]},
+      {"name": "category_path.depth_1", "values": ["clothing"]},
+      {"name": "category_path.depth_2", "values": ["dresses"]}
+    ],
+    "attributes": ["neckline"],
+    "facet_names": ["color_family"],
+    "value_limit": 3
+  }'
+```
+
+## Response
+
+<ResponseField name="categories" type="CategoryCount[]" required>
+  One entry per requested category, in request order. Each has `key` (the key you sent) and `count`.
+</ResponseField>
+
+<ResponseField name="attributes" type="AttributeCounts[]" required>
+  One entry per counted attribute, in request order, or in derived order with `derive_attributes`.
+
+  <Expandable title="AttributeCounts properties">
+    <ResponseField name="handle" type="string" required>
+      The attribute handle.
+    </ResponseField>
+
+    <ResponseField name="facetName" type="string" required>
+      The search facet name to send its values under.
+    </ResponseField>
+
+    <ResponseField name="values" type="FacetValueCount[]" required>
+      Values with at least one product, most products first. Each has `value`, to send back in that facet's `values`, and `count`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="facets" type="FacetValueCounts[]" required>
+  One entry per name in `facet_names`, in request order. Each has `name` and `values`, with values as above.
+</ResponseField>
+
+<ResponseField name="effectiveQuery" type="object" required>
+  The filters and bounds the counts applied, with each facet's origin, as search reports them. See [Effective query](/api-reference/search-products#effective-query).
+</ResponseField>
+
+### Example response
+
+```json
+{
+  "categories": [
+    {"key": "dresses", "count": 18342},
+    {"key": "skirts", "count": 4127}
+  ],
+  "attributes": [
+    {
+      "handle": "neckline",
+      "facetName": "neckline",
+      "values": [
+        {"value": "neckline__v_neck", "count": 3210},
+        {"value": "neckline__square", "count": 2045},
+        {"value": "neckline__crew", "count": 1688}
+      ]
+    }
+  ],
+  "facets": [
+    {
+      "name": "color_family",
+      "values": [
+        {"value": "black", "count": 4011},
+        {"value": "blue", "count": 2532},
+        {"value": "white", "count": 2219}
+      ]
+    }
+  ],
+  "effectiveQuery": {
+    "text": "",
+    "understood": false,
+    "facets": [{"name": "gender", "values": ["female"], "source": "caller"}],
+    "excludeFacets": [],
+    "priceMin": null,
+    "priceMax": 200,
+    "brandQualityMin": null,
+    "brandQualityMax": null,
+    "catalogs": null,
+    "similarToBrands": null,
+    "relaxation": null
+  }
+}
+```
+
+## Errors
+
+| Status | `detail` | Cause |
+| --- | --- | --- |
+| `422` | Validation array | A filter breaks a search [validation rule](/api-reference/search-products#validation-rules); nothing to count; duplicate category keys, attribute handles, or facet names; an unknown or non-filterable attribute handle; or `attributes` combined with `derive_attributes`. |
+
+See the [overview](/api-reference/overview#error-model) for authentication and rate-limit errors.
+
+Operation ID: `countProductFacets`. SDK methods: Python `count_product_facets(...)`; TypeScript `countProductFacets({ ... })`. The SDKs take the same fields, in camelCase for TypeScript. The MCP server has no equivalent tool.
