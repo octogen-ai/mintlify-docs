@@ -16,8 +16,8 @@ Content-Type: application/json
 
 ### Body parameters
 
-<ParamField body="uuids" type="string[] (UUID)" required>
-  1–50 product ids from earlier responses. Older ids for a product still work. Results come back in this order, one per entry, duplicates included. A value that is not a UUID returns `422`.
+<ParamField body="uuids" type="string[]" required>
+  1–50 product IDs from earlier responses. For an organization with scoped search and retrieve enabled, pass the `pg-` or `prd-` IDs as returned by the API. Otherwise, pass UUIDs from earlier responses. Results come back in the same order, one per entry, including duplicates.
 </ParamField>
 
 ### Example
@@ -111,6 +111,6 @@ curl -sS https://api.storerouter.ai/v1/products/retrieve \
 
 | Status | `detail` | Meaning |
 | --- | --- | --- |
-| `422` | validation errors | `uuids` is empty, has more than 50 entries, or contains a value that is not a UUID. |
+| `422` | validation errors | `uuids` is empty, has more than 50 entries, or contains an ID with a format invalid for the current product scope. |
 | `429` | `rate_limit_exceeded` or `retrieve_daily_item_limit_exceeded` | See [Rate limits](/guides/rate-limits). Each id counts toward the daily ceiling. Honor `Retry-After`. |
 | `503` | `product_retrieve_index_unavailable` | The index is busy. Retry after `Retry-After`. |

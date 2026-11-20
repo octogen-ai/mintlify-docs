@@ -15,7 +15,10 @@ Search and More Like This return summaries in `items[]`. [Brand product browsing
 | Field | Type | Description |
 | --- | --- | --- |
 | `uuid` | string, required | Identifier for the indexed product. Use it to deduplicate results across pages. |
-| `productUrl` | string, required | Merchant product URL. Pass it to product lookup for the full record. |
+| `productGroupUuid` | string or null | Parent group ID for a scoped result. A group uses its own `pg-` ID. |
+| `selectedOptions` | object or null | Fixed merchant options on a scoped result. A group returns `{}`. |
+| `availableOptions` | [`ProductAvailableOptions`](#scoped-available-options), optional | Display values and links from full indexed selections to `prd-` IDs. |
+| `productUrl` | string, required | Merchant product URL. To read back a search result, pass its `uuid` to [Retrieve Product](/api-reference/retrieve-product). |
 | `title` | string or null | Product title from the merchant. |
 | `brand` | [`ProductBrand`](#productbrand) or null | Brand associated with the product. |
 | `catalogKey` | string or null | Key of the catalog that supplied the product. |
@@ -96,6 +99,79 @@ Search and More Like This return summaries in `items[]`. [Brand product browsing
     "l",
     "xl"
   ]
+}
+```
+
+### Scoped available options
+
+For organizations with scoped product search and retrieve enabled, `ProductSummary` and `ProductDetail` can include `availableOptions`.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `options` | Object of string arrays | Merchant display values by axis, such as `color`, `fit`, or `size`. A value may appear even when the matching units are out of stock. |
+| `optionIndex` | Array of `ProductOptionLink` objects | Each row contains the look's full `selectedOptions` and its `productUuid`, a `prd-` ID. |
+
+Compare every key and value in your selection with `selectedOptions` in a row. Key order can differ. Use `optionIndex` to find look links, and `options` to display choices. Sizes and other options can vary within a look.
+
+#### Find and retrieve Black + Tall
+
+This example uses illustrative IDs and a catalog group with separate indexed looks for Black + Regular and Black + Tall. A catalog that indexes looks by color alone may return a row for Black and list fit as a display value.
+
+Send a search request for the product group.
+
+```bash
+curl -sS https://api.storerouter.ai/v1/products/search \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"q":"crew neck sweater","understand":false}'
+```
+
+The search response includes the group and its look links. This excerpt focuses on the option fields.
+
+```json
+{
+  "items": [
+    {
+      "uuid": "pg-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "productGroupUuid": "pg-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "selectedOptions": {},
+      "availableOptions": {
+        "options": {"color": ["Black"], "fit": ["Regular", "Tall"], "size": ["M", "L"]},
+        "optionIndex": [
+          {
+            "selectedOptions": {"color": "Black", "fit": "Regular"},
+            "productUuid": "prd-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          {
+            "selectedOptions": {"color": "Black", "fit": "Tall"},
+            "productUuid": "prd-cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Match `{"color":"Black","fit":"Tall"}` against the complete selection in the second row. Pass its `productUuid` unchanged to retrieve that look.
+
+```bash
+curl -sS https://api.storerouter.ai/v1/products/retrieve/prd-cccccccc-cccc-4ccc-8ccc-cccccccccccc \
+  -H "Authorization: Bearer $OCTOGEN_PLATFORM_API_KEY"
+```
+
+The retrieve response identifies the same look and confirms its fixed selection. Read `product.variants` for the purchasable units within it.
+
+```json
+{
+  "requestedUuid": "prd-cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  "status": "found",
+  "uuid": "prd-cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  "product": {
+    "uuid": "prd-cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "productGroupUuid": "pg-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "selectedOptions": {"color": "Black", "fit": "Tall"}
+  }
 }
 ```
 

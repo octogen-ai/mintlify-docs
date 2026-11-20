@@ -23,8 +23,8 @@ Authorization: Bearer <your-platform-api-key>
 
 ### Path parameters
 
-<ParamField path="uuid" type="string (UUID)" required>
-  A product `uuid` from an earlier response. An older id for the same product still works. A value that is not a UUID returns `422`.
+<ParamField path="uuid" type="string" required>
+  A product `uuid` from an earlier response. For an organization with scoped search and retrieve enabled, pass the `pg-` group or `prd-` look ID as returned by the API. Otherwise, pass the UUID from the earlier response.
 </ParamField>
 
 ### Example
@@ -69,7 +69,7 @@ curl -sS https://api.storerouter.ai/v1/products/retrieve/0c0e3bb8-965a-4f2d-919b
 </ResponseField>
 
 <ResponseField name="product" type="MerchantProductView" required>
-  The same [product view](/api-reference/models/product) lookup returns for an indexed product.
+  The [product detail](/api-reference/models/product) at the requested scope. See the [scoped option example](/api-reference/models/product#scoped-available-options) for a search-to-retrieve flow.
 </ResponseField>
 
 ### Example
@@ -103,6 +103,6 @@ The response carries a weak `ETag`. Send it back in `If-None-Match` to get `304 
 | Status | `detail` | Meaning |
 | --- | --- | --- |
 | `404` | `product_not_found` | No indexed product with this id is visible to your key. An unknown id, a product that left the index, and a product outside your key's catalog access look the same. |
-| `422` | validation errors | The id is not a UUID. |
+| `422` | validation errors | The ID format is invalid for the current product scope. |
 | `429` | `rate_limit_exceeded` or `retrieve_daily_item_limit_exceeded` | See [Rate limits](/guides/rate-limits). Honor `Retry-After`. |
 | `503` | `product_retrieve_index_unavailable` | The index is busy. Retry after `Retry-After`. |

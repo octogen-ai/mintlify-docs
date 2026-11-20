@@ -156,7 +156,7 @@ curl -sS https://api.storerouter.ai/v1/products/search \
 ## Response
 
 <ResponseField name="items" type="MerchantProductListItem[]" required>
-  The current page of product results. See the [Product model](/api-reference/models/product) for the full field reference.
+  The current page of product results. See the [Product model](/api-reference/models/product) for the full field reference. If your organization has scoped options enabled, follow the [Black + Tall example](/api-reference/models/product#scoped-available-options) to retrieve a look by its `prd-` ID.
 
   <Expandable title="MerchantProductListItem properties">
     <ResponseField name="uuid" type="string" required>
